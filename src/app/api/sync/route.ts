@@ -12,7 +12,7 @@ const supabase =
 
 export async function GET() {
   try {
-    // FETCH FROM FOOTBALL DATA API
+    // FETCH WORLD CUP MATCHES
     const response =
       await fetch(
         "https://api.football-data.org/v4/competitions/WC/matches",
@@ -69,93 +69,141 @@ export async function GET() {
       );
     }
 
-    let syncedCount = 0;
+    // FETCH EXISTING MATCHES ONCE
+    const {
+      data:
+        existingMatches,
+      error:
+        existingError,
+    } = await supabase
+      .from("matches")
+      .select(
+        "api_match_id, processed"
+      );
 
-    // UPSERT MATCHES
-    for (const match of apiData.matches) {
-      // CHECK EXISTING MATCH
-      const {
-        data:
-          existingMatch,
-      } = await supabase
+    if (
+      existingError
+    ) {
+      console.error(
+        existingError
+      );
+
+      return NextResponse.json(
+        {
+          success: false,
+
+          error:
+            existingError.message,
+        },
+        {
+          status: 500,
+        }
+      );
+    }
+
+    // CREATE LOOKUP MAP
+    const processedMap =
+      new Map();
+
+    existingMatches?.forEach(
+      (match) => {
+        processedMap.set(
+          match.api_match_id,
+          match.processed
+        );
+      }
+    );
+
+    // BUILD BULK PAYLOAD
+    const payload =
+      apiData.matches.map(
+        (match: any) => ({
+          api_match_id:
+            String(match.id),
+
+          team1:
+            match.homeTeam
+              ?.name ||
+            "TBD",
+
+          team2:
+            match.awayTeam
+              ?.name ||
+            "TBD",
+
+          team1_crest:
+            match.homeTeam
+              ?.crest ||
+            null,
+
+          team2_crest:
+            match.awayTeam
+              ?.crest ||
+            null,
+
+          kickoff_time:
+            match.utcDate ||
+            null,
+
+          status:
+            match.status ||
+            "SCHEDULED",
+
+          team1_score:
+            match.score
+              ?.fullTime
+              ?.home ??
+            null,
+
+          team2_score:
+            match.score
+              ?.fullTime
+              ?.away ??
+            null,
+
+          matchday:
+            match.stage ||
+            "Group Stage",
+
+          // PRESERVE PROCESSED STATE
+          processed:
+            processedMap.get(
+              String(
+                match.id
+              )
+            ) || false,
+        })
+      );
+
+    // SINGLE BULK UPSERT
+    const { error } =
+      await supabase
         .from("matches")
-        .select(
-          "id, processed"
-        )
-        .eq(
-          "api_match_id",
-          String(match.id)
-        )
-        .single();
-
-      const payload = {
-        api_match_id:
-          String(match.id),
-
-        team1:
-          match.homeTeam
-            ?.name || "TBD",
-
-        team2:
-          match.awayTeam
-            ?.name || "TBD",
-
-        team1_crest:
-          match.homeTeam
-            ?.crest || null,
-
-        team2_crest:
-          match.awayTeam
-            ?.crest || null,
-
-        kickoff_time:
-          match.utcDate || null,
-
-        status:
-          match.status ||
-          "SCHEDULED",
-
-        team1_score:
-          match.score
-            ?.fullTime
-            ?.home ?? null,
-
-        team2_score:
-          match.score
-            ?.fullTime
-            ?.away ?? null,
-
-        matchday:
-          match.stage ||
-          "Group Stage",
-
-        // PRESERVE PROCESSING STATE
-        processed:
-          existingMatch?.processed ||
-          false,
-      };
-
-      const { error } =
-        await supabase
-          .from("matches")
-          .upsert(
-            payload,
-            {
-              onConflict:
-                "api_match_id",
-            }
-          );
-
-      if (error) {
-        console.error(
-          "Supabase Match Upsert Error:",
-          error
+        .upsert(
+          payload,
+          {
+            onConflict:
+              "api_match_id",
+          }
         );
 
-        continue;
-      }
+    if (error) {
+      console.error(
+        "Bulk Upsert Error:",
+        error
+      );
 
-      syncedCount++;
+      return NextResponse.json(
+        {
+          success: false,
+
+          error:
+            error.message,
+        },
+        {
+          status: 500,
+        }
+      );
     }
 
     return NextResponse.json(
@@ -163,11 +211,7 @@ export async function GET() {
         success: true,
 
         synced:
-          syncedCount,
-
-        total:
-          apiData.matches
-            .length,
+          payload.length,
       },
       {
         status: 200,
@@ -197,4 +241,3 @@ export async function GET() {
     );
   }
 }
-
