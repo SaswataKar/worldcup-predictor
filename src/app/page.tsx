@@ -776,6 +776,19 @@ export default function Home() {
       setPredictions(
         updated
       );
+      // CLEAR LOCAL SCORE STATE
+      setPredictedScores(
+        (prev: any) => {
+          const updatedScores =
+            { ...prev };
+
+          delete updatedScores[
+            matchId
+          ];
+
+          return updatedScores;
+        }
+      );
 
       toast.success(
         "Prediction cancelled"
