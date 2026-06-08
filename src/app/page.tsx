@@ -56,6 +56,13 @@ export default function Home() {
     setGoatDays,
   ] = useState<any[]>([]);
 
+  const [
+    cancellingMatches,
+    setCancellingMatches,
+  ] = useState<any[]>([]);
+
+
+
   // INIT
   useEffect(() => {
     const init =
@@ -230,6 +237,15 @@ export default function Home() {
           (
             prediction
           ) => {
+            // IGNORE MATCHES CURRENTLY BEING CANCELLED
+            if (
+              cancellingMatches.includes(
+                prediction.match_id
+              )
+            ) {
+              return;
+            }
+
             mapped[
               prediction.match_id
             ] =
@@ -246,6 +262,8 @@ export default function Home() {
             };
           }
         );
+
+
 
         setPredictions(
           mapped
@@ -738,7 +756,13 @@ export default function Home() {
             )
         );
       }
-
+        // PREVENT POLLING RACE CONDITION
+        setCancellingMatches(
+          (prev) => [
+            ...prev,
+            matchId,
+          ]
+        );
       const response =
         await supabase
           .from(
@@ -788,6 +812,15 @@ export default function Home() {
 
           return updatedScores;
         }
+      );
+
+      // REMOVE CANCELLING STATE
+      setCancellingMatches(
+        (prev) =>
+          prev.filter(
+            (id) =>
+              id !== matchId
+          )
       );
 
       toast.success(
