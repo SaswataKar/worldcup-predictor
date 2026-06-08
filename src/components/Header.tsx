@@ -9,7 +9,7 @@ import { useRouter } from "next/navigation";
 export default function Header({
   user,
 }: {
-  user: any;
+  user?: any;
 }) {
   const pathname =
     usePathname();
@@ -41,9 +41,10 @@ export default function Header({
           <h1 className="text-3xl font-black tracking-tight">
             ⚽ Pro Predictor
           </h1>
-
           <p className="text-zinc-400 text-sm mt-1">
-            Welcome, {user?.name}
+            {user?.name
+              ? `Welcome, ${user.name}`
+              : "FIFA World Cup 2026"}
           </p>
         </div>
 
