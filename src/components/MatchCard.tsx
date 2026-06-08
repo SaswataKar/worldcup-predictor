@@ -183,7 +183,7 @@ export default function MatchCard({
 
             {/* CLOSE TIME */}
             <div className="text-zinc-400 hidden sm:flex flex-col items-end leading-tight">
-              <span className="text-[11px] text-zinc-600 uppercase tracking-widest">Closes</span>
+              <span className="text-[11px] text-zinc-600 uppercase tracking-widest">Prediction Closes</span>
               <span className={locked ? "text-red-400" : "text-zinc-400"}>
                 {getCloseTime()}
               </span>
