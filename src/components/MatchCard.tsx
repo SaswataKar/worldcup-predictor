@@ -175,7 +175,7 @@ export default function MatchCard({
 
             {/* KICKOFF */}
             <div className="text-zinc-400 hidden sm:flex flex-col items-end leading-tight">
-              <span className="text-[11px] text-zinc-600 uppercase tracking-widest">Kickoff</span>
+              <span className="text-[11px] text-zinc-600 uppercase tracking-widest">Match-Kickoff</span>
               <span>{getISTKickoff()}</span>
             </div>
 
@@ -183,7 +183,7 @@ export default function MatchCard({
 
             {/* CLOSE TIME */}
             <div className="text-zinc-400 hidden sm:flex flex-col items-end leading-tight">
-              <span className="text-[11px] text-zinc-600 uppercase tracking-widest">Prediction Closes</span>
+              <span className="text-[11px] text-zinc-600 uppercase tracking-widest">Prediction-Closes</span>
               <span className={locked ? "text-red-400" : "text-zinc-400"}>
                 {getCloseTime()}
               </span>
@@ -248,12 +248,12 @@ export default function MatchCard({
         {/* MOBILE: kickoff + close time row */}
         <div className="flex items-center gap-4 mt-3 sm:hidden text-xs text-zinc-500 font-semibold">
           <div className="flex flex-col leading-tight">
-            <span className="text-[10px] text-zinc-700 uppercase tracking-widest">Kickoff</span>
+            <span className="text-[10px] text-zinc-700 uppercase tracking-widest">Match-Kickoff</span>
             <span>{getISTKickoff()}</span>
           </div>
           <div className="text-zinc-700">·</div>
           <div className="flex flex-col leading-tight">
-            <span className="text-[10px] text-zinc-700 uppercase tracking-widest">Closes</span>
+            <span className="text-[10px] text-zinc-700 uppercase tracking-widest">Prediction-Closes</span>
             <span className={locked ? "text-red-400" : ""}>{getCloseTime()}</span>
           </div>
         </div>
