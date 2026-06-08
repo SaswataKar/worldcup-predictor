@@ -5,11 +5,7 @@ import toast from "react-hot-toast";
 
 import { useRouter } from "next/navigation";
 
-import {
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import Header from "@/components/Header";
 import MatchCard from "@/components/MatchCard";
@@ -19,841 +15,348 @@ import PageWrapper from "@/components/PageWrapper";
 import { supabase } from "@/lib/supabase";
 
 export default function Home() {
-  const router =
-    useRouter();
+  const router = useRouter();
 
-  const [user, setUser] =
-    useState<any>(null);
+  const [user, setUser] = useState<any>(null);
+  const [matches, setMatches] = useState<any[]>([]);
+  const [predictions, setPredictions] = useState<any>({});
+  const [predictedScores, setPredictedScores] = useState<any>({});
+  const [expandedMatches, setExpandedMatches] = useState<any>({});
+  const [selectedInventoryBooster, setSelectedInventoryBooster] = useState<any>(null);
+  const [usedBoosters, setUsedBoosters] = useState<any[]>([]);
+  const [goatDays, setGoatDays] = useState<any[]>([]);
 
-  const [matches, setMatches] =
-    useState<any[]>([]);
-
-  const [predictions, setPredictions] =
-    useState<any>({});
-
-  const [
-    predictedScores,
-    setPredictedScores,
-  ] = useState<any>({});
-
-  const [
-    expandedMatches,
-    setExpandedMatches,
-  ] = useState<any>({});
-
-  const [
-    selectedInventoryBooster,
-    setSelectedInventoryBooster,
-  ] = useState<any>(null);
-
-  const [
-    usedBoosters,
-    setUsedBoosters,
-  ] = useState<any[]>([]);
-
-  const [
-    goatDays,
-    setGoatDays,
-  ] = useState<any[]>([]);
-
-  const [
-    cancellingMatches,
-    setCancellingMatches,
-  ] = useState<any[]>([]);
-
-  const [
-    isCancelling,
-    setIsCancelling,
-  ] = useState(false);
+  // Tracks match IDs that have been locally cancelled — polling will not restore these
+  const cancelledMatchIds = useRef<Set<number>>(new Set());
 
   // INIT
   useEffect(() => {
-    const init =
-      async () => {
-        const storedUser =
-          Cookies.get(
-            "user"
-          );
+    const init = async () => {
+      const storedUser = Cookies.get("user");
 
-        // NO COOKIE
-        if (!storedUser) {
-          router.push(
-            "/login"
-          );
+      if (!storedUser) {
+        router.push("/login");
+        return;
+      }
 
+      try {
+        const parsedUser = JSON.parse(storedUser);
+
+        const { data: existingUser } = await supabase
+          .from("users")
+          .select("*")
+          .eq("id", parsedUser.id)
+          .single();
+
+        if (!existingUser) {
+          Cookies.remove("user");
+          toast.error("Session expired. Please login again.");
+          router.push("/login");
           return;
         }
 
-        try {
-          const parsedUser =
-            JSON.parse(
-              storedUser
-            );
-
-          // VERIFY USER STILL EXISTS
-          const {
-            data:
-              existingUser,
-          } = await supabase
-            .from("users")
-            .select("*")
-            .eq(
-              "id",
-              parsedUser.id
-            )
-            .single();
-
-          // USER DELETED
-          if (
-            !existingUser
-          ) {
-            Cookies.remove(
-              "user"
-            );
-
-            toast.error(
-              "Session expired. Please login again."
-            );
-
-            router.push(
-              "/login"
-            );
-
-            return;
-          }
-
-          // VALID SESSION
-          setUser(
-            existingUser
-          );
-
-          await fetchMatches();
-
-          await fetchPredictions(
-            existingUser.id
-          );
-
-          await fetchDailyBoosters(
-            existingUser.id
-          );
-        } catch (error) {
-          Cookies.remove(
-            "user"
-          );
-
-          router.push(
-            "/login"
-          );
-        }
-      };
+        setUser(existingUser);
+        await fetchMatches();
+        await fetchPredictions(existingUser.id);
+        await fetchDailyBoosters(existingUser.id);
+      } catch (error) {
+        Cookies.remove("user");
+        router.push("/login");
+      }
+    };
 
     init();
   }, []);
-  
+
   // AUTO REFRESH
   useEffect(() => {
     if (!user) return;
 
-    const interval =
-      setInterval(async () => {
-        // PAUSE POLLING DURING CANCEL
-        if (
-          isCancelling
-        ) {
-          return;
-        }
+    const interval = setInterval(async () => {
+      await fetchMatches();
+      await fetchPredictions(user.id);
+      await fetchDailyBoosters(user.id);
+    }, 10000);
 
-        await fetchMatches();
-
-        await fetchPredictions(
-          user.id
-        );
-
-        await fetchDailyBoosters(
-          user.id
-        );
-      }, 10000);
-  
-
-
-    return () =>
-      clearInterval(
-        interval
-      );
+    return () => clearInterval(interval);
   }, [user]);
 
   // FETCH MATCHES
-  const fetchMatches =
-    async () => {
-      try {
-        const response =
-          await fetch(
-            "/api/matches",
-            {
-              cache:
-                "no-store",
-            }
-          );
+  const fetchMatches = async () => {
+    try {
+      const response = await fetch("/api/matches", { cache: "no-store" });
+      const data = await response.json();
 
-        const data =
-          await response.json();
-
-        setMatches((prev) => {
-          const next =
-            data.matches || [];
-
-          if (
-            JSON.stringify(prev) ===
-            JSON.stringify(next)
-          ) {
-            return prev;
-          }
-
-          return next;
-        });
-      } catch (error) {
-        console.error(
-          "Fetch Matches Error:",
-          error
-        );
-      }
-    };
-
-
+      setMatches((prev) => {
+        const next = data.matches || [];
+        if (JSON.stringify(prev) === JSON.stringify(next)) return prev;
+        return next;
+      });
+    } catch (error) {
+      console.error("Fetch Matches Error:", error);
+    }
+  };
 
   // FETCH PREDICTIONS
-  const fetchPredictions =
-    async (userId: number) => {
-      const {
-        data,
-        error,
-      } = await supabase
-        .from("predictions")
-        .select("*")
-        .eq(
-          "user_id",
-          userId
-        );
+  // Merges server state into local state instead of replacing it.
+  // Cancelled match IDs (tracked in cancelledMatchIds ref) are never restored by polling.
+  const fetchPredictions = async (userId: number) => {
+    const { data, error } = await supabase
+      .from("predictions")
+      .select("*")
+      .eq("user_id", userId);
 
-      if (
-        !error &&
-        data
-      ) {
-        const mapped: any =
-          {};
+    if (error || !data) return;
 
-        const scoreMap: any =
-          {};
+    const serverMapped: any = {};
+    const serverScoreMap: any = {};
 
-        data.forEach(
-          (
-            prediction
-          ) => {
-            // IGNORE MATCHES CURRENTLY BEING CANCELLED
-            if (
-              cancellingMatches.includes(
-                prediction.match_id
-              )
-            ) {
-              return;
-            }
+    data.forEach((prediction) => {
+      // Never restore a prediction the user has cancelled this session
+      if (cancelledMatchIds.current.has(prediction.match_id)) return;
 
-            mapped[
-              prediction.match_id
-            ] =
-              prediction;
+      serverMapped[prediction.match_id] = prediction;
+      serverScoreMap[prediction.match_id] = {
+        home: prediction.predicted_team1_score,
+        away: prediction.predicted_team2_score,
+      };
+    });
 
-            scoreMap[
-              prediction.match_id
-            ] = {
-              home:
-                prediction.predicted_team1_score,
-
-              away:
-                prediction.predicted_team2_score,
-            };
-          }
-        );
-
-
-
-        setPredictions(
-          mapped
-        );
-
-
-        setPredictedScores(
-          (prev: any) => {
-            const updated = {
-              ...prev,
-            };
-
-            Object.keys(
-              scoreMap
-            ).forEach(
-              (matchId) => {
-                // ONLY UPDATE IF USER HASN'T STARTED TYPING
-                if (
-                  !prev[
-                    matchId
-                  ]
-                ) {
-                  updated[
-                    matchId
-                  ] =
-                    scoreMap[
-                      matchId
-                    ];
-                }
-              }
-            );
-
-            return updated;
-          }
-        );
-
-
-
-        const used =
-          data
-            .map(
-              (
-                prediction
-              ) =>
-                prediction.booster_used
-            )
-            .filter(
-              (
-                booster
-              ) =>
-                booster &&
-                booster !==
-                  "none"
-            );
-
-        setUsedBoosters(
-          Array.from(
-            new Set(used)
-          )
-        );
-      }
-    };
-
-  // FETCH GOAT
-  const fetchDailyBoosters =
-    async (userId: number) => {
-      const {
-        data,
-        error,
-      } = await supabase
-        .from(
-          "daily_boosters"
-        )
-        .select("*")
-        .eq(
-          "user_id",
-          userId
-        );
-
-      if (error) {
-        console.error(
-          error
-        );
-
-        return;
-      }
-
-      if (
-        data?.length
-      ) {
-        setGoatDays(
-          data.map(
-            (item) =>
-              new Date(
-                item.active_date
-              )
-                .toISOString()
-                .split(
-                  "T"
-                )[0]
-          )
-        );
-      }
-    };
-
-  // GOAT ACTIVATION
-  const activateGoat =
-    async (
-      activeDate: string
-    ) => {
-      if (
-        goatDays.length >
-        0
-      ) {
-        toast.error(
-          "G.O.A.T already used"
-        );
-
-        return;
-      }
-
-      const confirmed =
-        window.confirm(
-          "⚠️ G.O.A.T is a legendary one-time booster.\n\nOnce activated it can NEVER be used again.\n\nActivate for this matchday?"
-        );
-
-      if (!confirmed)
-        return;
-
-      const response =
-        await supabase
-          .from(
-            "daily_boosters"
-          )
-          .insert({
-            user_id:
-              user.id,
-
-            booster_type:
-              "draw",
-
-            active_date:
-              activeDate,
-          });
-
-      if (
-        response.error
-      ) {
-        toast.error(
-          response.error
-            .message
-        );
-
-        return;
-      }
-
-      setGoatDays([
-        ...goatDays,
-        activeDate,
-      ]);
-
-      toast.success(
-        "🐐 G.O.A.T activated!"
-      );
-    };
-
-  // GROUP MATCHES
-  const groupedMatches =
-    useMemo(() => {
-      const grouped: any =
-        {};
-
-      matches.forEach(
-        (match) => {
-          if (
-            !match.kickoff_time
-          ) {
-            return;
-          }
-
-          const kickoff =
-            new Date(
-              match.kickoff_time
-            );
-
-          if (
-            isNaN(
-              kickoff.getTime()
-            )
-          ) {
-            return;
-          }
-
-          const date =
-            kickoff
-              .toISOString()
-              .split(
-                "T"
-              )[0];
-
-          if (
-            !grouped[
-              date
-            ]
-          ) {
-            grouped[
-              date
-            ] = [];
-          }
-
-          grouped[
-            date
-          ].push(match);
+    // Merge: keep existing local predictions for cancelled matches, apply server state for the rest
+    setPredictions((prev: any) => {
+      const merged = { ...serverMapped };
+      // Preserve any local-only keys not in server response (e.g. optimistic state mid-submit)
+      Object.keys(prev).forEach((matchId) => {
+        if (!(matchId in merged)) {
+          merged[matchId] = prev[matchId];
         }
-      );
+      });
+      return merged;
+    });
 
-      return grouped;
-    }, [matches]);
-
-  // TBD MATCHES
-  const tbdMatches =
-    useMemo(() => {
-      return matches.filter(
-        (match) => {
-          if (
-            !match.kickoff_time
-          ) {
-            return true;
-          }
-
-          const kickoff =
-            new Date(
-              match.kickoff_time
-            );
-
-          return isNaN(
-            kickoff.getTime()
-          );
+    setPredictedScores((prev: any) => {
+      const updated = { ...prev };
+      Object.keys(serverScoreMap).forEach((matchId) => {
+        // Only backfill scores the user hasn't touched locally
+        if (!prev[matchId]) {
+          updated[matchId] = serverScoreMap[matchId];
         }
-      );
-    }, [matches]);
+      });
+      return updated;
+    });
 
-  // LOCK LOGIC
-  const canPredict = (
-    kickoffTime: string
-  ) => {
-    if (!kickoffTime)
-      return false;
+    const used = data
+      .map((p) => p.booster_used)
+      .filter((b) => b && b !== "none");
 
-    const now =
-      new Date();
+    setUsedBoosters(Array.from(new Set(used)));
+  };
 
-    const kickoff =
-      new Date(
-        kickoffTime
-      );
+  // FETCH DAILY BOOSTERS
+  const fetchDailyBoosters = async (userId: number) => {
+    const { data, error } = await supabase
+      .from("daily_boosters")
+      .select("*")
+      .eq("user_id", userId);
 
-    if (
-      isNaN(
-        kickoff.getTime()
-      )
-    ) {
-      return false;
+    if (error) {
+      console.error(error);
+      return;
     }
 
-    const openTime =
-      new Date(
-        kickoff
+    if (data?.length) {
+      setGoatDays(
+        data.map((item) => new Date(item.active_date).toISOString().split("T")[0])
       );
+    }
+  };
 
-    openTime.setDate(
-      openTime.getDate() -
-        1
+  // GOAT ACTIVATION
+  const activateGoat = async (activeDate: string) => {
+    if (goatDays.length > 0) {
+      toast.error("G.O.A.T already used");
+      return;
+    }
+
+    const confirmed = window.confirm(
+      "⚠️ G.O.A.T is a legendary one-time booster.\n\nOnce activated it can NEVER be used again.\n\nActivate for this matchday?"
     );
 
-    openTime.setHours(
-      0,
-      0,
-      0,
-      0
-    );
+    if (!confirmed) return;
 
-    const closeTime =
-      new Date(
-        kickoff.getTime() -
-          1 *
-            60 *
-            1000
-      );
+    const response = await supabase.from("daily_boosters").insert({
+      user_id: user.id,
+      booster_type: "draw",
+      active_date: activeDate,
+    });
 
-    return (
-      now >= openTime &&
-      now < closeTime
-    );
+    if (response.error) {
+      toast.error(response.error.message);
+      return;
+    }
+
+    setGoatDays([...goatDays, activeDate]);
+    toast.success("🐐 G.O.A.T activated!");
+  };
+
+  // GROUP MATCHES
+  const groupedMatches = useMemo(() => {
+    const grouped: any = {};
+
+    matches.forEach((match) => {
+      if (!match.kickoff_time) return;
+
+      const kickoff = new Date(match.kickoff_time);
+      if (isNaN(kickoff.getTime())) return;
+
+      const date = kickoff.toISOString().split("T")[0];
+      if (!grouped[date]) grouped[date] = [];
+      grouped[date].push(match);
+    });
+
+    return grouped;
+  }, [matches]);
+
+  // TBD MATCHES
+  const tbdMatches = useMemo(() => {
+    return matches.filter((match) => {
+      if (!match.kickoff_time) return true;
+      const kickoff = new Date(match.kickoff_time);
+      return isNaN(kickoff.getTime());
+    });
+  }, [matches]);
+
+  // LOCK LOGIC
+  const canPredict = (kickoffTime: string) => {
+    if (!kickoffTime) return false;
+
+    const now = new Date();
+    const kickoff = new Date(kickoffTime);
+    if (isNaN(kickoff.getTime())) return false;
+
+    const openTime = new Date(kickoff);
+    openTime.setDate(openTime.getDate() - 1);
+    openTime.setHours(0, 0, 0, 0);
+
+    const closeTime = new Date(kickoff.getTime() - 1 * 60 * 1000);
+
+    return now >= openTime && now < closeTime;
   };
 
   // SUBMIT
-  const submitPrediction =
-    async (
-      matchId: number
-    ) => {
-      // LOCK CHECK
-      const match =
-        matches.find(
-          (m) =>
-            m.id ===
-            matchId
-        );
+  const submitPrediction = async (matchId: number) => {
+    const match = matches.find((m) => m.id === matchId);
 
-      if (
-        !match ||
-        !canPredict(
-          match.kickoff_time
-        )
-      ) {
-        toast.error(
-          "Predictions are locked for this match"
-        );
+    if (!match || !canPredict(match.kickoff_time)) {
+      toast.error("Predictions are locked for this match");
+      return;
+    }
 
-        return;
-      }
+    const homeScore = predictedScores[matchId]?.home;
+    const awayScore = predictedScores[matchId]?.away;
 
-      const homeScore =
-        predictedScores[
-          matchId
-        ]?.home;
+    if (
+      homeScore === undefined ||
+      awayScore === undefined ||
+      homeScore === "" ||
+      awayScore === ""
+    ) {
+      toast.error("Enter score prediction");
+      return;
+    }
 
-      const awayScore =
-        predictedScores[
-          matchId
-        ]?.away;
+    let selectedResult = "draw";
+    if (homeScore > awayScore) selectedResult = "team1";
+    if (awayScore > homeScore) selectedResult = "team2";
 
-      // VALIDATION
-      if (
-        homeScore ===
-          undefined ||
-        awayScore ===
-          undefined ||
-        homeScore ===
-          "" ||
-        awayScore ===
-          ""
-      ) {
-        toast.error(
-          "Enter score prediction"
-        );
-
-        return;
-      }
-
-      let selectedResult =
-        "draw";
-
-      if (
-        homeScore >
-        awayScore
-      ) {
-        selectedResult =
-          "team1";
-      }
-
-      if (
-        awayScore >
-        homeScore
-      ) {
-        selectedResult =
-          "team2";
-      }
-
-      const payload = {
-        user_id:
-          user.id,
-
-        match_id:
-          matchId,
-
-        prediction_type:
-          "standard",
-
-        predicted_result:
-          selectedResult,
-
-        predicted_team1_score:
-          Number(
-            homeScore
-          ),
-
-        predicted_team2_score:
-          Number(
-            awayScore
-          ),
-
-        booster_used:
-          selectedInventoryBooster ||
-          "none",
-
-        updated_at:
-          new Date().toISOString(),
-      };
-
-      const response =
-        await supabase
-          .from(
-            "predictions"
-          )
-          .upsert(
-            payload,
-            {
-              onConflict:
-                "user_id,match_id",
-            }
-          );
-
-      if (
-        response.error
-      ) {
-        toast.error(
-          response.error
-            .message
-        );
-
-        return;
-      }
-
-      // UPDATE LOCAL STATE
-      setPredictions({
-        ...predictions,
-
-        [matchId]:
-          payload,
-      });
-
-      // UPDATE BOOSTERS
-      if (
-        selectedInventoryBooster
-      ) {
-        setUsedBoosters(
-          (prev) => [
-            ...new Set([
-              ...prev,
-              selectedInventoryBooster,
-            ]),
-          ]
-        );
-
-        setSelectedInventoryBooster(
-          null
-        );
-      }
-
-      toast.success(
-        "Prediction submitted!"
-      );
+    const payload = {
+      user_id: user.id,
+      match_id: matchId,
+      prediction_type: "standard",
+      predicted_result: selectedResult,
+      predicted_team1_score: Number(homeScore),
+      predicted_team2_score: Number(awayScore),
+      booster_used: selectedInventoryBooster || "none",
+      updated_at: new Date().toISOString(),
     };
+
+    const response = await supabase
+      .from("predictions")
+      .upsert(payload, { onConflict: "user_id,match_id" });
+
+    if (response.error) {
+      toast.error(response.error.message);
+      return;
+    }
+
+    // If this match was previously cancelled and is now re-submitted, un-suppress it
+    cancelledMatchIds.current.delete(matchId);
+
+    setPredictions({ ...predictions, [matchId]: payload });
+
+    if (selectedInventoryBooster) {
+      setUsedBoosters((prev) => [...new Set([...prev, selectedInventoryBooster])]);
+      setSelectedInventoryBooster(null);
+    }
+
+    toast.success("Prediction submitted!");
+  };
 
   // CANCEL
-  const cancelPrediction =
-    async (
-      matchId: number
-    ) => {
-      const prediction =
-        predictions[
-          matchId
-        ];
+  const cancelPrediction = async (matchId: number) => {
+    const prediction = predictions[matchId];
+    const match = matches.find((m) => m.id === matchId);
 
-      const match =
-        matches.find(
-          (m) =>
-            m.id ===
-            matchId
-        );
+    if (
+      prediction?.booster_used &&
+      prediction.booster_used !== "none" &&
+      match &&
+      canPredict(match.kickoff_time)
+    ) {
+      setUsedBoosters((prev) => prev.filter((b) => b !== prediction.booster_used));
+    }
 
-      if (
-        prediction?.booster_used &&
-        prediction.booster_used !==
-          "none" &&
-        match &&
-        canPredict(
-          match.kickoff_time
-        )
-      ) {
-        setUsedBoosters(
-          (prev) =>
-            prev.filter(
-              (
-                booster
-              ) =>
-                booster !==
-                prediction.booster_used
-            )
-        );
-      }
-        // PREVENT POLLING RACE CONDITION
-        setCancellingMatches(
-          (prev) => [
-            ...prev,
-            matchId,
-          ]
-        );
+    // Mark as cancelled immediately so polling never restores it
+    cancelledMatchIds.current.add(matchId);
 
-        setIsCancelling(
-          true
-        );
-      const response =
-        await supabase
-          .from(
-            "predictions"
-          )
-          .delete()
-          .eq(
-            "match_id",
-            matchId
-          )
-          .eq(
-            "user_id",
-            user.id
-          );
+    // Optimistically remove from local state before DB call
+    setPredictions((prev: any) => {
+      const updated = { ...prev };
+      delete updated[matchId];
+      return updated;
+    });
 
-      if (
-        response.error
-      ) {
-        toast.error(
-          response.error
-            .message
-        );
+    setPredictedScores((prev: any) => {
+      const updated = { ...prev };
+      delete updated[matchId];
+      return updated;
+    });
 
-        return;
-      }
+    const response = await supabase
+      .from("predictions")
+      .delete()
+      .eq("match_id", matchId)
+      .eq("user_id", user.id);
 
-      const updated = {
-        ...predictions,
-      };
+    if (response.error) {
+      // Rollback: remove from cancelled set and restore prediction
+      cancelledMatchIds.current.delete(matchId);
+      setPredictions((prev: any) => ({ ...prev, [matchId]: prediction }));
+      setPredictedScores((prev: any) => ({
+        ...prev,
+        [matchId]: {
+          home: prediction.predicted_team1_score,
+          away: prediction.predicted_team2_score,
+        },
+      }));
+      toast.error(response.error.message);
+      return;
+    }
 
-      delete updated[
-        matchId
-      ];
+    toast.success("Prediction cancelled");
+  };
 
-      setPredictions(
-        updated
-      );
-      // CLEAR LOCAL SCORE STATE
-      setPredictedScores(
-        (prev: any) => {
-          const updatedScores =
-            { ...prev };
-
-          delete updatedScores[
-            matchId
-          ];
-
-          return updatedScores;
-        }
-      );
-
-      // REMOVE CANCELLING STATE
-      setCancellingMatches(
-        (prev) =>
-          prev.filter(
-            (id) =>
-              id !== matchId
-          )
-      );
-      
-      // WAIT A MOMENT BEFORE RE-ENABLING POLLING
-      setTimeout(() => {
-        setIsCancelling(
-          false
-        );
-      }, 3000);
-
-      toast.success(
-        "Prediction cancelled"
-      );
-    };
-
-  if (!user) {
-    return null;
-  }
+  if (!user) return null;
 
   return (
     <PageWrapper>
@@ -862,174 +365,81 @@ export default function Home() {
           <Header user={user} />
 
           <BoosterInventory
-            selectedInventoryBooster={
-              selectedInventoryBooster
-            }
-            setSelectedInventoryBooster={
-              setSelectedInventoryBooster
-            }
-            usedBoosters={
-              usedBoosters
-            }
-            goatDays={
-              goatDays
-            }
+            selectedInventoryBooster={selectedInventoryBooster}
+            setSelectedInventoryBooster={setSelectedInventoryBooster}
+            usedBoosters={usedBoosters}
+            goatDays={goatDays}
           />
 
           {/* TBD */}
-          {tbdMatches.length >
-            0 && (
+          {tbdMatches.length > 0 && (
             <div className="mb-16">
-              <div className="text-3xl font-black mb-6">
-                🕘 TBD Fixtures
-              </div>
+              <div className="text-3xl font-black mb-6">🕘 TBD Fixtures</div>
 
               <div className="space-y-4">
-                {tbdMatches.map(
-                  (
-                    match
-                  ) => (
-                    <div
-                      key={
-                        match.id
-                      }
-                      className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6"
-                    >
-                      <div className="text-2xl font-black">
-                        {
-                          match.team1
-                        }{" "}
-                        vs{" "}
-                        {
-                          match.team2
-                        }
-                      </div>
-
-                      <div className="text-zinc-500 mt-2">
-                        Kickoff
-                        time to be
-                        announced
-                      </div>
+                {tbdMatches.map((match) => (
+                  <div
+                    key={match.id}
+                    className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6"
+                  >
+                    <div className="text-2xl font-black">
+                      {match.team1} vs {match.team2}
                     </div>
-                  )
-                )}
+                    <div className="text-zinc-500 mt-2">Kickoff time to be announced</div>
+                  </div>
+                ))}
               </div>
             </div>
           )}
 
           {/* GROUPED */}
           <div className="space-y-16">
-            {Object.entries(
-              groupedMatches
-            ).map(
-              ([
-                date,
-                dateMatches,
-              ]: any) => (
-                <div
-                  key={date}
-                >
-                  <div className="flex items-center justify-between mb-8">
-                    <div className="text-4xl font-black">
-                      {new Date(
-                        date
-                      ).toLocaleDateString(
-                        "en-IN",
-                        {
-                          weekday:
-                            "long",
-
-                          day: "numeric",
-
-                          month:
-                            "long",
-                        }
-                      )}
-                    </div>
-
-                    <button
-                      disabled={
-                        goatDays.length >
-                        0
-                      }
-                      onClick={() =>
-                        activateGoat(
-                          date
-                        )
-                      }
-                      className="
-                        px-6
-                        py-4
-                        rounded-2xl
-                        font-black
-                        bg-white
-                        text-black
-                        disabled:opacity-40
-                        disabled:cursor-not-allowed
-                      "
-                    >
-                      {goatDays.length >
-                      0
-                        ? "☠️ G.O.A.T USED"
-                        : "🐐 Activate G.O.A.T"}
-                    </button>
+            {Object.entries(groupedMatches).map(([date, dateMatches]: any) => (
+              <div key={date}>
+                <div className="flex items-center justify-between mb-8">
+                  <div className="text-4xl font-black">
+                    {new Date(date).toLocaleDateString("en-IN", {
+                      weekday: "long",
+                      day: "numeric",
+                      month: "long",
+                    })}
                   </div>
 
-                  <div className="space-y-6">
-                    {dateMatches.map(
-                      (
-                        match: any
-                      ) => (
-                        <MatchCard
-                          key={
-                            match.id
-                          }
-                          match={
-                            match
-                          }
-                          predictions={
-                            predictions
-                          }
-                          predictedScores={
-                            predictedScores
-                          }
-                          setPredictedScores={
-                            setPredictedScores
-                          }
-                          expandedMatches={
-                            expandedMatches
-                          }
-                          setExpandedMatches={
-                            setExpandedMatches
-                          }
-                          submitPrediction={
-                            submitPrediction
-                          }
-                          cancelPrediction={
-                            cancelPrediction
-                          }
-                          selectedInventoryBooster={
-                            selectedInventoryBooster
-                          }
-                          setSelectedInventoryBooster={
-                            setSelectedInventoryBooster
-                          }
-                          usedBoosters={
-                            usedBoosters
-                          }
-                          setUsedBoosters={
-                            setUsedBoosters
-                          }
-                          goatDays={
-                            goatDays
-                          }
-                        />
-                      )
-                    )}
-                  </div>
+                  <button
+                    disabled={goatDays.length > 0}
+                    onClick={() => activateGoat(date)}
+                    className="
+                      px-6 py-4 rounded-2xl font-black
+                      bg-white text-black
+                      disabled:opacity-40 disabled:cursor-not-allowed
+                    "
+                  >
+                    {goatDays.length > 0 ? "☠️ G.O.A.T USED" : "🐐 Activate G.O.A.T"}
+                  </button>
                 </div>
-              )
-            )}
+
+                <div className="space-y-6">
+                  {dateMatches.map((match: any) => (
+                    <MatchCard
+                      key={match.id}
+                      match={match}
+                      predictions={predictions}
+                      predictedScores={predictedScores}
+                      setPredictedScores={setPredictedScores}
+                      expandedMatches={expandedMatches}
+                      setExpandedMatches={setExpandedMatches}
+                      submitPrediction={submitPrediction}
+                      cancelPrediction={cancelPrediction}
+                      selectedInventoryBooster={selectedInventoryBooster}
+                      setSelectedInventoryBooster={setSelectedInventoryBooster}
+                      usedBoosters={usedBoosters}
+                      setUsedBoosters={setUsedBoosters}
+                      goatDays={goatDays}
+                    />
+                  ))}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </main>
