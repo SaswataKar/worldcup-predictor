@@ -7,8 +7,6 @@ import PredictionControls from "./PredictionControls";
 type MatchCardProps = {
   match: any;
 
-  locked: boolean;
-
   predictions: any;
 
   predictedScores: any;
@@ -36,8 +34,6 @@ type MatchCardProps = {
 
 export default function MatchCard({
   match,
-
-  locked,
 
   predictions,
 
@@ -72,6 +68,31 @@ export default function MatchCard({
     predictions[
       match.id
     ];
+
+  // REAL-TIME LOCK
+  const kickoffTime =
+    match.kickoff_time
+      ? new Date(
+          match.kickoff_time
+        )
+      : null;
+
+  const now =
+    new Date();
+
+  const hasStarted =
+    kickoffTime
+      ? now >= kickoffTime
+      : false;
+
+  const locked =
+    hasStarted ||
+    match.status ===
+      "FINISHED" ||
+    match.status ===
+      "LIVE" ||
+    match.status ===
+      "IN_PLAY";
 
   const matchDate =
     match.kickoff_time
@@ -136,7 +157,7 @@ export default function MatchCard({
       return `${hours}h ${minutes}m`;
     };
 
-  // IST KICKOFF
+  // IST TIME
   const getISTKickoff =
     () => {
       if (
@@ -220,7 +241,7 @@ export default function MatchCard({
               </div>
             </div>
 
-            {/* SCORE / VS */}
+            {/* SCORE */}
             <div className="min-w-[90px] flex justify-center">
               {match.status ===
                 "FINISHED" ||
@@ -305,7 +326,7 @@ export default function MatchCard({
                   : "OPEN"}
               </div>
 
-              {/* USER PREDICTION */}
+              {/* PREDICTION */}
               {prediction && (
                 <>
                   <div className="text-zinc-700">
@@ -324,7 +345,7 @@ export default function MatchCard({
                 </>
               )}
 
-              {/* AWARDED POINTS */}
+              {/* POINTS */}
               {prediction?.processed && (
                 <>
                   <div className="text-zinc-700">
@@ -344,31 +365,40 @@ export default function MatchCard({
               {/* BOOSTERS */}
               {(goatActive ||
                 prediction?.booster_used !==
-                  "none") && (
-                <>
-                  <div className="text-zinc-700">
-                    •
-                  </div>
+                  "none") &&
+                prediction?.booster_used && (
+                  <>
+                    <div className="text-zinc-700">
+                      •
+                    </div>
 
-                  <div className="flex items-center gap-1 text-lg">
-                    {prediction?.booster_used ===
-                      "2x" && "⚽"}
+                    <div className="flex items-center gap-1 text-lg">
+                      {prediction?.booster_used ===
+                        "2x" &&
+                        "⚽"}
 
-                    {prediction?.booster_used ===
-                      "3x" && "🔥"}
+                      {prediction?.booster_used ===
+                        "3x" &&
+                        "🔥"}
 
-                    {goatActive &&
-                      "🐐"}
-                  </div>
-                </>
-              )}
+                      {goatActive &&
+                        "🐐"}
+                    </div>
+                  </>
+                )}
 
               {/* COUNTDOWN */}
-              <div className="text-zinc-600">
+              <div className="text-zinc-700">
                 •
               </div>
 
-              <div className="text-zinc-500">
+              <div
+                className={
+                  locked
+                    ? "text-red-400 font-black"
+                    : "text-zinc-500"
+                }
+              >
                 ⏳{" "}
                 {getCountdown()}
               </div>
@@ -426,7 +456,21 @@ export default function MatchCard({
               </div>
             </div>
 
-            <div className="bg-black border border-zinc-700 px-5 py-3 rounded-2xl font-black">
+            <div
+              className={`
+                border
+                px-5
+                py-3
+                rounded-2xl
+                font-black
+
+                ${
+                  locked
+                    ? "bg-red-500/10 border-red-500/30 text-red-300"
+                    : "bg-black border-zinc-700"
+                }
+              `}
+            >
               ⏳{" "}
               {getCountdown()}
             </div>
@@ -466,4 +510,3 @@ export default function MatchCard({
     </motion.div>
   );
 }
-
