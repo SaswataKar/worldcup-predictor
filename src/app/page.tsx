@@ -822,11 +822,6 @@ export default function Home() {
                           match={
                             match
                           }
-                          locked={
-                            !canPredict(
-                              match.kickoff_time
-                            )
-                          }
                           predictions={
                             predictions
                           }
