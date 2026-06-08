@@ -26,8 +26,8 @@ export default function Home() {
   const [usedBoosters, setUsedBoosters] = useState<any[]>([]);
   const [goatDays, setGoatDays] = useState<any[]>([]);
 
-  // Tracks match IDs that have been locally cancelled — polling will not restore these
   const cancelledMatchIds = useRef<Set<number>>(new Set());
+  const cancelledBoosters = useRef<Set<string>>(new Set());
 
   // INIT
   useEffect(() => {
@@ -98,8 +98,6 @@ export default function Home() {
   };
 
   // FETCH PREDICTIONS
-  // Merges server state into local state instead of replacing it.
-  // Cancelled match IDs (tracked in cancelledMatchIds ref) are never restored by polling.
   const fetchPredictions = async (userId: number) => {
     const { data, error } = await supabase
       .from("predictions")
@@ -112,7 +110,6 @@ export default function Home() {
     const serverScoreMap: any = {};
 
     data.forEach((prediction) => {
-      // Never restore a prediction the user has cancelled this session
       if (cancelledMatchIds.current.has(prediction.match_id)) return;
 
       serverMapped[prediction.match_id] = prediction;
@@ -122,10 +119,8 @@ export default function Home() {
       };
     });
 
-    // Merge: keep existing local predictions for cancelled matches, apply server state for the rest
     setPredictions((prev: any) => {
       const merged = { ...serverMapped };
-      // Preserve any local-only keys not in server response (e.g. optimistic state mid-submit)
       Object.keys(prev).forEach((matchId) => {
         if (!(matchId in merged)) {
           merged[matchId] = prev[matchId];
@@ -137,7 +132,6 @@ export default function Home() {
     setPredictedScores((prev: any) => {
       const updated = { ...prev };
       Object.keys(serverScoreMap).forEach((matchId) => {
-        // Only backfill scores the user hasn't touched locally
         if (!prev[matchId]) {
           updated[matchId] = serverScoreMap[matchId];
         }
@@ -147,7 +141,8 @@ export default function Home() {
 
     const used = data
       .map((p) => p.booster_used)
-      .filter((b) => b && b !== "none");
+      .filter((b) => b && b !== "none")
+      .filter((b) => !cancelledBoosters.current.has(b));
 
     setUsedBoosters(Array.from(new Set(used)));
   };
@@ -289,15 +284,16 @@ export default function Home() {
       return;
     }
 
-    // If this match was previously cancelled and is now re-submitted, un-suppress it
+    // Clear cancelled state so polling tracks this match/booster again
     cancelledMatchIds.current.delete(matchId);
 
-    setPredictions({ ...predictions, [matchId]: payload });
-
     if (selectedInventoryBooster) {
+      cancelledBoosters.current.delete(selectedInventoryBooster);
       setUsedBoosters((prev) => [...new Set([...prev, selectedInventoryBooster])]);
       setSelectedInventoryBooster(null);
     }
+
+    setPredictions({ ...predictions, [matchId]: payload });
 
     toast.success("Prediction submitted!");
   };
@@ -313,13 +309,14 @@ export default function Home() {
       match &&
       canPredict(match.kickoff_time)
     ) {
+      cancelledBoosters.current.add(prediction.booster_used);
       setUsedBoosters((prev) => prev.filter((b) => b !== prediction.booster_used));
     }
 
-    // Mark as cancelled immediately so polling never restores it
+    // Suppress polling restore immediately
     cancelledMatchIds.current.add(matchId);
 
-    // Optimistically remove from local state before DB call
+    // Optimistically clear local state
     setPredictions((prev: any) => {
       const updated = { ...prev };
       delete updated[matchId];
@@ -339,8 +336,12 @@ export default function Home() {
       .eq("user_id", user.id);
 
     if (response.error) {
-      // Rollback: remove from cancelled set and restore prediction
+      // Rollback everything
       cancelledMatchIds.current.delete(matchId);
+      if (prediction?.booster_used && prediction.booster_used !== "none") {
+        cancelledBoosters.current.delete(prediction.booster_used);
+        setUsedBoosters((prev) => [...new Set([...prev, prediction.booster_used])]);
+      }
       setPredictions((prev: any) => ({ ...prev, [matchId]: prediction }));
       setPredictedScores((prev: any) => ({
         ...prev,
