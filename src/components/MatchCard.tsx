@@ -451,11 +451,11 @@ const hasStarted =
           <div className="mb-8 bg-zinc-900 border border-zinc-800 rounded-3xl p-6 flex items-center justify-between flex-wrap gap-4">
             <div>
               <div className="text-zinc-500 text-sm uppercase tracking-[0.25em]">
-                Match Kickoff
+                Prediction Deadline
               </div>
 
               <div className="text-2xl font-black mt-2">
-                🇮🇳{" "}
+                {" "}
                 {getISTKickoff()}
               </div>
             </div>

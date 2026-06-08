@@ -50,6 +50,10 @@ export default function PredictionControls({
       match.id
     ];
 
+  // LOCK AFTER SUBMIT
+  const predictionLocked =
+    !!prediction?.match_id;
+
   const scoreData =
     predictedScores[
       match.id
@@ -171,7 +175,8 @@ export default function PredictionControls({
               type="number"
               min="0"
               disabled={
-                locked
+                locked ||
+                predictionLocked
               }
               value={
                 scoreData.home
@@ -200,6 +205,7 @@ export default function PredictionControls({
                 font-black
                 outline-none
                 focus:border-yellow-400
+                disabled:opacity-60
               "
             />
           </div>
@@ -230,7 +236,8 @@ export default function PredictionControls({
               type="number"
               min="0"
               disabled={
-                locked
+                locked ||
+                predictionLocked
               }
               value={
                 scoreData.away
@@ -259,6 +266,7 @@ export default function PredictionControls({
                 font-black
                 outline-none
                 focus:border-yellow-400
+                disabled:opacity-60
               "
             />
           </div>
@@ -266,124 +274,132 @@ export default function PredictionControls({
       </div>
 
       {/* BOOSTERS */}
-      {!locked && (
-        <div className="bg-black/40 border border-zinc-800 rounded-[32px] p-8">
-          <div className="text-sm uppercase tracking-[0.35em] text-zinc-400 font-black mb-8">
-            Match Boosters
-          </div>
+      {!locked &&
+        !predictionLocked && (
+          <div className="bg-black/40 border border-zinc-800 rounded-[32px] p-8">
+            <div className="text-sm uppercase tracking-[0.35em] text-zinc-400 font-black mb-8">
+              Match Boosters
+            </div>
 
-          <div className="flex gap-6 flex-wrap">
-            {boosterOptions.map(
-              (
-                booster
-              ) => {
-                const selected =
-                  selectedInventoryBooster ===
-                  booster.key;
+            <div className="flex gap-6 flex-wrap">
+              {boosterOptions.map(
+                (
+                  booster
+                ) => {
+                  const selected =
+                    selectedInventoryBooster ===
+                    booster.key;
 
-                return (
-                  <motion.button
-                    whileHover={{
-                      scale: 1.03,
-                    }}
-                    whileTap={{
-                      scale: 0.98,
-                    }}
-                    key={
-                      booster.key
-                    }
-                    disabled={
-                      locked
-                    }
-                    onClick={() =>
-                      setSelectedInventoryBooster(
-                        selected
-                          ? null
-                          : booster.key
-                      )
-                    }
-                    className={`
-                      relative
-                      overflow-hidden
-                      rounded-[28px]
-                      border
-                      px-6
-                      py-6
-                      min-w-[280px]
-                      text-left
-                      transition-all
-                      duration-300
-
-                      ${
-                        selected
-                          ? `${booster.border} bg-gradient-to-br ${booster.glow} shadow-2xl`
-                          : "border-zinc-800 bg-zinc-900 hover:border-zinc-600"
+                  return (
+                    <motion.button
+                      whileHover={{
+                        scale: 1.03,
+                      }}
+                      whileTap={{
+                        scale: 0.98,
+                      }}
+                      key={
+                        booster.key
                       }
-                    `}
-                  >
-                    <div className="relative z-10">
-                      <div
-                        className={`flex items-center gap-3 text-xl font-black tracking-[0.15em] ${booster.text}`}
-                      >
-                        <span className="text-3xl">
+                      disabled={
+                        locked ||
+                        predictionLocked
+                      }
+                      onClick={() =>
+                        setSelectedInventoryBooster(
+                          selected
+                            ? null
+                            : booster.key
+                        )
+                      }
+                      className={`
+                        relative
+                        overflow-hidden
+                        rounded-[28px]
+                        border
+                        px-6
+                        py-6
+                        min-w-[280px]
+                        text-left
+                        transition-all
+                        duration-300
+
+                        ${
+                          selected
+                            ? `${booster.border} bg-gradient-to-br ${booster.glow} shadow-2xl`
+                            : "border-zinc-800 bg-zinc-900 hover:border-zinc-600"
+                        }
+                      `}
+                    >
+                      <div className="relative z-10">
+                        <div
+                          className={`flex items-center gap-3 text-xl font-black tracking-[0.15em] ${booster.text}`}
+                        >
+                          <span className="text-3xl">
+                            {
+                              booster.icon
+                            }
+                          </span>
+
                           {
-                            booster.icon
+                            booster.title
                           }
-                        </span>
-
-                        {
-                          booster.title
-                        }
-                      </div>
-
-                      <div className="mt-4 text-zinc-400">
-                        {
-                          booster.description
-                        }
-                      </div>
-
-                      {selected && (
-                        <div className="mt-5 inline-flex items-center gap-2 bg-white text-black px-3 py-1 rounded-xl text-xs font-black">
-                          ACTIVE
                         </div>
-                      )}
-                    </div>
-                  </motion.button>
-                );
-              }
-            )}
+
+                        <div className="mt-4 text-zinc-400">
+                          {
+                            booster.description
+                          }
+                        </div>
+
+                        {selected && (
+                          <div className="mt-5 inline-flex items-center gap-2 bg-white text-black px-3 py-1 rounded-xl text-xs font-black">
+                            ACTIVE
+                          </div>
+                        )}
+                      </div>
+                    </motion.button>
+                  );
+                }
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
       {/* ACTIONS */}
-      {!locked && (
-        <div className="flex gap-5 flex-wrap">
-          <button
-            onClick={() =>
-              submitPrediction(
-                match.id
-              )
-            }
-            className="
-              px-10
-              py-5
-              rounded-[24px]
-              bg-yellow-400
-              text-black
-              text-xl
-              md:text-2xl
-              font-black
-              hover:scale-105
-              active:scale-[0.98]
-              transition-all
-            "
-          >
-            Submit
-            Prediction
-          </button>
+      {!locked &&
+        !predictionLocked && (
+          <div className="flex gap-5 flex-wrap">
+            <button
+              onClick={() =>
+                submitPrediction(
+                  match.id
+                )
+              }
+              className="
+                px-10
+                py-5
+                rounded-[24px]
+                bg-yellow-400
+                text-black
+                text-xl
+                md:text-2xl
+                font-black
+                hover:scale-105
+                active:scale-[0.98]
+                transition-all
+              "
+            >
+              Submit
+              Prediction
+            </button>
+          </div>
+        )}
 
-          {prediction && (
+      {/* CANCEL */}
+      {!locked &&
+        predictionLocked && (
+          <div className="flex gap-5 flex-wrap">
             <button
               onClick={() =>
                 cancelPrediction(
@@ -405,9 +421,8 @@ export default function PredictionControls({
             >
               ❌ Cancel
             </button>
-          )}
-        </div>
-      )}
+          </div>
+        )}
     </div>
   );
 }
