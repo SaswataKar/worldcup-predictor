@@ -139,6 +139,29 @@ export default function Home() {
 
     init();
   }, []);
+  
+  // AUTO REFRESH
+  useEffect(() => {
+    if (!user) return;
+
+    const interval =
+      setInterval(async () => {
+        await fetchMatches();
+
+        await fetchPredictions(
+          user.id
+        );
+
+        await fetchDailyBoosters(
+          user.id
+        );
+      }, 10000);
+
+    return () =>
+      clearInterval(
+        interval
+      );
+  }, [user]);
 
   // FETCH MATCHES
   const fetchMatches =
@@ -156,9 +179,19 @@ export default function Home() {
         const data =
           await response.json();
 
-        setMatches(
-          data.matches || []
-        );
+        setMatches((prev) => {
+          const next =
+            data.matches || [];
+
+          if (
+            JSON.stringify(prev) ===
+            JSON.stringify(next)
+          ) {
+            return prev;
+          }
+
+          return next;
+        });
       } catch (error) {
         console.error(
           "Fetch Matches Error:",
@@ -166,6 +199,8 @@ export default function Home() {
         );
       }
     };
+
+
 
   // FETCH PREDICTIONS
   const fetchPredictions =
