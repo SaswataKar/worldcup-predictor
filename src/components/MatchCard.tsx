@@ -80,10 +80,14 @@ export default function MatchCard({
   const now =
     new Date();
 
-  const hasStarted =
-    kickoffTime
-      ? now >= kickoffTime
-      : false;
+const hasStarted =
+  kickoffTime
+    ? now >=
+      new Date(
+        kickoffTime.getTime() -
+          1 * 60 * 1000
+      )
+    : false;
 
   const locked =
     hasStarted ||

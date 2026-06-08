@@ -251,9 +251,38 @@ export default function Home() {
           mapped
         );
 
+
         setPredictedScores(
-          scoreMap
+          (prev: any) => {
+            const updated = {
+              ...prev,
+            };
+
+            Object.keys(
+              scoreMap
+            ).forEach(
+              (matchId) => {
+                // ONLY UPDATE IF USER HASN'T STARTED TYPING
+                if (
+                  !prev[
+                    matchId
+                  ]
+                ) {
+                  updated[
+                    matchId
+                  ] =
+                    scoreMap[
+                      matchId
+                    ];
+                }
+              }
+            );
+
+            return updated;
+          }
         );
+
+
 
         const used =
           data
@@ -518,6 +547,27 @@ export default function Home() {
     async (
       matchId: number
     ) => {
+      // LOCK CHECK
+      const match =
+        matches.find(
+          (m) =>
+            m.id ===
+            matchId
+        );
+
+      if (
+        !match ||
+        !canPredict(
+          match.kickoff_time
+        )
+      ) {
+        toast.error(
+          "Predictions are locked for this match"
+        );
+
+        return;
+      }
+
       const homeScore =
         predictedScores[
           matchId
@@ -528,11 +578,16 @@ export default function Home() {
           matchId
         ]?.away;
 
+      // VALIDATION
       if (
         homeScore ===
           undefined ||
         awayScore ===
-          undefined
+          undefined ||
+        homeScore ===
+          "" ||
+        awayScore ===
+          ""
       ) {
         toast.error(
           "Enter score prediction"
@@ -574,10 +629,14 @@ export default function Home() {
           selectedResult,
 
         predicted_team1_score:
-          homeScore,
+          Number(
+            homeScore
+          ),
 
         predicted_team2_score:
-          awayScore,
+          Number(
+            awayScore
+          ),
 
         booster_used:
           selectedInventoryBooster ||
@@ -611,6 +670,7 @@ export default function Home() {
         return;
       }
 
+      // UPDATE LOCAL STATE
       setPredictions({
         ...predictions,
 
@@ -618,6 +678,7 @@ export default function Home() {
           payload,
       });
 
+      // UPDATE BOOSTERS
       if (
         selectedInventoryBooster
       ) {
