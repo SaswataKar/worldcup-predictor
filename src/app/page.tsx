@@ -61,7 +61,10 @@ export default function Home() {
     setCancellingMatches,
   ] = useState<any[]>([]);
 
-
+  const [
+    isCancelling,
+    setIsCancelling,
+  ] = useState(false);
 
   // INIT
   useEffect(() => {
@@ -153,6 +156,13 @@ export default function Home() {
 
     const interval =
       setInterval(async () => {
+        // PAUSE POLLING DURING CANCEL
+        if (
+          isCancelling
+        ) {
+          return;
+        }
+
         await fetchMatches();
 
         await fetchPredictions(
@@ -163,6 +173,8 @@ export default function Home() {
           user.id
         );
       }, 10000);
+  
+
 
     return () =>
       clearInterval(
@@ -763,6 +775,10 @@ export default function Home() {
             matchId,
           ]
         );
+
+        setIsCancelling(
+          true
+        );
       const response =
         await supabase
           .from(
@@ -822,6 +838,13 @@ export default function Home() {
               id !== matchId
           )
       );
+      
+      // WAIT A MOMENT BEFORE RE-ENABLING POLLING
+      setTimeout(() => {
+        setIsCancelling(
+          false
+        );
+      }, 3000);
 
       toast.success(
         "Prediction cancelled"
