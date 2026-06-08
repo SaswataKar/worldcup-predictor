@@ -460,9 +460,6 @@ export default function MatchCard({
             usedBoosters={
               usedBoosters
             }
-            setUsedBoosters={
-              setUsedBoosters
-            }
           />
         </motion.div>
       )}
