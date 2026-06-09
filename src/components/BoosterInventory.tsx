@@ -73,8 +73,21 @@ export default function BoosterInventory({
   const [open, setOpen] = useState(true);
   const [loadingKey, setLoadingKey] = useState<string | null>(null);
 
-  const activeBoosters = Object.values(activeDayBoosters).flat();
   const availableCount = BOOSTERS.filter((b) => !usedBoosterTypes.includes(b.key)).length;
+
+  // Boosters assigned to the active matchday that haven't been consumed yet
+  const pendingBoosters = activeMatchday
+    ? (activeDayBoosters[activeMatchday] || []).filter(() => !isMatchdayConsumed)
+    : [];
+
+  // Boosters that are permanently consumed (assigned to a past/locked day)
+  const consumedBoosters = usedBoosterTypes.filter((type) => {
+    const assignedDate = getDayAssigned(type, activeDayBoosters);
+    if (!assignedDate) return false;
+    // Consumed if it's on the active matchday and that day is consumed, or it's on a different (past) day
+    if (assignedDate === activeMatchday) return isMatchdayConsumed;
+    return true;
+  });
 
   const handleToggle = async (boosterKey: string, isActive: boolean) => {
     setLoadingKey(boosterKey);
@@ -117,9 +130,14 @@ export default function BoosterInventory({
                 {availableCount} available
               </span>
             )}
-            {activeBoosters.length > 0 && (
+            {pendingBoosters.length > 0 && (
               <span className="px-3 py-1 rounded-full bg-yellow-500/15 border border-yellow-500/30 text-yellow-300 text-xs font-black">
-                {activeBoosters.length} active
+                {pendingBoosters.length} active
+              </span>
+            )}
+            {consumedBoosters.length > 0 && (
+              <span className="px-3 py-1 rounded-full bg-zinc-700/40 border border-zinc-600/40 text-zinc-400 text-xs font-black">
+                {consumedBoosters.length} consumed
               </span>
             )}
           </div>

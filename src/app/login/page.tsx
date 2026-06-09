@@ -118,19 +118,18 @@ export default function LoginPage() {
           return;
         }
 
-        // ONLY LETTERS + SPACES
-        const validName =
-          /^[A-Za-z\s]+$/.test(
-            name
-          );
+        // Letters only, words separated by a single space, no leading/trailing spaces
+        const validName = /^[A-Za-z]+( [A-Za-z]+)*$/.test(name.trim());
 
         if (!validName) {
           toast.error(
-            "Name can only contain alphabets and spaces"
+            "Name can only contain letters and single spaces between words"
           );
 
           return;
         }
+        // Normalise before saving — trim any trailing space the user may have typed last
+        const cleanName = name.trim();
 
         // PASSWORD LENGTH
         if (
@@ -175,7 +174,7 @@ export default function LoginPage() {
           .insert([
             {
               name:
-                name.trim(),
+                cleanName,
 
               phone:
                 phone.trim(),
@@ -416,14 +415,14 @@ export default function LoginPage() {
               "
               placeholder="Your Name"
               value={name}
-              onChange={(
-                e
-              ) =>
-                setName(
-                  e.target
-                    .value
-                )
-              }
+              onChange={(e) => {
+                // Strip anything that isn't a letter or space, then collapse multiple spaces into one
+                const sanitized = e.target.value
+                  .replace(/[^A-Za-z ]/g, "")        // only letters + space
+                  .replace(/ {2,}/g, " ")             // no double spaces
+                  .replace(/^ /, "");                 // no leading space
+                setName(sanitized);
+              }}
             />
           )}
 
