@@ -135,7 +135,7 @@ export default function BoosterInventory({
         <motion.div
           animate={{ rotate: open ? 180 : 0 }}
           transition={{ duration: 0.2 }}
-          className="shrink-0 w-10 h-10 rounded-2xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-500 group-hover:border-zinc-700 transition-colors ml-4"
+          className="shrink-0 w-10 h-10 rounded-2xl bg-white/[0.05] border border-white/[0.08] backdrop-blur-md flex items-center justify-center text-zinc-500 group-hover:border-white/[0.14] group-hover:text-zinc-300 transition-colors ml-4"
         >
           <svg viewBox="0 0 24 24" fill="none" className="w-5 h-5" stroke="currentColor" strokeWidth={2.5}>
             <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
@@ -161,9 +161,9 @@ export default function BoosterInventory({
                 const isUsedElsewhere = !!assignedDay && assignedDay !== activeMatchday;
                 const isLoading = loadingKey === booster.key;
 
-                let cardClass = "border-zinc-800 bg-zinc-900";
-                if (isActiveToday) cardClass = `${booster.border} bg-gradient-to-br ${booster.glow} shadow-2xl`;
-                if (isUsedElsewhere) cardClass = "border-zinc-800 bg-zinc-950 opacity-50 grayscale";
+                let cardClass = "border-zinc-700/30 bg-white/[0.04] backdrop-blur-md shadow-[0_4px_24px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.06)]";
+                if (isActiveToday) cardClass = `${booster.border} bg-gradient-to-br ${booster.glow} backdrop-blur-md shadow-[0_4px_32px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.08)]`;
+                if (isUsedElsewhere) cardClass = "border-zinc-700/20 bg-white/[0.02] backdrop-blur-md opacity-50 grayscale";
 
                 return (
                   <motion.div

@@ -448,15 +448,15 @@ export default function MatchCard({
           transition={{ duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
           style={{ overflow: "hidden" }}
         >
-        <div className="border-t border-white/[0.06] bg-white/[0.02] backdrop-blur-sm px-6 py-6"
+        <div className="border-t border-white/[0.07] px-6 py-6"
         >
           {/* TIMING STRIP */}
           <div className="flex items-stretch gap-3 mb-6">
-            <div className="flex-1 bg-white/[0.05] border border-white/[0.08] rounded-2xl px-5 py-4 backdrop-blur-sm">
+            <div className="flex-1 bg-white/[0.06] border border-white/[0.08] rounded-2xl px-5 py-4">
               <div className="text-[10px] uppercase tracking-widest text-zinc-500 mb-1">Kickoff</div>
               <div className="text-sm font-black">{getISTKickoff()}</div>
             </div>
-            <div className="flex-1 bg-white/[0.05] border border-white/[0.08] rounded-2xl px-5 py-4 backdrop-blur-sm">
+            <div className="flex-1 bg-white/[0.06] border border-white/[0.08] rounded-2xl px-5 py-4">
               <div className="text-[10px] uppercase tracking-widest text-zinc-500 mb-1">Predictions Close</div>
               <div className={`text-sm font-black ${locked ? "text-red-400" : ""}`}>{getCloseTime()}</div>
             </div>
