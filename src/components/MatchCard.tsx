@@ -232,7 +232,7 @@ export default function MatchCard({
   return (
     <motion.div
       layout
-      transition={{ layout: { type: "spring", stiffness: 300, damping: 30 } }}
+      transition={{ layout: { duration: 0.28, ease: [0.25, 0.1, 0.25, 1] } }}
       className={`overflow-hidden rounded-3xl border border-zinc-700/40 border-l-4 ${cardAccent}
         bg-white/[0.04] backdrop-blur-md
         shadow-[0_4px_24px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.06)]
@@ -241,7 +241,13 @@ export default function MatchCard({
     >
       {/* COLLAPSED ROW */}
       <button
-        onClick={() => setExpandedMatches({ ...expandedMatches, [match.id]: !expanded })}
+        onClick={() => {
+          // Close all others, toggle this one — only one open at a time
+          const isCurrentlyOpen = !!expandedMatches[match.id];
+          const next: Record<number, boolean> = {};
+          if (!isCurrentlyOpen) next[match.id] = true;
+          setExpandedMatches(next);
+        }}
         className="w-full px-6 py-5 text-left"
       >
         <div className="flex items-center justify-between gap-4 flex-wrap">
@@ -350,8 +356,8 @@ export default function MatchCard({
 
             <motion.span
               animate={{ rotate: expanded ? 180 : 0 }}
-              transition={{ duration: 0.2 }}
-              className="text-zinc-600 text-lg leading-none ml-1"
+              transition={{ duration: 0.22, ease: [0.25, 0.1, 0.25, 1] }}
+              className="text-zinc-500 text-lg leading-none ml-1"
             >
               ⌄
             </motion.span>
@@ -377,10 +383,10 @@ export default function MatchCard({
       {expanded && (
         <motion.div
           key="expanded"
-          initial={{ opacity: 0, y: -8, scale: 0.99 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: -6, scale: 0.98 }}
-          transition={{ type: "spring", stiffness: 340, damping: 28, mass: 0.8 }}
+          initial={{ opacity: 0, y: -6 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -4 }}
+          transition={{ duration: 0.22, ease: [0.25, 0.1, 0.25, 1] }}
           className="border-t border-white/[0.06] bg-white/[0.02] backdrop-blur-sm px-6 py-6"
         >
           {/* TIMING STRIP */}
