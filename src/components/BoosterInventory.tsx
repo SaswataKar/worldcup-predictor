@@ -70,7 +70,7 @@ export default function BoosterInventory({
   onActivate,
   onRemove,
 }: Props) {
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
   const [loadingKey, setLoadingKey] = useState<string | null>(null);
 
   const availableCount = BOOSTERS.filter((b) => !usedBoosterTypes.includes(b.key)).length;
