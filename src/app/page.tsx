@@ -178,7 +178,7 @@ export default function Home() {
     toast.success(`${BOOSTER_NAMES[boosterType] ?? boosterType} activated!`);
   };
 
-  // REMOVE BOOSTER — returns it to inventory
+  // REMOVE BOOSTER — returns it to inventory (only before first match of that day starts)
   const removeBooster = async (boosterType: string) => {
     if (!user) return;
 
@@ -187,6 +187,20 @@ export default function Home() {
     )?.[0];
 
     if (!assignedDate) return;
+
+    // Guard: booster is consumed once ANY match on that day has reached its close time
+    const dayMatches = visibleGroupedMatches[assignedDate] || [];
+    const now = new Date();
+    const isConsumed = dayMatches.some((m) => {
+      if (!m.kickoff_time) return false;
+      const kickoff = new Date(m.kickoff_time);
+      return now >= new Date(kickoff.getTime() - 60 * 1000);
+    });
+
+    if (isConsumed) {
+      toast.error("Booster is consumed — a match on this day has already started.");
+      return;
+    }
 
     const { error } = await supabase
       .from("daily_boosters")
@@ -257,6 +271,19 @@ export default function Home() {
       )?.[0] ?? null
     );
   }, [visibleGroupedMatches]);
+
+  // True once the first match of the active matchday reaches its close window —
+  // any applied booster is now permanently consumed and cannot be cancelled
+  const isActiveMatchdayConsumed = useMemo(() => {
+    if (!activeMatchday) return false;
+    const dayMatches = visibleGroupedMatches[activeMatchday] || [];
+    const now = new Date();
+    return dayMatches.some((m) => {
+      if (!m.kickoff_time) return false;
+      const kickoff = new Date(m.kickoff_time);
+      return now >= new Date(kickoff.getTime() - 60 * 1000);
+    });
+  }, [activeMatchday, visibleGroupedMatches]);
 
   // TBD MATCHES
   const tbdMatches = useMemo(() => {
@@ -366,6 +393,7 @@ export default function Home() {
             usedBoosterTypes={usedBoosterTypes}
             activeDayBoosters={activeDayBoosters}
             activeMatchday={activeMatchday}
+            isMatchdayConsumed={isActiveMatchdayConsumed}
             onActivate={activateBooster}
             onRemove={removeBooster}
           />

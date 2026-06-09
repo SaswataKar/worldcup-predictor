@@ -7,6 +7,7 @@ type Props = {
   usedBoosterTypes: string[];
   activeDayBoosters: Record<string, string[]>;
   activeMatchday: string | null;
+  isMatchdayConsumed: boolean;
   onActivate: (boosterType: string, date: string) => Promise<void>;
   onRemove: (boosterType: string) => Promise<void>;
 };
@@ -62,6 +63,7 @@ export default function BoosterInventory({
   usedBoosterTypes,
   activeDayBoosters,
   activeMatchday,
+  isMatchdayConsumed,
   onActivate,
   onRemove,
 }: Props) {
@@ -132,17 +134,27 @@ export default function BoosterInventory({
 
                 <div className="mt-6">
                   {isUsedElsewhere ? (
-                    /* Stamped on a past/locked day — show info only, no action */
+                    /* Stamped on a past/locked day — consumed, no action */
                     <div className="flex flex-col gap-1">
                       <span className="bg-zinc-800 text-zinc-400 px-3 py-1.5 rounded-xl text-[10px] font-black tracking-[0.2em] inline-block">
-                        STAMPED
+                        CONSUMED
                       </span>
                       <span className="text-zinc-500 text-xs font-semibold mt-1">
                         {formatDay(assignedDay!)}
                       </span>
                     </div>
+                  ) : isActiveToday && isMatchdayConsumed ? (
+                    /* Active on today but match has started — consumed, no cancel */
+                    <div className="flex flex-col gap-1">
+                      <span className="bg-white/10 text-white px-3 py-1.5 rounded-xl text-[10px] font-black tracking-[0.2em] inline-block">
+                        CONSUMED
+                      </span>
+                      <span className={`text-xs font-semibold mt-1 ${booster.text}`}>
+                        {formatDay(activeMatchday!)} · Match started
+                      </span>
+                    </div>
                   ) : isActiveToday ? (
-                    /* Active on today's matchday — show cancel */
+                    /* Active on today's matchday — cancellable */
                     <div className="flex flex-col gap-2">
                       <div className="flex items-center gap-2">
                         <span className="bg-white/10 text-white px-3 py-1.5 rounded-xl text-[10px] font-black tracking-[0.2em]">

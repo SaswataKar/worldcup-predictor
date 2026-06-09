@@ -90,13 +90,16 @@ export const processScores = async (matches: any[]) => {
           .eq("user_id", prediction.user_id)
           .single();
 
+        // exact scores are NOT also counted as correct results (mutually exclusive buckets)
+        const isCorrectOnly = correctResult && !exactPrediction;
+
         if (leaderboardUser) {
           await supabase
             .from("leaderboard")
             .update({
               total_points: updatedTotal,
               exact_predictions: (leaderboardUser.exact_predictions || 0) + (exactPrediction ? 1 : 0),
-              correct_results: (leaderboardUser.correct_results || 0) + (correctResult ? 1 : 0),
+              correct_results: (leaderboardUser.correct_results || 0) + (isCorrectOnly ? 1 : 0),
               updated_at: new Date().toISOString(),
             })
             .eq("user_id", prediction.user_id);
@@ -106,7 +109,7 @@ export const processScores = async (matches: any[]) => {
             username: userData.name,
             total_points: updatedTotal,
             exact_predictions: exactPrediction ? 1 : 0,
-            correct_results: correctResult ? 1 : 0,
+            correct_results: isCorrectOnly ? 1 : 0,
             updated_at: new Date().toISOString(),
           });
         }
