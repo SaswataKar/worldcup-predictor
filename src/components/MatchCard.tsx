@@ -275,22 +275,32 @@ export default function MatchCard({
     ? "border-l-emerald-500/70"
     : "border-l-zinc-600/40";
 
-  // Gradient glow — coloured spread shadow, no fill
+  // Gradient glow — brighter when expanded, based on match status
   const cardGlow = isLive
-    ? "shadow-[0_0_24px_4px_rgba(239,68,68,0.18),0_0_0_1px_rgba(239,68,68,0.25),inset_0_1px_0_rgba(255,255,255,0.07)]"
+    ? expanded
+      ? "shadow-[0_0_40px_10px_rgba(239,68,68,0.30),0_0_0_1px_rgba(239,68,68,0.40),inset_0_1px_0_rgba(255,255,255,0.09)]"
+      : "shadow-[0_0_24px_4px_rgba(239,68,68,0.18),0_0_0_1px_rgba(239,68,68,0.25),inset_0_1px_0_rgba(255,255,255,0.07)]"
     : isFinished && prediction && !prediction.processed
-    ? "shadow-[0_0_24px_4px_rgba(234,179,8,0.15),0_0_0_1px_rgba(234,179,8,0.22),inset_0_1px_0_rgba(255,255,255,0.07)]"
+    ? expanded
+      ? "shadow-[0_0_40px_10px_rgba(234,179,8,0.26),0_0_0_1px_rgba(234,179,8,0.36),inset_0_1px_0_rgba(255,255,255,0.09)]"
+      : "shadow-[0_0_24px_4px_rgba(234,179,8,0.15),0_0_0_1px_rgba(234,179,8,0.22),inset_0_1px_0_rgba(255,255,255,0.07)]"
     : prediction?.processed
-    ? "shadow-[0_0_20px_3px_rgba(34,197,94,0.13),0_0_0_1px_rgba(34,197,94,0.18),inset_0_1px_0_rgba(255,255,255,0.06)]"
+    ? expanded
+      ? "shadow-[0_0_36px_8px_rgba(34,197,94,0.22),0_0_0_1px_rgba(34,197,94,0.30),inset_0_1px_0_rgba(255,255,255,0.08)]"
+      : "shadow-[0_0_20px_3px_rgba(34,197,94,0.13),0_0_0_1px_rgba(34,197,94,0.18),inset_0_1px_0_rgba(255,255,255,0.06)]"
     : isOpen
-    ? "shadow-[0_0_20px_3px_rgba(34,197,94,0.10),0_0_0_1px_rgba(34,197,94,0.15),inset_0_1px_0_rgba(255,255,255,0.06)]"
-    : "shadow-[0_0_0_1px_rgba(255,255,255,0.06),inset_0_1px_0_rgba(255,255,255,0.04)]";
+    ? expanded
+      ? "shadow-[0_0_36px_8px_rgba(34,197,94,0.18),0_0_0_1px_rgba(34,197,94,0.26),inset_0_1px_0_rgba(255,255,255,0.08)]"
+      : "shadow-[0_0_20px_3px_rgba(34,197,94,0.10),0_0_0_1px_rgba(34,197,94,0.15),inset_0_1px_0_rgba(255,255,255,0.06)]"
+    : expanded
+    ? "shadow-[0_0_28px_6px_rgba(255,255,255,0.08),0_0_0_1px_rgba(255,255,255,0.14),inset_0_1px_0_rgba(255,255,255,0.07)]"
+    : "shadow-[0_0_0_1px_rgba(255,255,255,0.06),inset_0_1px_0_rgba(255,255,255,0.04)] hover:shadow-[0_0_20px_4px_rgba(255,255,255,0.06),0_0_0_1px_rgba(255,255,255,0.10),inset_0_1px_0_rgba(255,255,255,0.06)]";
 
   return (
     <div
       className={`overflow-hidden rounded-3xl border-l-4 ${cardAccent} ${cardGlow}
         backdrop-blur-md border border-white/[0.07]
-        transition-[box-shadow,border-color] duration-300`}
+        transition-all duration-300`}
     >
       <div>
 

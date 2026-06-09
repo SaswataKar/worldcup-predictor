@@ -63,10 +63,19 @@ export default function HowItWorks() {
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="mb-12">
+    <div
+      className={`mb-12 rounded-3xl border backdrop-blur-md overflow-hidden transition-all duration-300
+        ${open
+          ? "border-sky-500/25 shadow-[0_0_32px_6px_rgba(56,189,248,0.10),0_0_0_1px_rgba(56,189,248,0.18),inset_0_1px_0_rgba(255,255,255,0.07)]"
+          : "border-white/[0.07] shadow-[0_0_0_1px_rgba(255,255,255,0.04),inset_0_1px_0_rgba(255,255,255,0.05)] hover:border-white/[0.12] hover:shadow-[0_0_20px_4px_rgba(255,255,255,0.05),0_0_0_1px_rgba(255,255,255,0.08),inset_0_1px_0_rgba(255,255,255,0.06)]"
+        }`}
+    >
+      {/* top-edge glass highlight */}
+      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/[0.10] to-transparent pointer-events-none" />
+
       <button
         onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center justify-between group"
+        className="w-full flex items-center justify-between group px-6 py-5"
       >
         <div className="text-left">
           <div className="text-zinc-500 uppercase tracking-[0.35em] text-xs font-black mb-1">
@@ -97,27 +106,29 @@ export default function HowItWorks() {
             transition={{ duration: 0.25 }}
             className="overflow-hidden"
           >
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
-              {STEPS.map((step) => (
-                <div
-                  key={step.title}
-                  className={`rounded-3xl border ${step.border} backdrop-blur-md p-6
-                    shadow-[0_0_0_1px_rgba(255,255,255,0.04),inset_0_1px_0_rgba(255,255,255,0.07)]`}
-                >
-                  <div className="flex items-center gap-3 mb-4">
-                    <span className="text-2xl">{step.icon}</span>
-                    <span className={`text-base font-black ${step.color}`}>{step.title}</span>
+            <div className="border-t border-white/[0.06] px-6 pb-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-5">
+                {STEPS.map((step) => (
+                  <div
+                    key={step.title}
+                    className={`rounded-2xl border ${step.border} backdrop-blur-md p-5
+                      shadow-[0_0_0_1px_rgba(255,255,255,0.04),inset_0_1px_0_rgba(255,255,255,0.07)]`}
+                  >
+                    <div className="flex items-center gap-3 mb-4">
+                      <span className="text-2xl">{step.icon}</span>
+                      <span className={`text-base font-black ${step.color}`}>{step.title}</span>
+                    </div>
+                    <ul className="space-y-2">
+                      {step.lines.map((line, i) => (
+                        <li key={i} className="flex items-start gap-2 text-sm text-zinc-400 leading-relaxed">
+                          <span className="text-zinc-600 mt-0.5 shrink-0">›</span>
+                          <span>{line}</span>
+                        </li>
+                      ))}
+                    </ul>
                   </div>
-                  <ul className="space-y-2">
-                    {step.lines.map((line, i) => (
-                      <li key={i} className="flex items-start gap-2 text-sm text-zinc-400 leading-relaxed">
-                        <span className="text-zinc-600 mt-0.5 shrink-0">›</span>
-                        <span>{line}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </motion.div>
         )}

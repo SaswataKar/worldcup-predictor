@@ -90,11 +90,20 @@ export default function BoosterInventory({
   };
 
   return (
-    <div className="mb-14">
+    <div
+      className={`mb-14 rounded-3xl border backdrop-blur-md overflow-hidden transition-all duration-300 relative
+        ${open
+          ? "border-yellow-500/25 shadow-[0_0_36px_8px_rgba(234,179,8,0.12),0_0_0_1px_rgba(234,179,8,0.22),inset_0_1px_0_rgba(255,255,255,0.07)]"
+          : "border-white/[0.07] shadow-[0_0_0_1px_rgba(255,255,255,0.04),inset_0_1px_0_rgba(255,255,255,0.05)] hover:border-white/[0.12] hover:shadow-[0_0_20px_4px_rgba(255,255,255,0.05),0_0_0_1px_rgba(255,255,255,0.08),inset_0_1px_0_rgba(255,255,255,0.06)]"
+        }`}
+    >
+      {/* top-edge glass highlight */}
+      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/[0.10] to-transparent pointer-events-none z-10" />
+
       {/* SECTION HEADER — always visible, acts as toggle */}
       <button
         onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center justify-between group mb-0"
+        className="w-full flex items-center justify-between group px-6 py-5"
       >
         <div className="text-left">
           <div className="text-zinc-500 uppercase tracking-[0.35em] text-xs font-black mb-1">
@@ -154,7 +163,8 @@ export default function BoosterInventory({
             transition={{ duration: 0.25 }}
             className="overflow-hidden"
           >
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-stretch mt-6">
+            <div className="border-t border-white/[0.06] px-6 pb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-stretch mt-5">
               {BOOSTERS.map((booster) => {
                 const assignedDay = getDayAssigned(booster.key, activeDayBoosters);
                 const isActiveToday = !!assignedDay && assignedDay === activeMatchday;
@@ -254,6 +264,7 @@ export default function BoosterInventory({
                   </motion.div>
                 );
               })}
+            </div>
             </div>
           </motion.div>
         )}

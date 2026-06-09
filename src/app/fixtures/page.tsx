@@ -150,8 +150,9 @@ export default function FixturesPage() {
                       <div
                         key={match.id}
                         className="overflow-hidden rounded-3xl border border-white/[0.07] px-6 py-5
-                          backdrop-blur-md
-                          shadow-[0_0_0_1px_rgba(255,255,255,0.05),inset_0_1px_0_rgba(255,255,255,0.06)]"
+                          backdrop-blur-md transition-all duration-300
+                          shadow-[0_0_0_1px_rgba(255,255,255,0.05),inset_0_1px_0_rgba(255,255,255,0.06)]
+                          hover:border-white/[0.13] hover:shadow-[0_0_22px_4px_rgba(255,255,255,0.06),0_0_0_1px_rgba(255,255,255,0.10),inset_0_1px_0_rgba(255,255,255,0.08)]"
                       >
                         <div className="flex items-center justify-between gap-4 flex-wrap">
                           {/* TEAMS + SCORE */}
