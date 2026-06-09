@@ -263,6 +263,7 @@ export default function Home() {
 
   // SUBMIT
   const submitPrediction = async (matchId: number) => {
+    if (!user) return;
     const match = matches.find((m) => m.id === matchId);
 
     if (!match || !canPredict(match.kickoff_time ?? "")) {
@@ -321,6 +322,7 @@ export default function Home() {
 
   // CANCEL
   const cancelPrediction = async (matchId: number) => {
+    if (!user) return;
     const prediction = predictions[matchId];
     const match = matches.find((m) => m.id === matchId);
 
