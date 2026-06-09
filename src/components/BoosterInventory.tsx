@@ -181,13 +181,21 @@ export default function BoosterInventory({
             transition={{ duration: 0.25 }}
             className="overflow-hidden"
           >
-            <div className="border-t border-white/[0.06] px-6 pb-6">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-stretch mt-5">
+            <div className="border-t border-white/[0.06] px-3 sm:px-6 pb-6">
+            {/* One-per-day note */}
+            <p className="text-zinc-600 text-xs font-semibold mt-4 mb-4">
+              ⚡ One booster per matchday — swap freely before the first match kicks off.
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-stretch">
               {BOOSTERS.map((booster) => {
                 const assignedDay = getDayAssigned(booster.key, activeDayBoosters);
                 const isActiveToday = !!assignedDay && assignedDay === activeMatchday;
                 const isUsedElsewhere = !!assignedDay && assignedDay !== activeMatchday;
                 const isLoading = loadingKey === booster.key;
+
+                // Is a DIFFERENT booster already active for today?
+                const todayBoosterType = activeMatchday ? (activeDayBoosters[activeMatchday] || [])[0] ?? null : null;
+                const isDayTakenByOther = !!todayBoosterType && !isActiveToday && !isUsedElsewhere;
 
                 const glowMap: Record<string, string> = {
                   "2x":  "shadow-[0_0_28px_6px_rgba(234,179,8,0.20),0_0_0_1px_rgba(234,179,8,0.30),inset_0_1px_0_rgba(255,255,255,0.08)]",
@@ -203,7 +211,7 @@ export default function BoosterInventory({
                     key={booster.key}
                     whileHover={isUsedElsewhere ? {} : { scale: 1.02 }}
                     transition={{ duration: 0.15 }}
-                    className={`relative overflow-hidden rounded-3xl border p-6 flex flex-col h-full transition-all duration-300 ${cardClass}`}
+                    className={`relative overflow-hidden rounded-3xl border p-5 sm:p-6 flex flex-col h-full transition-all duration-300 ${cardClass}`}
                   >
                     {/* top-edge glass highlight */}
                     <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/[0.12] to-transparent" />
@@ -211,12 +219,17 @@ export default function BoosterInventory({
                     <div className="relative z-10 flex flex-col flex-1">
                       <div className="flex items-start justify-between">
                         <div className="text-4xl">{booster.icon}</div>
-                        {isActiveToday && (
+                        {isActiveToday && !isMatchdayConsumed && (
                           <span className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.15em] text-white">
                             <span className={`w-1.5 h-1.5 rounded-full ${booster.dot} animate-pulse`} />
                             Active
                           </span>
                         )}
+                        {(isActiveToday && isMatchdayConsumed) || isUsedElsewhere ? (
+                          <span className="text-[10px] font-black uppercase tracking-[0.15em] text-zinc-500">
+                            Consumed
+                          </span>
+                        ) : null}
                       </div>
 
                       <div className={`mt-4 text-xl font-black ${booster.text}`}>
@@ -227,14 +240,14 @@ export default function BoosterInventory({
                         {booster.description}
                       </div>
 
-                      <div className="mt-6">
+                      <div className="mt-5">
                         {isUsedElsewhere ? (
                           <div className="flex flex-col gap-1">
                             <span className="bg-zinc-800 text-zinc-400 px-3 py-1.5 rounded-xl text-[10px] font-black tracking-[0.2em] inline-block">
                               CONSUMED
                             </span>
                             <span className="text-zinc-500 text-xs font-semibold mt-1">
-                              {formatDay(assignedDay!)}
+                              Used on {formatDay(assignedDay!)}
                             </span>
                           </div>
                         ) : isActiveToday && isMatchdayConsumed ? (
@@ -264,11 +277,20 @@ export default function BoosterInventory({
                               {isLoading ? "Removing..." : "✕ Cancel"}
                             </button>
                           </div>
+                        ) : isDayTakenByOther ? (
+                          // Different booster active today — offer swap
+                          <button
+                            onClick={() => handleToggle(booster.key, false)}
+                            disabled={isLoading}
+                            className={`w-full px-5 py-2.5 rounded-2xl text-sm font-black border ${booster.border} ${booster.text} bg-white/[0.04] hover:bg-white/[0.08] transition-all disabled:opacity-50`}
+                          >
+                            {isLoading ? "Swapping..." : "↔ Apply instead"}
+                          </button>
                         ) : (
                           <button
                             onClick={() => handleToggle(booster.key, false)}
                             disabled={!activeMatchday || isLoading}
-                            className="px-5 py-2.5 rounded-2xl text-sm font-black bg-zinc-800 text-zinc-300 hover:bg-zinc-700 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                            className="w-full px-5 py-2.5 rounded-2xl text-sm font-black bg-zinc-800 text-zinc-300 hover:bg-zinc-700 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                           >
                             {isLoading
                               ? "Applying..."

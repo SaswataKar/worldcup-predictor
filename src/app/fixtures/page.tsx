@@ -98,7 +98,7 @@ export default function FixturesPage() {
 
   return (
     <PageWrapper>
-      <main className="min-h-screen text-white p-6">
+      <main className="min-h-screen text-white p-3 sm:p-6">
         <div className="max-w-7xl mx-auto">
           <Header user={user} />
 
@@ -107,7 +107,7 @@ export default function FixturesPage() {
             <div className="text-zinc-500 uppercase tracking-[0.3em] text-sm font-black mb-3">
               FIFA WORLD CUP 2026
             </div>
-            <h1 className="text-6xl font-black leading-none">Tournament Fixtures</h1>
+            <h1 className="text-4xl sm:text-6xl font-black leading-none">Tournament Fixtures</h1>
           </div>
 
           {/* LOADING */}
@@ -131,7 +131,7 @@ export default function FixturesPage() {
             {Object.entries(groupedMatches).map(([date, dateMatches]) => (
               <div key={date}>
                 {/* DATE HEADER */}
-                <div className="text-4xl font-black mb-8">{formatDate(date)}</div>
+                <div className="text-2xl sm:text-4xl font-black mb-5 sm:mb-8">{formatDate(date)}</div>
 
                 <div className="space-y-4">
                   {dateMatches.map((match) => {
@@ -149,7 +149,7 @@ export default function FixturesPage() {
                     return (
                       <div
                         key={match.id}
-                        className="overflow-hidden rounded-3xl border border-white/[0.07] px-6 py-5
+                        className="overflow-hidden rounded-3xl border border-white/[0.07] px-3 sm:px-6 py-4 sm:py-5
                           backdrop-blur-md transition-all duration-300
                           shadow-[0_0_0_1px_rgba(255,255,255,0.05),inset_0_1px_0_rgba(255,255,255,0.06)]
                           hover:border-white/[0.13] hover:shadow-[0_0_22px_4px_rgba(255,255,255,0.06),0_0_0_1px_rgba(255,255,255,0.10),inset_0_1px_0_rgba(255,255,255,0.08)]"

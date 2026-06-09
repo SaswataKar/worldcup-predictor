@@ -155,9 +155,22 @@ export default function Home() {
     setActiveDayBoosters(byDay);
   };
 
-  // ACTIVATE BOOSTER — always stamps to the active matchday
+  // ACTIVATE BOOSTER — one per day; swaps if a different booster is already set
   const activateBooster = async (boosterType: string, date: string) => {
     if (!user) return;
+
+    const existingType = (activeDayBoosters[date] || [])[0] ?? null;
+    if (existingType === boosterType) return; // already active, no-op
+
+    // If swapping, remove the old one first
+    if (existingType) {
+      const { error: delError } = await supabase
+        .from("daily_boosters")
+        .delete()
+        .eq("user_id", user.id)
+        .eq("booster_type", existingType);
+      if (delError) { toast.error(delError.message); throw delError; }
+    }
 
     const { error } = await supabase.from("daily_boosters").insert({
       user_id: user.id,
@@ -170,13 +183,18 @@ export default function Home() {
       throw error;
     }
 
-    setUsedBoosterTypes((prev) => [...prev, boosterType]);
+    // Update state: return old type to inventory, mark new type as used
+    setUsedBoosterTypes((prev) => {
+      const without = existingType ? prev.filter((b) => b !== existingType) : prev;
+      return [...without, boosterType];
+    });
     setActiveDayBoosters((prev) => ({
       ...prev,
-      [date]: [...(prev[date] || []), boosterType],
+      [date]: [boosterType], // only one per day
     }));
 
-    toast.success(`${BOOSTER_NAMES[boosterType] ?? boosterType} activated!`);
+    const action = existingType ? "swapped to" : "activated";
+    toast.success(`${BOOSTER_NAMES[boosterType] ?? boosterType} ${action}!`);
   };
 
   // REMOVE BOOSTER — returns it to inventory (only before first match of that day starts)
@@ -386,7 +404,7 @@ export default function Home() {
 
   return (
     <PageWrapper>
-      <main className="min-h-screen text-white p-6">
+      <main className="min-h-screen text-white p-3 sm:p-6">
         <div className="max-w-7xl mx-auto">
           <Header user={user} />
 

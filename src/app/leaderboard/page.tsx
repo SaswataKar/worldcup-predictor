@@ -95,7 +95,7 @@ export default function LeaderboardPage() {
 
   return (
     <PageWrapper>
-      <main className="min-h-screen text-white p-6">
+      <main className="min-h-screen text-white p-3 sm:p-6">
         <div className="max-w-6xl mx-auto">
           <Header user={user} />
 
@@ -114,7 +114,7 @@ export default function LeaderboardPage() {
               </div>
             </div>
 
-            <h1 className="text-6xl font-black tracking-tight leading-none">Leaderboard</h1>
+            <h1 className="text-4xl sm:text-6xl font-black tracking-tight leading-none">Leaderboard</h1>
 
             <div className="flex items-center gap-4 mt-4 flex-wrap">
               <p className="text-zinc-400 text-lg max-w-2xl">
@@ -165,7 +165,7 @@ export default function LeaderboardPage() {
                   <div
                     key={leader.id}
                     className={`relative overflow-hidden rounded-3xl border backdrop-blur-md
-                      px-6 py-5 flex items-center justify-between flex-wrap gap-6
+                      px-4 sm:px-6 py-4 sm:py-5 flex items-center justify-between flex-wrap gap-4 sm:gap-6
                       transition-all duration-300 ${meCls}`}
                   >
                     {/* top-edge glass highlight */}
@@ -176,7 +176,7 @@ export default function LeaderboardPage() {
                       {/* Rank badge — only for scorers */}
                       {hasPoints && (
                         <div
-                          className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 ${cfg.badge ?? DEFAULT_ROW.badge}`}
+                          className={`w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center shrink-0 ${cfg.badge ?? DEFAULT_ROW.badge}`}
                         >
                           {rankedIndex < 3 ? (
                             <span className={`${TROPHY_SIZES[rankedIndex]} leading-none`}>
@@ -190,7 +190,7 @@ export default function LeaderboardPage() {
 
                       <div>
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-2xl font-black">{leader.username}</span>
+                          <span className="text-lg sm:text-2xl font-black">{leader.username}</span>
                           {isMe && (
                             <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/25 text-emerald-400 text-[10px] font-black tracking-widest uppercase">
                               You
@@ -214,7 +214,7 @@ export default function LeaderboardPage() {
                           Total Points
                         </div>
                         <div
-                          className={`text-5xl font-black tabular-nums ${
+                          className={`text-3xl sm:text-5xl font-black tabular-nums ${
                             rankedIndex === 0 ? "text-yellow-300"
                             : rankedIndex === 1 ? "text-zinc-200"
                             : rankedIndex === 2 ? "text-amber-400"

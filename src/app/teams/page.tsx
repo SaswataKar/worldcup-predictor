@@ -303,7 +303,7 @@ export default function TeamsPage() {
 
   return (
     <PageWrapper>
-      <main className="min-h-screen text-white p-6">
+      <main className="min-h-screen text-white p-3 sm:p-6">
         <div className="max-w-7xl mx-auto">
           <Header user={user} />
 
@@ -315,7 +315,7 @@ export default function TeamsPage() {
                 FIFA World Cup 2026
               </span>
             </div>
-            <h1 className="text-6xl font-black tracking-tight leading-none mb-4">Teams</h1>
+            <h1 className="text-4xl sm:text-6xl font-black tracking-tight leading-none mb-4">Teams</h1>
             <p className="text-zinc-400 text-lg max-w-2xl">
               All {teams.length || 32} participating nations — squads, coaches and player details.
             </p>

@@ -312,29 +312,29 @@ export default function MatchCard({
           if (!isCurrentlyOpen) next[match.id] = true;
           setExpandedMatches(next);
         }}
-        className="w-full px-6 py-5 text-left"
+        className="w-full px-3 sm:px-6 py-4 sm:py-5 text-left"
       >
-        <div className="flex items-center justify-between gap-4 flex-wrap">
+        <div className="flex items-center justify-between gap-2 sm:gap-4 flex-wrap">
           {/* TEAMS + SCORE */}
-          <div className="flex items-center gap-4 min-w-0">
-            <div className="flex items-center gap-2">
-              <img src={match.team1_crest || "/placeholder-team.png"} className="w-8 h-8 object-contain" />
-              <span className="text-base font-black truncate">{match.team1}</span>
+          <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
+            <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+              <img src={match.team1_crest || "/placeholder-team.png"} className="w-6 h-6 sm:w-8 sm:h-8 object-contain shrink-0" />
+              <span className="text-sm sm:text-base font-black truncate max-w-[80px] sm:max-w-none">{match.team1}</span>
             </div>
 
-            <div className="flex items-center justify-center min-w-[56px]">
+            <div className="flex items-center justify-center shrink-0 min-w-[44px] sm:min-w-[56px]">
               {isFinished || isLive ? (
-                <span className={`text-xl font-black tabular-nums ${isLive ? "text-red-300" : ""}`}>
-                  {match.team1_score} – {match.team2_score}
+                <span className={`text-base sm:text-xl font-black tabular-nums ${isLive ? "text-red-300" : ""}`}>
+                  {match.team1_score}–{match.team2_score}
                 </span>
               ) : (
-                <span className="text-zinc-600 font-black text-sm">VS</span>
+                <span className="text-zinc-600 font-black text-xs sm:text-sm">VS</span>
               )}
             </div>
 
-            <div className="flex items-center gap-2">
-              <img src={match.team2_crest || "/placeholder-team.png"} className="w-8 h-8 object-contain" />
-              <span className="text-base font-black truncate">{match.team2}</span>
+            <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+              <img src={match.team2_crest || "/placeholder-team.png"} className="w-6 h-6 sm:w-8 sm:h-8 object-contain shrink-0" />
+              <span className="text-sm sm:text-base font-black truncate max-w-[80px] sm:max-w-none">{match.team2}</span>
             </div>
           </div>
 
@@ -453,20 +453,19 @@ export default function MatchCard({
           transition={{ duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
           style={{ overflow: "hidden" }}
         >
-        <div className="border-t border-white/[0.07] px-6 py-6"
-        >
+        <div className="border-t border-white/[0.07] px-3 sm:px-6 py-4 sm:py-6">
           {/* TIMING STRIP */}
-          <div className="flex items-stretch gap-3 mb-6">
-            <div className="flex-1 border border-white/[0.07] rounded-2xl px-5 py-4">
+          <div className="grid grid-cols-2 sm:flex sm:items-stretch gap-2 sm:gap-3 mb-5">
+            <div className="border border-white/[0.07] rounded-2xl px-3 sm:px-5 py-3 sm:py-4">
               <div className="text-[10px] uppercase tracking-widest text-zinc-500 mb-1">Kickoff</div>
-              <div className="text-sm font-black">{getISTKickoff()}</div>
+              <div className="text-xs sm:text-sm font-black">{getISTKickoff()}</div>
             </div>
-            <div className="flex-1 border border-white/[0.07] rounded-2xl px-5 py-4">
-              <div className="text-[10px] uppercase tracking-widest text-zinc-500 mb-1">Predictions Close</div>
-              <div className={`text-sm font-black ${locked ? "text-red-400" : ""}`}>{getCloseTime()}</div>
+            <div className="border border-white/[0.07] rounded-2xl px-3 sm:px-5 py-3 sm:py-4">
+              <div className="text-[10px] uppercase tracking-widest text-zinc-500 mb-1">Pred. Closes</div>
+              <div className={`text-xs sm:text-sm font-black ${locked ? "text-red-400" : ""}`}>{getCloseTime()}</div>
             </div>
             <div
-              className={`flex items-center justify-center px-5 rounded-2xl border font-black text-sm ${
+              className={`col-span-2 sm:col-span-1 sm:flex-1 flex items-center justify-center px-4 py-3 rounded-2xl border font-black text-sm ${
                 locked
                   ? "bg-red-500/10 border-red-500/30 text-red-300"
                   : "bg-emerald-500/10 border-emerald-500/30 text-emerald-300"
