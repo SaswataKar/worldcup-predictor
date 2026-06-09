@@ -218,16 +218,27 @@ export default function MatchCard({
     ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-400"
     : "border-red-500/40 bg-red-500/10 text-red-400";
 
+  // Card accent: green when open, red when live, yellow when finished+unscored, grey otherwise
+  const cardAccent = isLive
+    ? "border-l-red-500/60"
+    : isFinished && prediction && !prediction.processed
+    ? "border-l-yellow-500/60"
+    : prediction?.processed
+    ? "border-l-emerald-500/40"
+    : isOpen
+    ? "border-l-emerald-500/60"
+    : "border-l-zinc-700/40";
+
   return (
     <motion.div
       layout
       transition={{ duration: 0.3 }}
-      className="overflow-hidden rounded-3xl border border-zinc-800/60 bg-zinc-950 shadow-xl"
+      className={`overflow-hidden rounded-3xl border border-zinc-700/50 border-l-4 ${cardAccent} bg-zinc-900 shadow-xl hover:border-zinc-600/60 transition-colors duration-200`}
     >
       {/* COLLAPSED ROW */}
       <button
         onClick={() => setExpandedMatches({ ...expandedMatches, [match.id]: !expanded })}
-        className="w-full px-6 py-5 text-left hover:bg-white/[0.02] transition-colors"
+        className="w-full px-6 py-5 text-left hover:bg-white/[0.03] transition-colors"
       >
         <div className="flex items-center justify-between gap-4 flex-wrap">
           {/* TEAMS + SCORE */}
@@ -363,7 +374,7 @@ export default function MatchCard({
           initial={{ opacity: 0, height: 0 }}
           animate={{ opacity: 1, height: "auto" }}
           transition={{ duration: 0.25 }}
-          className="border-t border-zinc-800/60 px-6 py-6"
+          className="border-t border-zinc-700/40 bg-zinc-900/80 px-6 py-6"
         >
           {/* TIMING STRIP */}
           <div className="flex items-stretch gap-3 mb-6">

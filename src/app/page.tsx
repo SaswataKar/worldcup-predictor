@@ -417,35 +417,60 @@ export default function Home() {
           )}
 
           {/* ROLLING 3-DAY WINDOW */}
-          <div className="space-y-16">
-            {Object.entries(visibleGroupedMatches).map(([date, dateMatches]) => (
-              <div key={date}>
-                {/* DATE HEADER */}
-                <div className="flex items-center gap-4 mb-8 flex-wrap">
-                  <div className="text-4xl font-black">
-                    {new Date(date).toLocaleDateString("en-IN", {
-                      weekday: "long",
-                      day: "numeric",
-                      month: "long",
-                    })}
-                  </div>
+          <div className="space-y-12">
+            {Object.entries(visibleGroupedMatches).map(([date, dateMatches]) => {
+              const dayBoosters = activeDayBoosters[date] || [];
+              const isToday = date === new Date().toISOString().split("T")[0];
+              const hasTomorrow = (() => {
+                const d = new Date(); d.setDate(d.getDate() + 1);
+                return date === d.toISOString().split("T")[0];
+              })();
 
-                  {/* ACTIVE BOOSTER BADGES FOR THIS DAY */}
-                  {(activeDayBoosters[date] || []).length > 0 && (
-                    <div className="flex gap-2">
-                      {(activeDayBoosters[date] || []).map((b) => (
-                        <span
-                          key={b}
-                          className="px-3 py-1.5 rounded-2xl bg-zinc-900 border border-zinc-700 text-sm font-black text-zinc-300"
-                        >
-                          {b === "2x" ? "⚽ 2x" : b === "3x" ? "🔥 3x" : "🐐 G.O.A.T"}
-                        </span>
-                      ))}
+              return (
+              <div key={date}>
+                {/* DATE SECTION HEADER */}
+                <div className="relative mb-6">
+                  {/* Full-width divider line */}
+                  <div className="absolute inset-x-0 top-1/2 h-px bg-zinc-800" />
+
+                  <div className="relative flex items-center gap-3 flex-wrap">
+                    {/* Date chip — sits on the line */}
+                    <div className="flex items-center gap-3 bg-zinc-950 pr-4 rounded-full border border-zinc-700/60 pl-1 py-1">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-black shrink-0 ${
+                        isToday ? "bg-yellow-400 text-black" :
+                        hasTomorrow ? "bg-zinc-700 text-white" :
+                        "bg-zinc-800 text-zinc-400"
+                      }`}>
+                        {new Date(date).getDate()}
+                      </div>
+                      <div>
+                        <div className="text-[10px] uppercase tracking-[0.2em] text-zinc-500 font-black leading-none mb-0.5">
+                          {isToday ? "Today" : hasTomorrow ? "Tomorrow" : new Date(date).toLocaleDateString("en-IN", { weekday: "long" })}
+                        </div>
+                        <div className="text-base font-black leading-none">
+                          {new Date(date).toLocaleDateString("en-IN", { day: "numeric", month: "long" })}
+                        </div>
+                      </div>
                     </div>
-                  )}
+
+                    {/* Match count */}
+                    <div className="bg-zinc-900 border border-zinc-700/60 rounded-full px-3 py-1 text-xs font-black text-zinc-400">
+                      {dateMatches.length} {dateMatches.length === 1 ? "match" : "matches"}
+                    </div>
+
+                    {/* Active booster badges */}
+                    {dayBoosters.map((b) => (
+                      <span
+                        key={b}
+                        className="px-3 py-1 rounded-full border border-zinc-700 bg-zinc-900 text-xs font-black text-zinc-300"
+                      >
+                        {b === "2x" ? "⚽ 2×" : b === "3x" ? "🔥 3×" : "🐐 G.O.A.T"}
+                      </span>
+                    ))}
+                  </div>
                 </div>
 
-                <div className="space-y-6">
+                <div className="space-y-4">
                   {dateMatches.map((match) => (
                     <MatchCard
                       key={match.id}
@@ -463,7 +488,8 @@ export default function Home() {
                   ))}
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </main>
