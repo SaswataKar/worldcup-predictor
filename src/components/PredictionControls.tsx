@@ -1,6 +1,5 @@
 "use client";
 
-import { motion } from "framer-motion";
 import type { Match, Prediction, PredictedScore } from "@/types";
 
 type Props = {
@@ -11,31 +10,7 @@ type Props = {
   setPredictedScores: (scores: Record<number, PredictedScore>) => void;
   submitPrediction: (matchId: number) => void;
   cancelPrediction: (matchId: number) => void;
-  selectedInventoryBooster: string | null;
-  setSelectedInventoryBooster: (booster: string | null) => void;
-  usedBoosters: string[];
 };
-
-const boosterOptions = [
-  {
-    key: "2x",
-    icon: "⚽",
-    title: "TIKI TAKA",
-    description: "Double Points",
-    glow: "from-yellow-500/20 to-orange-500/10",
-    border: "border-yellow-500/40",
-    text: "text-yellow-300",
-  },
-  {
-    key: "3x",
-    icon: "🔥",
-    title: "HAT TRICK HERO",
-    description: "Triple Points",
-    glow: "from-fuchsia-500/20 to-purple-500/10",
-    border: "border-fuchsia-500/40",
-    text: "text-fuchsia-300",
-  },
-];
 
 export default function PredictionControls({
   match,
@@ -45,17 +20,10 @@ export default function PredictionControls({
   setPredictedScores,
   submitPrediction,
   cancelPrediction,
-  selectedInventoryBooster,
-  setSelectedInventoryBooster,
-  usedBoosters,
 }: Props) {
   const prediction = predictions[match.id];
   const predictionLocked = !!prediction?.match_id;
   const scoreData = predictedScores[match.id] || { home: "", away: "" };
-
-  const availableBoosters = boosterOptions.filter(
-    (b) => !usedBoosters.includes(b.key) || prediction?.booster_used === b.key
-  );
 
   const updateScore = (side: "home" | "away", value: string) => {
     if (value !== "" && Number(value) < 0) return;
@@ -116,47 +84,6 @@ export default function PredictionControls({
           </div>
         </div>
       </div>
-
-      {/* BOOSTERS */}
-      {!locked && !predictionLocked && (
-        <div className="bg-black/40 border border-zinc-800 rounded-[32px] p-8">
-          <div className="text-sm uppercase tracking-[0.35em] text-zinc-400 font-black mb-8">
-            Match Boosters
-          </div>
-          <div className="flex gap-6 flex-wrap">
-            {availableBoosters.map((booster) => {
-              const selected = selectedInventoryBooster === booster.key;
-              return (
-                <motion.button
-                  whileHover={{ scale: 1.03 }}
-                  whileTap={{ scale: 0.98 }}
-                  key={booster.key}
-                  disabled={locked || predictionLocked}
-                  onClick={() => setSelectedInventoryBooster(selected ? null : booster.key)}
-                  className={`relative overflow-hidden rounded-[28px] border px-6 py-6 min-w-[280px] text-left transition-all duration-300 ${
-                    selected
-                      ? `${booster.border} bg-gradient-to-br ${booster.glow} shadow-2xl`
-                      : "border-zinc-800 bg-zinc-900 hover:border-zinc-600"
-                  }`}
-                >
-                  <div className="relative z-10">
-                    <div className={`flex items-center gap-3 text-xl font-black tracking-[0.15em] ${booster.text}`}>
-                      <span className="text-3xl">{booster.icon}</span>
-                      {booster.title}
-                    </div>
-                    <div className="mt-4 text-zinc-400">{booster.description}</div>
-                    {selected && (
-                      <div className="mt-5 inline-flex items-center gap-2 bg-white text-black px-3 py-1 rounded-xl text-xs font-black">
-                        ACTIVE
-                      </div>
-                    )}
-                  </div>
-                </motion.button>
-              );
-            })}
-          </div>
-        </div>
-      )}
 
       {/* SUBMIT */}
       {!locked && !predictionLocked && (

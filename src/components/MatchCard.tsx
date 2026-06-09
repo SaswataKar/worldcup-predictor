@@ -14,11 +14,10 @@ type MatchCardProps = {
   setExpandedMatches: (expanded: Record<number, boolean>) => void;
   submitPrediction: (matchId: number) => void;
   cancelPrediction: (matchId: number) => void;
-  selectedInventoryBooster: string | null;
-  setSelectedInventoryBooster: (booster: string | null) => void;
-  usedBoosters: string[];
-  goatDays: string[];
+  activeDayBoosters: Record<string, string[]>;
 };
+
+const BOOSTER_ICONS: Record<string, string> = { "2x": "⚽", "3x": "🔥", draw: "🐐" };
 
 export default function MatchCard({
   match,
@@ -30,10 +29,7 @@ export default function MatchCard({
   setExpandedMatches,
   submitPrediction,
   cancelPrediction,
-  selectedInventoryBooster,
-  setSelectedInventoryBooster,
-  usedBoosters,
-  goatDays,
+  activeDayBoosters,
 }: MatchCardProps) {
   const expanded = expandedMatches[match.id];
   const prediction = predictions[match.id];
@@ -57,7 +53,7 @@ export default function MatchCard({
     ? new Date(match.kickoff_time).toISOString().split("T")[0]
     : null;
 
-  const goatActive = matchDate && goatDays.includes(matchDate);
+  const activeBoosters = matchDate ? (activeDayBoosters[matchDate] || []) : [];
 
   const getCountdown = () => {
     if (!match.kickoff_time) return "TBD";
@@ -127,10 +123,7 @@ export default function MatchCard({
           {/* TEAMS + SCORE */}
           <div className="flex items-center gap-4 min-w-0">
             <div className="flex items-center gap-2">
-              <img
-                src={match.team1_crest || "/placeholder-team.png"}
-                className="w-8 h-8 object-contain"
-              />
+              <img src={match.team1_crest || "/placeholder-team.png"} className="w-8 h-8 object-contain" />
               <span className="text-base font-black truncate">{match.team1}</span>
             </div>
 
@@ -145,10 +138,7 @@ export default function MatchCard({
             </div>
 
             <div className="flex items-center gap-2">
-              <img
-                src={match.team2_crest || "/placeholder-team.png"}
-                className="w-8 h-8 object-contain"
-              />
+              <img src={match.team2_crest || "/placeholder-team.png"} className="w-8 h-8 object-contain" />
               <span className="text-base font-black truncate">{match.team2}</span>
             </div>
           </div>
@@ -193,20 +183,15 @@ export default function MatchCard({
               </>
             )}
 
-            {prediction?.booster_used && prediction.booster_used !== "none" && (
+            {/* ACTIVE DAY BOOSTERS */}
+            {activeBoosters.length > 0 && (
               <>
                 <div className="text-zinc-700">·</div>
-                <span className="text-lg leading-none">
-                  {prediction.booster_used === "2x" && "⚽"}
-                  {prediction.booster_used === "3x" && "🔥"}
+                <span className="flex gap-1">
+                  {activeBoosters.map((b) => (
+                    <span key={b} className="text-lg leading-none">{BOOSTER_ICONS[b] ?? b}</span>
+                  ))}
                 </span>
-              </>
-            )}
-
-            {goatActive && (
-              <>
-                <div className="text-zinc-700">·</div>
-                <span className="text-lg leading-none">🐐</span>
               </>
             )}
 
@@ -263,6 +248,23 @@ export default function MatchCard({
             </div>
           </div>
 
+          {/* ACTIVE BOOSTERS STRIP */}
+          {activeBoosters.length > 0 && (
+            <div className="flex gap-2 mb-6 flex-wrap">
+              {activeBoosters.map((b) => (
+                <div
+                  key={b}
+                  className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-zinc-900 border border-zinc-700 text-sm font-black"
+                >
+                  <span>{BOOSTER_ICONS[b] ?? b}</span>
+                  <span className="text-zinc-300">
+                    {b === "2x" ? "Tiki Taka Active" : b === "3x" ? "Hat Trick Active" : "G.O.A.T Active"}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+
           <PredictionControls
             match={match}
             locked={locked}
@@ -271,9 +273,6 @@ export default function MatchCard({
             setPredictedScores={setPredictedScores}
             submitPrediction={submitPrediction}
             cancelPrediction={cancelPrediction}
-            selectedInventoryBooster={selectedInventoryBooster}
-            setSelectedInventoryBooster={setSelectedInventoryBooster}
-            usedBoosters={usedBoosters}
           />
         </motion.div>
       )}
