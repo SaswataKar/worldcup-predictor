@@ -67,17 +67,21 @@ export default function BoosterInventory({
   onActivate,
 }: Props) {
   const [assigning, setAssigning] = useState<string | null>(null);
-  const [loading, setLoading] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  const handleStamp = async (boosterKey: string, date: string) => {
-    setLoading(boosterKey);
-    await onActivate(boosterKey, date);
+  const activeBooster = BOOSTERS.find((b) => b.key === assigning);
+
+  const handleStamp = async (date: string) => {
+    if (!assigning) return;
+    setLoading(true);
+    await onActivate(assigning, date);
     setAssigning(null);
-    setLoading(null);
+    setLoading(false);
   };
 
   return (
     <div className="mb-14">
+      {/* HEADER */}
       <div className="mb-8">
         <div className="text-zinc-500 uppercase tracking-[0.35em] text-xs font-black mb-3">
           Tournament Inventory
@@ -85,113 +89,114 @@ export default function BoosterInventory({
         <h2 className="text-4xl md:text-5xl font-black">Power Boosters</h2>
       </div>
 
-      <div className="flex flex-wrap gap-5">
+      {/* CARD GRID — always 3 equal columns, never broken by the picker */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {BOOSTERS.map((booster) => {
           const used = usedBoosterTypes.includes(booster.key);
           const assignedDay = getDayAssigned(booster.key, activeDayBoosters);
           const isAssigning = assigning === booster.key;
 
           return (
-            <div key={booster.key} className="flex flex-col gap-3 w-full sm:w-[220px]">
-              <motion.div
-                layout
-                className={`relative overflow-hidden rounded-[28px] border p-5 text-left transition-all duration-300 ${
-                  used
-                    ? "opacity-50 grayscale border-zinc-800 bg-zinc-950 cursor-not-allowed"
-                    : isAssigning
-                    ? `${booster.activeBorder} bg-gradient-to-br ${booster.glow} shadow-2xl`
-                    : "border-zinc-800 bg-zinc-900"
-                }`}
-              >
-                {/* DOT TEXTURE */}
-                <div className="absolute inset-0 opacity-[0.04] bg-[radial-gradient(circle,#fff_1px,transparent_1px)] [background-size:16px_16px]" />
+            <motion.div
+              key={booster.key}
+              whileHover={used ? {} : { scale: 1.02 }}
+              transition={{ duration: 0.15 }}
+              className={`relative overflow-hidden rounded-3xl border p-6 flex flex-col transition-all duration-300 ${
+                used
+                  ? "opacity-50 grayscale border-zinc-800 bg-zinc-950 cursor-not-allowed"
+                  : isAssigning
+                  ? `${booster.activeBorder} bg-gradient-to-br ${booster.glow} shadow-2xl`
+                  : "border-zinc-800 bg-zinc-900 hover:border-zinc-600"
+              }`}
+            >
+              {/* DOT TEXTURE */}
+              <div className="absolute inset-0 opacity-[0.04] bg-[radial-gradient(circle,#fff_1px,transparent_1px)] [background-size:16px_16px]" />
 
-                <div className="relative z-10">
-                  <div className="text-4xl">{booster.icon}</div>
+              <div className="relative z-10 flex flex-col flex-1">
+                <div className="text-4xl">{booster.icon}</div>
 
-                  <div className={`mt-5 text-2xl leading-tight font-black ${booster.text}`}>
-                    {booster.title}
-                  </div>
-
-                  <div className="mt-3 text-sm text-zinc-500 leading-relaxed">
-                    {booster.description}
-                  </div>
-
-                  <div className="mt-6 flex justify-between items-end">
-                    {used ? (
-                      <div className="flex flex-col gap-1">
-                        <div className="bg-zinc-800 text-zinc-400 px-3 py-1 rounded-xl text-[10px] font-black tracking-[0.2em] inline-block">
-                          STAMPED
-                        </div>
-                        {assignedDay && (
-                          <div className="text-zinc-500 text-xs font-semibold">
-                            {formatDay(assignedDay)}
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <button
-                        onClick={() => setAssigning(isAssigning ? null : booster.key)}
-                        className={`px-4 py-2 rounded-2xl text-xs font-black transition-all ${
-                          isAssigning
-                            ? "bg-white text-black"
-                            : "bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
-                        }`}
-                      >
-                        {isAssigning ? "Cancel" : "Stamp to Day"}
-                      </button>
-                    )}
-                  </div>
+                <div className={`mt-4 text-xl font-black ${booster.text}`}>
+                  {booster.title}
                 </div>
-              </motion.div>
 
-              {/* DAY PICKER */}
-              <AnimatePresence>
-                {isAssigning && !used && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -8 }}
-                    transition={{ duration: 0.2 }}
-                    className="flex flex-col gap-2"
-                  >
-                    {visibleDays.length === 0 ? (
-                      <div className="text-zinc-600 text-xs px-1">No matchdays available</div>
-                    ) : (
-                      visibleDays.map((date) => {
-                        const alreadyHasThisBooster = activeDayBoosters[date]?.includes(booster.key);
-                        return (
-                          <button
-                            key={date}
-                            disabled={!!alreadyHasThisBooster || loading === booster.key}
-                            onClick={() => handleStamp(booster.key, date)}
-                            className={`w-full px-4 py-3 rounded-2xl border text-sm font-black text-left transition-all ${
-                              alreadyHasThisBooster
-                                ? "opacity-40 cursor-not-allowed border-zinc-800 bg-zinc-900 text-zinc-500"
-                                : booster.pill
-                            } border`}
-                          >
-                            {loading === booster.key ? (
-                              <span className="opacity-60">Stamping...</span>
-                            ) : (
-                              <>
-                                {booster.icon} {formatDay(date)}
-                                {alreadyHasThisBooster && (
-                                  <span className="ml-2 text-[10px] opacity-60">Already active</span>
-                                )}
-                              </>
-                            )}
-                          </button>
-                        );
-                      })
-                    )}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
+                <div className="mt-2 text-sm text-zinc-500 leading-relaxed flex-1">
+                  {booster.description}
+                </div>
+
+                <div className="mt-6">
+                  {used ? (
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="bg-zinc-800 text-zinc-400 px-3 py-1.5 rounded-xl text-[10px] font-black tracking-[0.2em]">
+                        STAMPED
+                      </span>
+                      {assignedDay && (
+                        <span className="text-zinc-500 text-xs font-semibold">
+                          {formatDay(assignedDay)}
+                        </span>
+                      )}
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setAssigning(isAssigning ? null : booster.key)}
+                      className={`px-5 py-2.5 rounded-2xl text-sm font-black transition-all ${
+                        isAssigning
+                          ? "bg-white text-black"
+                          : "bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
+                      }`}
+                    >
+                      {isAssigning ? "✕ Cancel" : "Stamp to Day →"}
+                    </button>
+                  )}
+                </div>
+              </div>
+            </motion.div>
           );
         })}
       </div>
+
+      {/* DAY PICKER — full-width panel below the grid, only shown when assigning */}
+      <AnimatePresence>
+        {assigning && activeBooster && (
+          <motion.div
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.2 }}
+            className={`mt-4 rounded-3xl border p-6 bg-gradient-to-br ${activeBooster.glow} ${activeBooster.activeBorder}`}
+          >
+            <div className={`text-xs font-black uppercase tracking-[0.25em] mb-4 ${activeBooster.text}`}>
+              {activeBooster.icon} Pick a matchday for {activeBooster.title}
+            </div>
+
+            {visibleDays.length === 0 ? (
+              <div className="text-zinc-500 text-sm">No matchdays available in the current window.</div>
+            ) : (
+              <div className="flex gap-3 flex-wrap">
+                {visibleDays.map((date) => {
+                  const alreadyActive = activeDayBoosters[date]?.includes(activeBooster.key);
+                  return (
+                    <button
+                      key={date}
+                      disabled={alreadyActive || loading}
+                      onClick={() => handleStamp(date)}
+                      className={`px-6 py-3 rounded-2xl border text-sm font-black transition-all ${
+                        alreadyActive
+                          ? "opacity-40 cursor-not-allowed border-zinc-700 bg-zinc-900 text-zinc-500"
+                          : loading
+                          ? "opacity-60 cursor-wait " + activeBooster.pill
+                          : activeBooster.pill
+                      }`}
+                    >
+                      {loading ? "Stamping..." : `${activeBooster.icon} ${formatDay(date)}`}
+                      {alreadyActive && <span className="ml-2 text-[10px] opacity-60">Active</span>}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
