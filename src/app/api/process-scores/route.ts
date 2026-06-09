@@ -6,13 +6,15 @@ import { processScores } from "@/services/processScores";
 
 export async function GET() {
   try {
-    // FETCH MATCHES
+    // Only fetch FINISHED matches that haven't been fully processed yet
     const {
       data: matches,
       error,
     } = await supabase
       .from("matches")
-      .select("*");
+      .select("*")
+      .eq("status", "FINISHED")
+      .eq("processed", false);
 
     if (error) {
       return NextResponse.json(

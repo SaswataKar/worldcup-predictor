@@ -3,6 +3,7 @@ import { supabase } from "@/lib/supabase";
 export const processScores = async (matches: any[]) => {
   try {
     for (const match of matches) {
+      // Caller already filters for FINISHED+unprocessed, but guard here too
       if (match.status !== "FINISHED") continue;
 
       const homeScore = match.team1_score;
@@ -116,6 +117,14 @@ export const processScores = async (matches: any[]) => {
 
         console.log(`Processed prediction ${prediction.id}: +${points}`);
       }
+
+      // Mark match as fully processed so future cron runs skip it immediately
+      await supabase
+        .from("matches")
+        .update({ processed: true })
+        .eq("id", match.id);
+
+      console.log(`Match ${match.id} marked as processed.`);
     }
   } catch (error) {
     console.error("Score Processing Error:", error);
