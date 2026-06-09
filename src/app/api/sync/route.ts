@@ -165,6 +165,11 @@ export async function GET() {
             match.stage ||
             "Group Stage",
 
+          // MATCH EVENTS — stored as-is from the API
+          goals: match.goals ?? [],
+          bookings: match.bookings ?? [],
+          substitutions: match.substitutions ?? [],
+
           // PRESERVE PROCESSED STATE
           processed:
             processedMap.get(

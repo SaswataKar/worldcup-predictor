@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import PredictionControls from "./PredictionControls";
-import type { Match, Prediction, PredictedScore } from "@/types";
+import type { Match, Prediction, PredictedScore, MatchEvent } from "@/types";
 
 type MatchCardProps = {
   match: Match;
@@ -18,6 +18,100 @@ type MatchCardProps = {
 };
 
 const BOOSTER_ICONS: Record<string, string> = { "2x": "⚽", "3x": "🔥", draw: "🐐" };
+
+// ─── Event Timeline ───────────────────────────────────────────────────────────
+
+function eventIcon(type: string, detail?: string) {
+  if (type === "GOAL") {
+    if (detail === "Own Goal") return "⚽🔴";
+    if (detail === "Penalty") return "⚽🎯";
+    return "⚽";
+  }
+  if (type === "CARD") {
+    if (detail === "Red Card" || detail === "RED_CARD") return "🟥";
+    if (detail === "Yellow-Red Card" || detail === "YELLOW_RED_CARD") return "🟨🟥";
+    return "🟨";
+  }
+  if (type === "SUBSTITUTION") return "🔄";
+  return "•";
+}
+
+function minuteLabel(event: MatchEvent) {
+  const extra = event.extraTime ? `+${event.extraTime}` : "";
+  return `${event.minute}${extra}'`;
+}
+
+function EventTimeline({ match }: { match: Match }) {
+  // Merge all events and sort by minute
+  const allEvents: MatchEvent[] = [
+    ...(match.goals ?? []),
+    ...(match.bookings ?? []),
+    ...(match.substitutions ?? []),
+  ].sort((a, b) => a.minute - b.minute || 0);
+
+  if (!allEvents.length) return null;
+
+  return (
+    <div className="mt-8 pt-6 border-t border-zinc-800/60">
+      <div className="text-[10px] uppercase tracking-[0.3em] text-zinc-500 font-black mb-4">
+        Match Events
+      </div>
+      <div className="space-y-2">
+        {allEvents.map((event, i) => {
+          const isHome = event.team?.name === match.team1;
+          return (
+            <div
+              key={i}
+              className={`flex items-center gap-3 ${isHome ? "flex-row" : "flex-row-reverse"}`}
+            >
+              {/* Minute badge */}
+              <div className="shrink-0 w-12 text-center">
+                <span className="text-[11px] font-black text-zinc-500 tabular-nums">
+                  {minuteLabel(event)}
+                </span>
+              </div>
+
+              {/* Event pill */}
+              <div
+                className={`flex items-center gap-2 px-3 py-2 rounded-2xl bg-zinc-900 border border-zinc-800 text-sm min-w-0 ${
+                  isHome ? "" : "flex-row-reverse"
+                }`}
+              >
+                <span className="shrink-0 text-base leading-none">
+                  {eventIcon(event.type, event.detail)}
+                </span>
+                <div className={`min-w-0 ${isHome ? "text-left" : "text-right"}`}>
+                  {event.type === "SUBSTITUTION" ? (
+                    <div className="leading-tight">
+                      <span className="text-emerald-400 font-bold text-xs truncate block">
+                        ↑ {event.assist?.name ?? "–"}
+                      </span>
+                      <span className="text-red-400 font-bold text-xs truncate block">
+                        ↓ {event.player?.name ?? "–"}
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="leading-tight">
+                      <span className="font-bold text-xs truncate block">
+                        {event.player?.name ?? "–"}
+                      </span>
+                      {event.detail && (
+                        <span className="text-zinc-600 text-[10px]">{event.detail}</span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Spacer to push home events left, away events right */}
+              <div className="flex-1" />
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 export default function MatchCard({
   match,
@@ -364,6 +458,9 @@ export default function MatchCard({
             submitPrediction={submitPrediction}
             cancelPrediction={cancelPrediction}
           />
+
+          {/* MATCH EVENTS TIMELINE — shown for live and finished matches */}
+          {(isLive || isFinished) && <EventTimeline match={match} />}
         </motion.div>
       )}
     </motion.div>
