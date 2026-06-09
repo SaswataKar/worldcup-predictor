@@ -265,7 +265,7 @@ export default function Home() {
   const submitPrediction = async (matchId: number) => {
     const match = matches.find((m) => m.id === matchId);
 
-    if (!match || !canPredict(match.kickoff_time)) {
+    if (!match || !canPredict(match.kickoff_time ?? "")) {
       toast.error("Predictions are locked for this match");
       return;
     }
