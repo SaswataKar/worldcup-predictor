@@ -90,7 +90,7 @@ export default function BoosterInventory({
       </div>
 
       {/* CARD GRID — always 3 equal columns, never broken by the picker */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-stretch">
         {BOOSTERS.map((booster) => {
           const used = usedBoosterTypes.includes(booster.key);
           const assignedDay = getDayAssigned(booster.key, activeDayBoosters);
@@ -101,7 +101,7 @@ export default function BoosterInventory({
               key={booster.key}
               whileHover={used ? {} : { scale: 1.02 }}
               transition={{ duration: 0.15 }}
-              className={`relative overflow-hidden rounded-3xl border p-6 flex flex-col transition-all duration-300 ${
+              className={`relative overflow-hidden rounded-3xl border p-6 flex flex-col h-full transition-all duration-300 ${
                 used
                   ? "opacity-50 grayscale border-zinc-800 bg-zinc-950 cursor-not-allowed"
                   : isAssigning
