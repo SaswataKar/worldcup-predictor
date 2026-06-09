@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import PredictionControls from "./PredictionControls";
 import type { Match, Prediction, PredictedScore, MatchEvent } from "@/types";
 
@@ -230,14 +230,12 @@ export default function MatchCard({
     : "border-l-zinc-700/40";
 
   return (
-    <motion.div
-      layout
-      transition={{ layout: { duration: 0.28, ease: [0.25, 0.1, 0.25, 1] } }}
+    <div
       className={`overflow-hidden rounded-3xl border border-zinc-700/40 border-l-4 ${cardAccent}
         bg-white/[0.04] backdrop-blur-md
         shadow-[0_4px_24px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.06)]
         hover:bg-white/[0.06] hover:shadow-[0_8px_32px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.08)]
-        transition-all duration-300`}
+        transition-[background,box-shadow] duration-200`}
     >
       {/* COLLAPSED ROW */}
       <button
@@ -378,16 +376,14 @@ export default function MatchCard({
         </div>
       </button>
 
-      {/* EXPANDED */}
-      <AnimatePresence initial={false}>
-      {expanded && (
-        <motion.div
-          key="expanded"
-          initial={{ opacity: 0, y: -6 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -4 }}
-          transition={{ duration: 0.22, ease: [0.25, 0.1, 0.25, 1] }}
-          className="border-t border-white/[0.06] bg-white/[0.02] backdrop-blur-sm px-6 py-6"
+      {/* EXPANDED — CSS grid-rows trick: animates height to/from auto with no JS */}
+      <div
+        className="grid transition-[grid-template-rows] duration-200 ease-out"
+        style={{ gridTemplateRows: expanded ? "1fr" : "0fr" }}
+      >
+        <div className="overflow-hidden">
+        <div
+          className={`border-t border-white/[0.06] bg-white/[0.02] backdrop-blur-sm px-6 py-6 transition-opacity duration-200 ${expanded ? "opacity-100" : "opacity-0"}`}
         >
           {/* TIMING STRIP */}
           <div className="flex items-stretch gap-3 mb-6">
@@ -485,9 +481,9 @@ export default function MatchCard({
 
           {/* MATCH EVENTS TIMELINE — shown for live and finished matches */}
           {(isLive || isFinished) && <EventTimeline match={match} />}
-        </motion.div>
-      )}
-      </AnimatePresence>
-    </motion.div>
+        </div>
+        </div>
+      </div>
+    </div>
   );
 }
