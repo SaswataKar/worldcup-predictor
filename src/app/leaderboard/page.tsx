@@ -82,7 +82,12 @@ export default function LeaderboardPage() {
       .order("total_points", { ascending: false });
 
     if (!error && data) {
-      setLeaders(data);
+      // Split: scorers sorted by points desc, zero-pointers sorted alphabetically
+      const scorers = data.filter((e) => e.total_points > 0);
+      const zeros = data
+        .filter((e) => e.total_points === 0)
+        .sort((a, b) => a.username.localeCompare(b.username));
+      setLeaders([...scorers, ...zeros]);
       setLastUpdated(new Date());
     }
     setLoading(false);
@@ -139,12 +144,22 @@ export default function LeaderboardPage() {
           {!loading && (
             <div className="space-y-3">
               {leaders.map((leader, index) => {
-                const cfg = RANK_CONFIG[index] ?? DEFAULT_ROW;
+                const hasPoints = leader.total_points > 0;
+                // Only assign rank config to users who have scored
+                const rankedIndex = hasPoints ? index : -1;
+                const cfg = RANK_CONFIG[rankedIndex] ?? DEFAULT_ROW;
                 const isMe = leader.username === user?.username;
-                // Current user row gets an extra emerald tint regardless of rank
+
                 const meCls = isMe
                   ? "shadow-[0_0_28px_6px_rgba(34,197,94,0.14),0_0_0_1px_rgba(34,197,94,0.24),inset_0_1px_0_rgba(255,255,255,0.08)] border-emerald-500/30"
                   : `${cfg.glow} ${cfg.border}`;
+
+                const TROPHY_ICONS: Record<number, string> = { 0: "🏆", 1: "🥈", 2: "🥉" };
+                const TROPHY_SIZES: Record<number, string> = {
+                  0: "text-3xl drop-shadow-[0_0_8px_rgba(234,179,8,0.6)]",
+                  1: "text-2xl drop-shadow-[0_0_6px_rgba(161,161,170,0.5)]",
+                  2: "text-2xl drop-shadow-[0_0_6px_rgba(180,83,9,0.5)]",
+                };
 
                 return (
                   <div
@@ -158,15 +173,23 @@ export default function LeaderboardPage() {
 
                     {/* LEFT */}
                     <div className="flex items-center gap-5">
-                      {/* Rank badge */}
-                      <div
-                        className={`w-14 h-14 rounded-2xl flex items-center justify-center text-xl font-black shrink-0 ${cfg.badge ?? DEFAULT_ROW.badge}`}
-                      >
-                        {index < 3 ? (cfg as typeof RANK_CONFIG[0]).label : `#${index + 1}`}
-                      </div>
+                      {/* Rank badge — only for scorers */}
+                      {hasPoints && (
+                        <div
+                          className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 ${cfg.badge ?? DEFAULT_ROW.badge}`}
+                        >
+                          {rankedIndex < 3 ? (
+                            <span className={`${TROPHY_SIZES[rankedIndex]} leading-none`}>
+                              {TROPHY_ICONS[rankedIndex]}
+                            </span>
+                          ) : (
+                            <span className="text-xl font-black">#{index + 1}</span>
+                          )}
+                        </div>
+                      )}
 
                       <div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <span className="text-2xl font-black">{leader.username}</span>
                           {isMe && (
                             <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/25 text-emerald-400 text-[10px] font-black tracking-widest uppercase">
@@ -174,27 +197,34 @@ export default function LeaderboardPage() {
                             </span>
                           )}
                         </div>
-                        <div className="flex items-center gap-4 text-zinc-500 text-sm mt-1">
-                          <span>🎯 {leader.exact_predictions} exact</span>
-                          <span className="text-zinc-700">·</span>
-                          <span>✅ {leader.correct_results} correct</span>
-                        </div>
+                        {hasPoints && (
+                          <div className="flex items-center gap-4 text-zinc-500 text-sm mt-1">
+                            <span>🎯 {leader.exact_predictions} exact</span>
+                            <span className="text-zinc-700">·</span>
+                            <span>✅ {leader.correct_results} correct</span>
+                          </div>
+                        )}
                       </div>
                     </div>
 
-                    {/* RIGHT */}
-                    <div className="text-right">
-                      <div className="text-[11px] text-zinc-600 uppercase tracking-widest mb-1">
-                        Total Points
+                    {/* RIGHT — only show points if > 0 */}
+                    {hasPoints && (
+                      <div className="text-right">
+                        <div className="text-[11px] text-zinc-600 uppercase tracking-widest mb-1">
+                          Total Points
+                        </div>
+                        <div
+                          className={`text-5xl font-black tabular-nums ${
+                            rankedIndex === 0 ? "text-yellow-300"
+                            : rankedIndex === 1 ? "text-zinc-200"
+                            : rankedIndex === 2 ? "text-amber-400"
+                            : ""
+                          }`}
+                        >
+                          {leader.total_points}
+                        </div>
                       </div>
-                      <div
-                        className={`text-5xl font-black tabular-nums ${
-                          index === 0 ? "text-yellow-300" : index === 1 ? "text-zinc-200" : index === 2 ? "text-amber-400" : ""
-                        }`}
-                      >
-                        {leader.total_points}
-                      </div>
-                    </div>
+                    )}
                   </div>
                 );
               })}

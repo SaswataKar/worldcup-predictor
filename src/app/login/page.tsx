@@ -129,7 +129,7 @@ export default function LoginPage() {
           return;
         }
         // Normalise before saving — trim any trailing space the user may have typed last
-        const cleanName = name.trim();
+        const cleanName = name.trim().toUpperCase();
 
         // PASSWORD LENGTH
         if (
@@ -416,11 +416,12 @@ export default function LoginPage() {
               placeholder="Your Name"
               value={name}
               onChange={(e) => {
-                // Strip anything that isn't a letter or space, then collapse multiple spaces into one
+                // Strip anything that isn't a letter or space, collapse multiple spaces, no leading space, uppercase
                 const sanitized = e.target.value
                   .replace(/[^A-Za-z ]/g, "")        // only letters + space
                   .replace(/ {2,}/g, " ")             // no double spaces
-                  .replace(/^ /, "");                 // no leading space
+                  .replace(/^ /, "")                  // no leading space
+                  .toUpperCase();                     // always uppercase
                 setName(sanitized);
               }}
             />
