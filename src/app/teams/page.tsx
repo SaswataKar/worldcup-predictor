@@ -317,7 +317,7 @@ export default function TeamsPage() {
             </div>
             <h1 className="text-4xl sm:text-6xl font-black tracking-tight leading-none mb-4">Teams</h1>
             <p className="text-zinc-400 text-lg max-w-2xl">
-              All {teams.length || 32} participating nations — squads, coaches and player details.
+              All {teams.length || 48} participating nations — squads, coaches and player details.
             </p>
           </div>
 
