@@ -34,6 +34,16 @@ export async function GET() {
       matches || []
     );
 
+    // If any matches were processed, immediately refresh the leaderboard
+    if ((matches?.length ?? 0) > 0) {
+      try {
+        const { updateLeaderboard } = await import("@/services/updateLeaderboard");
+        await updateLeaderboard();
+      } catch (e) {
+        console.error("Leaderboard refresh after scoring failed:", e);
+      }
+    }
+
     return NextResponse.json({
       success: true,
 

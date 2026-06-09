@@ -42,12 +42,18 @@ export default function MatchCard({
     ? now >= new Date(kickoffTime.getTime() - 1 * 60 * 1000)
     : false;
 
+  const isLive = match.status === "LIVE" || match.status === "IN_PLAY" || match.status === "PAUSED";
+  const isFinished = match.status === "FINISHED";
+  const isPostponed = match.status === "POSTPONED";
+  const isSuspended = match.status === "SUSPENDED";
+
   const locked =
     !isOpen ||
     hasStarted ||
-    match.status === "FINISHED" ||
-    match.status === "LIVE" ||
-    match.status === "IN_PLAY";
+    isFinished ||
+    isLive ||
+    isPostponed ||
+    isSuspended;
 
   const matchDate = match.kickoff_time
     ? new Date(match.kickoff_time).toISOString().split("T")[0]
@@ -57,8 +63,12 @@ export default function MatchCard({
 
   const getCountdown = () => {
     if (!match.kickoff_time) return "TBD";
+    if (isPostponed) return "Postponed";
+    if (isSuspended) return "Suspended";
+    if (isFinished) return "Full Time";
+    if (isLive) return match.status === "PAUSED" ? "Half-time" : "Live";
     const diff = kickoffTime!.getTime() - now.getTime();
-    if (diff <= 0) return match.status === "FINISHED" ? "Full Time" : "Live / Closed";
+    if (diff <= 0) return "Closed";
     const hours = Math.floor(diff / (1000 * 60 * 60));
     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
     return `${hours}h ${minutes}m`;
@@ -88,25 +98,31 @@ export default function MatchCard({
     });
   };
 
-  const statusLabel =
-    match.status === "LIVE" || match.status === "IN_PLAY"
-      ? "Live"
-      : match.status === "FINISHED"
-      ? "FT"
-      : hasStarted
-      ? "Locked"
-      : isOpen
-      ? "Open"
-      : "Locked";
+  const statusLabel = isLive
+    ? "Live"
+    : isFinished
+    ? "FT"
+    : isPostponed
+    ? "Postponed"
+    : isSuspended
+    ? "Suspended"
+    : hasStarted
+    ? "Locked"
+    : isOpen
+    ? "Open"
+    : "Locked";
 
-  const statusPillClass =
-    match.status === "LIVE" || match.status === "IN_PLAY"
-      ? "border-red-500/40 bg-red-500/10 text-red-400"
-      : match.status === "FINISHED"
-      ? "border-zinc-700 bg-zinc-800/50 text-zinc-500"
-      : isOpen
-      ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-400"
-      : "border-red-500/40 bg-red-500/10 text-red-400";
+  const statusPillClass = isLive
+    ? "border-red-500/40 bg-red-500/10 text-red-400"
+    : isFinished
+    ? "border-zinc-700 bg-zinc-800/50 text-zinc-500"
+    : isPostponed
+    ? "border-orange-500/40 bg-orange-500/10 text-orange-400"
+    : isSuspended
+    ? "border-amber-500/40 bg-amber-500/10 text-amber-400"
+    : isOpen
+    ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-400"
+    : "border-red-500/40 bg-red-500/10 text-red-400";
 
   return (
     <motion.div
@@ -128,8 +144,8 @@ export default function MatchCard({
             </div>
 
             <div className="flex items-center justify-center min-w-[56px]">
-              {match.status === "FINISHED" || match.status === "LIVE" || match.status === "IN_PLAY" ? (
-                <span className="text-xl font-black tabular-nums">
+              {isFinished || isLive ? (
+                <span className={`text-xl font-black tabular-nums ${isLive ? "text-red-300" : ""}`}>
                   {match.team1_score} – {match.team2_score}
                 </span>
               ) : (
@@ -145,7 +161,8 @@ export default function MatchCard({
 
           {/* META */}
           <div className="flex items-center gap-3 flex-wrap text-xs font-semibold">
-            <span className={`px-2.5 py-1 rounded-full border text-[11px] font-black tracking-wide ${statusPillClass}`}>
+            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-black tracking-wide ${statusPillClass}`}>
+              {isLive && <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse inline-block shrink-0" />}
               {statusLabel}
             </span>
 
@@ -186,8 +203,8 @@ export default function MatchCard({
               </>
             )}
 
-            {/* Live / calculating indicators in collapsed row */}
-            {prediction && !prediction.processed && (match.status === "LIVE" || match.status === "IN_PLAY") && (
+            {/* Live / waiting-for-scores indicators in collapsed row */}
+            {prediction && !prediction.processed && isLive && (
               <>
                 <div className="text-zinc-700">·</div>
                 <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-red-400">
@@ -197,7 +214,7 @@ export default function MatchCard({
               </>
             )}
 
-            {prediction && !prediction.processed && match.status === "FINISHED" && (
+            {prediction && !prediction.processed && isFinished && (
               <>
                 <div className="text-zinc-700">·</div>
                 <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-yellow-400">
@@ -205,7 +222,7 @@ export default function MatchCard({
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 00-8 8h4z"/>
                   </svg>
-                  Calculating
+                  Waiting for scores
                 </span>
               </>
             )}
@@ -275,32 +292,50 @@ export default function MatchCard({
             </div>
           </div>
 
-          {/* MATCH STATUS BANNER for predicted-but-unscored matches */}
-          {prediction && !prediction.processed && (
-            <>
-              {(match.status === "LIVE" || match.status === "IN_PLAY") && (
-                <div className="flex items-center gap-3 px-5 py-4 rounded-2xl bg-red-500/10 border border-red-500/20 mb-6">
-                  <span className="w-2.5 h-2.5 rounded-full bg-red-400 animate-pulse shrink-0" />
-                  <div>
-                    <div className="text-red-300 font-black text-sm">Match in progress</div>
-                    <div className="text-red-400/70 text-xs mt-0.5">Your prediction is locked in — wait for the final whistle.</div>
-                  </div>
+          {/* MATCH STATUS BANNER */}
+          {isLive && prediction && !prediction.processed && (
+            <div className="flex items-center gap-3 px-5 py-4 rounded-2xl bg-red-500/10 border border-red-500/20 mb-6">
+              <span className="w-2.5 h-2.5 rounded-full bg-red-400 animate-pulse shrink-0" />
+              <div>
+                <div className="text-red-300 font-black text-sm">
+                  {match.status === "PAUSED" ? "Half-time break" : "Match in progress"}
                 </div>
-              )}
+                <div className="text-red-400/70 text-xs mt-0.5">Your prediction is locked in — wait for the final whistle.</div>
+              </div>
+            </div>
+          )}
 
-              {match.status === "FINISHED" && (
-                <div className="flex items-center gap-3 px-5 py-4 rounded-2xl bg-yellow-500/10 border border-yellow-500/20 mb-6">
-                  <svg className="w-4 h-4 text-yellow-400 animate-spin shrink-0" viewBox="0 0 24 24" fill="none">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 00-8 8h4z"/>
-                  </svg>
-                  <div>
-                    <div className="text-yellow-300 font-black text-sm">Scores are being calculated</div>
-                    <div className="text-yellow-400/70 text-xs mt-0.5">Your points will appear here as soon as processing completes.</div>
-                  </div>
-                </div>
-              )}
-            </>
+          {isFinished && prediction && !prediction.processed && (
+            <div className="flex items-center gap-3 px-5 py-4 rounded-2xl bg-yellow-500/10 border border-yellow-500/20 mb-6">
+              <svg className="w-4 h-4 text-yellow-400 animate-spin shrink-0" viewBox="0 0 24 24" fill="none">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 00-8 8h4z"/>
+              </svg>
+              <div>
+                <div className="text-yellow-300 font-black text-sm">Waiting for scores</div>
+                <div className="text-yellow-400/70 text-xs mt-0.5">Your points will appear as soon as processing completes — leaderboard updates automatically.</div>
+              </div>
+            </div>
+          )}
+
+          {isPostponed && (
+            <div className="flex items-center gap-3 px-5 py-4 rounded-2xl bg-orange-500/10 border border-orange-500/20 mb-6">
+              <span className="text-orange-400 text-lg shrink-0">📅</span>
+              <div>
+                <div className="text-orange-300 font-black text-sm">Match postponed</div>
+                <div className="text-orange-400/70 text-xs mt-0.5">This match has been moved to a later date. Predictions are closed.</div>
+              </div>
+            </div>
+          )}
+
+          {isSuspended && (
+            <div className="flex items-center gap-3 px-5 py-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 mb-6">
+              <span className="text-amber-400 text-lg shrink-0">⚠️</span>
+              <div>
+                <div className="text-amber-300 font-black text-sm">Match suspended</div>
+                <div className="text-amber-400/70 text-xs mt-0.5">This match has been suspended. Check back later for updates.</div>
+              </div>
+            </div>
           )}
 
           {/* ACTIVE BOOSTERS STRIP */}
