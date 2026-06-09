@@ -12,6 +12,7 @@ export default function Header({ user }: { user?: any }) {
   const tabs = [
     { label: "Predictor", href: "/" },
     { label: "Fixtures", href: "/fixtures" },
+    { label: "Teams", href: "/teams" },
     { label: "Leaderboard", href: "/leaderboard" },
   ];
 
