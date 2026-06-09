@@ -169,6 +169,7 @@ export default function Home() {
 
   // GOAT ACTIVATION
   const activateGoat = async (activeDate: string) => {
+    if (!user) return;
     if (goatDays.length > 0) {
       toast.error("G.O.A.T already used");
       return;
