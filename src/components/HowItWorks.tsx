@@ -42,7 +42,7 @@ const STEPS = [
       "⚽ Tiki Taka (2×): doubles all points for every match that matchday.",
       "🔥 Hat Trick Hero (3×): triples all points for every match that matchday.",
       "🐐 G.O.A.T: doubles jackpot points (exact score, ≥2 pts) only.",
-      "You can stack all three on the same day — order applied: G.O.A.T → 2× → 3×.",
+      "You cannot stack multiple boosters on the same matchday.",
       "A booster is consumed the moment any match on that day reaches kick-off.",
       "Cancel it before kick-off to return it to your inventory.",
     ],
