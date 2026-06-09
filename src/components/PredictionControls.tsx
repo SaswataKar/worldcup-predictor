@@ -37,13 +37,12 @@ export default function PredictionControls({
   const inputDisabled = locked || predictionLocked;
 
   const updateScore = (side: "home" | "away", value: string) => {
-    if (value !== "" && Number(value) < 0) return;
+    // Strict numbers only — reject anything non-numeric
+    if (value !== "" && !/^\d+$/.test(value)) return;
+    const num = value === "" ? "" : Math.min(30, Math.max(0, Number(value)));
     setPredictedScores({
       ...predictedScores,
-      [match.id]: {
-        ...scoreData,
-        [side]: value === "" ? "" : Number(value),
-      },
+      [match.id]: { ...scoreData, [side]: num },
     });
   };
 
@@ -93,9 +92,12 @@ export default function PredictionControls({
               <input
                 type="number"
                 min="0"
+                max="30"
                 disabled={inputDisabled}
                 value={scoreData.home}
                 onChange={(e) => updateScore("home", e.target.value)}
+                onWheel={(e) => e.currentTarget.blur()}
+                onKeyDown={(e) => ["e","E","+","-","."].includes(e.key) && e.preventDefault()}
                 placeholder="–"
                 className={`
                   relative w-16 h-16 md:w-20 md:h-20
@@ -133,9 +135,12 @@ export default function PredictionControls({
               <input
                 type="number"
                 min="0"
+                max="30"
                 disabled={inputDisabled}
                 value={scoreData.away}
                 onChange={(e) => updateScore("away", e.target.value)}
+                onWheel={(e) => e.currentTarget.blur()}
+                onKeyDown={(e) => ["e","E","+","-","."].includes(e.key) && e.preventDefault()}
                 placeholder="–"
                 className={`
                   relative w-16 h-16 md:w-20 md:h-20

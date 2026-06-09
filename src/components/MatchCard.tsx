@@ -19,6 +19,52 @@ type MatchCardProps = {
 
 const BOOSTER_ICONS: Record<string, string> = { "2x": "⚽", "3x": "🔥", draw: "🐐" };
 
+// Subtle football pitch SVG rendered inside each card
+function PitchBackground() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="absolute inset-0 w-full h-full"
+      viewBox="0 0 800 160"
+      preserveAspectRatio="xMidYMid slice"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      {/* Grass tint */}
+      <rect width="800" height="160" fill="rgba(0,30,8,0.18)" />
+      {/* Grass stripes */}
+      <rect x="0" y="0"   width="800" height="20" fill="rgba(0,255,80,0.02)" />
+      <rect x="0" y="40"  width="800" height="20" fill="rgba(0,255,80,0.02)" />
+      <rect x="0" y="80"  width="800" height="20" fill="rgba(0,255,80,0.02)" />
+      <rect x="0" y="120" width="800" height="20" fill="rgba(0,255,80,0.02)" />
+      {/* Outer border */}
+      <rect x="16" y="10" width="768" height="140" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="1.5" />
+      {/* Halfway line */}
+      <line x1="400" y1="10" x2="400" y2="150" stroke="rgba(255,255,255,0.06)" strokeWidth="1.5" />
+      {/* Center circle */}
+      <circle cx="400" cy="80" r="44" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="1.5" />
+      {/* Center spot */}
+      <circle cx="400" cy="80" r="3" fill="rgba(255,255,255,0.07)" />
+      {/* Left penalty area */}
+      <rect x="16" y="36" width="90" height="88" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="1.2" />
+      {/* Left goal area */}
+      <rect x="16" y="54" width="34" height="52" fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth="1" />
+      {/* Left penalty spot */}
+      <circle cx="76" cy="80" r="2.5" fill="rgba(255,255,255,0.05)" />
+      {/* Right penalty area */}
+      <rect x="694" y="36" width="90" height="88" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="1.2" />
+      {/* Right goal area */}
+      <rect x="750" y="54" width="34" height="52" fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth="1" />
+      {/* Right penalty spot */}
+      <circle cx="724" cy="80" r="2.5" fill="rgba(255,255,255,0.05)" />
+      {/* Corner arcs */}
+      <path d="M16,10 Q26,10 26,20"   fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth="1" />
+      <path d="M784,10 Q774,10 774,20" fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth="1" />
+      <path d="M16,150 Q26,150 26,140" fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth="1" />
+      <path d="M784,150 Q774,150 774,140" fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth="1" />
+    </svg>
+  );
+}
+
 // ─── Event Timeline ───────────────────────────────────────────────────────────
 
 function eventIcon(type: string, detail?: string) {
@@ -218,29 +264,44 @@ export default function MatchCard({
     ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-400"
     : "border-red-500/40 bg-red-500/10 text-red-400";
 
-  // Card accent: green when open, red when live, yellow when finished+unscored, grey otherwise
+  // Left accent border colour
   const cardAccent = isLive
-    ? "border-l-red-500/60"
+    ? "border-l-red-500/70"
     : isFinished && prediction && !prediction.processed
-    ? "border-l-yellow-500/60"
+    ? "border-l-yellow-500/70"
     : prediction?.processed
-    ? "border-l-emerald-500/40"
+    ? "border-l-emerald-500/50"
     : isOpen
-    ? "border-l-emerald-500/60"
-    : "border-l-zinc-700/40";
+    ? "border-l-emerald-500/70"
+    : "border-l-zinc-600/40";
+
+  // Outer glow colour
+  const cardGlow = isLive
+    ? "shadow-[0_0_0_1px_rgba(239,68,68,0.15),0_4px_32px_rgba(239,68,68,0.12),0_1px_0_rgba(255,255,255,0.06)_inset]"
+    : isFinished && prediction && !prediction.processed
+    ? "shadow-[0_0_0_1px_rgba(234,179,8,0.15),0_4px_32px_rgba(234,179,8,0.10),0_1px_0_rgba(255,255,255,0.06)_inset]"
+    : prediction?.processed
+    ? "shadow-[0_0_0_1px_rgba(34,197,94,0.12),0_4px_32px_rgba(34,197,94,0.08),0_1px_0_rgba(255,255,255,0.06)_inset]"
+    : isOpen
+    ? "shadow-[0_0_0_1px_rgba(34,197,94,0.12),0_4px_24px_rgba(34,197,94,0.08),0_1px_0_rgba(255,255,255,0.06)_inset]"
+    : "shadow-[0_4px_24px_rgba(0,0,0,0.4),0_1px_0_rgba(255,255,255,0.05)_inset]";
 
   return (
     <div
-      className={`overflow-hidden rounded-3xl border border-zinc-700/40 border-l-4 ${cardAccent}
-        bg-white/[0.04] backdrop-blur-md
-        shadow-[0_4px_24px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.06)]
-        hover:bg-white/[0.06] hover:shadow-[0_8px_32px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.08)]
-        transition-[background,box-shadow] duration-200`}
+      className={`relative overflow-hidden rounded-3xl border border-zinc-700/30 border-l-4 ${cardAccent} ${cardGlow}
+        backdrop-blur-md
+        hover:border-zinc-600/40
+        transition-[box-shadow,border-color] duration-300`}
     >
+      {/* PITCH BACKGROUND — visible on both collapsed and expanded */}
+      <PitchBackground />
+
+      {/* Card content sits above the pitch */}
+      <div className="relative z-10">
+
       {/* COLLAPSED ROW */}
       <button
         onClick={() => {
-          // Close all others, toggle this one — only one open at a time
           const isCurrentlyOpen = !!expandedMatches[match.id];
           const next: Record<number, boolean> = {};
           if (!isCurrentlyOpen) next[match.id] = true;
@@ -489,6 +550,7 @@ export default function MatchCard({
         </motion.div>
       )}
       </AnimatePresence>
+      </div>{/* end z-10 content wrapper */}
     </div>
   );
 }

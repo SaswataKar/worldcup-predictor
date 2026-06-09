@@ -25,87 +25,61 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-body {
-  background:
-    radial-gradient(
-      circle at top,
-      rgba(255, 215, 0, 0.08),
-      transparent 25%
-    ),
-    #050505;
-
-  color: white;
-}
-
-/* smoother rendering */
+/* ─── Base ─────────────────────────────────────────────────────────────────── */
 * {
-  -webkit-font-smoothing:
-    antialiased;
-
-  -moz-osx-font-smoothing:
-    grayscale;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* sleek scrollbar */
-::-webkit-scrollbar {
-  width: 10px;
+button, a {
+  transition: all 0.2s ease;
 }
 
-::-webkit-scrollbar-track {
-  background: #050505;
-}
+/* ─── Scrollbar ─────────────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 10px; }
+::-webkit-scrollbar-track { background: #050505; }
+::-webkit-scrollbar-thumb { background: #27272a; border-radius: 999px; }
+::-webkit-scrollbar-thumb:hover { background: #3f3f46; }
 
-::-webkit-scrollbar-thumb {
-  background: #27272a;
-  border-radius: 999px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #3f3f46;
-}
-
+/* ─── Page background — FIFA World Cup 2026 ─────────────────────────────────── */
 body {
-  background:
-    radial-gradient(
-      circle at top,
-      rgba(255, 215, 0, 0.08),
-      transparent 25%
-    ),
-    #050505;
-
   color: white;
+  background-color: #050a05;
+
+  /* Layered: trophy glow top-center, field glow mid, dark base */
+  background-image:
+    /* Golden top glow — trophy halo */
+    radial-gradient(ellipse 60% 30% at 50% -5%, rgba(255,210,0,0.10) 0%, transparent 70%),
+    /* Soft green field ambient — center pitch */
+    radial-gradient(ellipse 80% 50% at 50% 60%, rgba(0,80,20,0.18) 0%, transparent 65%),
+    /* Bottom vignette */
+    radial-gradient(ellipse 100% 40% at 50% 110%, rgba(0,0,0,0.6) 0%, transparent 60%),
+    /* Pitch stripe pattern — alternating grass bands */
+    repeating-linear-gradient(
+      180deg,
+      rgba(0,40,10,0.07) 0px,
+      rgba(0,40,10,0.07) 48px,
+      rgba(0,20,5,0.04) 48px,
+      rgba(0,20,5,0.04) 96px
+    );
 }
 
-/* smoother fonts */
-* {
-  -webkit-font-smoothing:
-    antialiased;
-
-  -moz-osx-font-smoothing:
-    grayscale;
+/* Pitch field lines overlay — applied to body::before */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25' viewBox='0 0 1200 800'%3E%3C!-- outer border --%3E%3Crect x='60' y='40' width='1080' height='720' fill='none' stroke='rgba(255,255,255,0.035)' stroke-width='2'/%3E%3C!-- halfway line --%3E%3Cline x1='600' y1='40' x2='600' y2='760' stroke='rgba(255,255,255,0.035)' stroke-width='2'/%3E%3C!-- center circle --%3E%3Ccircle cx='600' cy='400' r='120' fill='none' stroke='rgba(255,255,255,0.035)' stroke-width='2'/%3E%3C!-- center spot --%3E%3Ccircle cx='600' cy='400' r='5' fill='rgba(255,255,255,0.04)'/%3E%3C!-- left penalty area --%3E%3Crect x='60' y='220' width='220' height='360' fill='none' stroke='rgba(255,255,255,0.035)' stroke-width='2'/%3E%3C!-- left goal area --%3E%3Crect x='60' y='300' width='80' height='200' fill='none' stroke='rgba(255,255,255,0.03)' stroke-width='1.5'/%3E%3C!-- left penalty spot --%3E%3Ccircle cx='215' cy='400' r='4' fill='rgba(255,255,255,0.035)'/%3E%3C!-- right penalty area --%3E%3Crect x='920' y='220' width='220' height='360' fill='none' stroke='rgba(255,255,255,0.035)' stroke-width='2'/%3E%3C!-- right goal area --%3E%3Crect x='1060' y='300' width='80' height='200' fill='none' stroke='rgba(255,255,255,0.03)' stroke-width='1.5'/%3E%3C!-- right penalty spot --%3E%3Ccircle cx='985' cy='400' r='4' fill='rgba(255,255,255,0.035)'/%3E%3C!-- corner arcs --%3E%3Cpath d='M60,40 Q80,40 80,60' fill='none' stroke='rgba(255,255,255,0.03)' stroke-width='1.5'/%3E%3Cpath d='M1140,40 Q1120,40 1120,60' fill='none' stroke='rgba(255,255,255,0.03)' stroke-width='1.5'/%3E%3Cpath d='M60,760 Q80,760 80,740' fill='none' stroke='rgba(255,255,255,0.03)' stroke-width='1.5'/%3E%3Cpath d='M1140,760 Q1120,760 1120,740' fill='none' stroke='rgba(255,255,255,0.03)' stroke-width='1.5'/%3E%3C/svg%3E");
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  background-position: center;
+  opacity: 1;
 }
 
-/* scrollbar */
-::-webkit-scrollbar {
-  width: 10px;
-}
-
-::-webkit-scrollbar-track {
-  background: #050505;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #27272a;
-  border-radius: 999px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #3f3f46;
-}
-
-/* smooth transitions globally */
-button,
-a {
-  transition:
-    all 0.2s ease;
+/* Ensure all page content sits above the fixed overlay */
+body > * {
+  position: relative;
+  z-index: 1;
 }
