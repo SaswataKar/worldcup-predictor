@@ -18,29 +18,65 @@ export default function Header({ user }: { user?: any }) {
 
   return (
     <header className="sticky top-0 z-50 mb-10">
-      <div className="backdrop-blur-xl bg-black/60 border border-zinc-800 rounded-2xl px-6 py-4 flex justify-between items-center gap-4 shadow-2xl flex-wrap">
-        {/* LEFT */}
-        <div className="flex items-center gap-4">
-          <div>
-            <h1 className="text-3xl font-black tracking-tight">⚽ Pro Predictor</h1>
-            <p className="text-zinc-400 text-sm mt-0.5">
-              {user?.name ? `Welcome, ${user.name}` : "FIFA World Cup 2026"}
-            </p>
+      {/* TOP ROW: logo + clock + logout */}
+      <div className="backdrop-blur-xl bg-black/60 border border-zinc-800 rounded-2xl px-6 py-4 shadow-2xl">
+        <div className="flex items-center justify-between gap-4">
+          {/* LEFT: logo + clock */}
+          <div className="flex items-center gap-4 min-w-0">
+            <div className="min-w-0">
+              <h1 className="text-2xl font-black tracking-tight whitespace-nowrap">⚽ Pro Predictor</h1>
+              <p className="text-zinc-400 text-xs mt-0.5 truncate">
+                {user?.name ? `Welcome, ${user.name}` : "FIFA World Cup 2026"}
+              </p>
+            </div>
+            <ISTClock />
           </div>
-          <ISTClock />
+
+          {/* RIGHT: nav + logout */}
+          <div className="flex items-center gap-3 shrink-0">
+            {/* NAV — hidden on very small screens, shown md+ */}
+            <div className="hidden sm:flex items-center gap-1 bg-zinc-900 p-1.5 rounded-2xl border border-zinc-800">
+              {tabs.map((tab) => {
+                const active = pathname === tab.href;
+                return (
+                  <Link
+                    key={tab.href}
+                    href={tab.href}
+                    className={`px-4 py-2 rounded-xl text-sm font-bold transition-all duration-200 whitespace-nowrap ${
+                      active
+                        ? "bg-yellow-400 text-black shadow-lg scale-105"
+                        : "text-zinc-300 hover:bg-zinc-800"
+                    }`}
+                  >
+                    {tab.label}
+                  </Link>
+                );
+              })}
+            </div>
+
+            <button
+              onClick={() => {
+                Cookies.remove("user");
+                router.push("/login");
+              }}
+              className="bg-red-500 hover:bg-red-600 px-4 py-2 rounded-xl text-sm font-bold transition-all duration-200 hover:scale-105 whitespace-nowrap"
+            >
+              Logout
+            </button>
+          </div>
         </div>
 
-        {/* CENTER NAV */}
-        <div className="flex items-center gap-3 bg-zinc-900 p-2 rounded-2xl border border-zinc-800">
+        {/* MOBILE NAV — shown only on small screens below the top row */}
+        <div className="flex sm:hidden items-center gap-1 bg-zinc-900 p-1.5 rounded-xl border border-zinc-800 mt-3 overflow-x-auto">
           {tabs.map((tab) => {
             const active = pathname === tab.href;
             return (
               <Link
                 key={tab.href}
                 href={tab.href}
-                className={`px-5 py-2 rounded-xl font-bold transition-all duration-200 ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all duration-200 whitespace-nowrap shrink-0 ${
                   active
-                    ? "bg-yellow-400 text-black shadow-lg scale-105"
+                    ? "bg-yellow-400 text-black shadow"
                     : "text-zinc-300 hover:bg-zinc-800"
                 }`}
               >
@@ -49,17 +85,6 @@ export default function Header({ user }: { user?: any }) {
             );
           })}
         </div>
-
-        {/* RIGHT */}
-        <button
-          onClick={() => {
-            Cookies.remove("user");
-            router.push("/login");
-          }}
-          className="bg-red-500 hover:bg-red-600 px-5 py-2 rounded-xl font-bold transition-all duration-200 hover:scale-105"
-        >
-          Logout
-        </button>
       </div>
     </header>
   );
