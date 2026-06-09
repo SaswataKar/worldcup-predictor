@@ -386,8 +386,11 @@ export default function LoginPage() {
             </span>
           </div>
 
+          <div className="flex items-center justify-center gap-3 mb-2">
+            <img src="/wc2026-loho.png" alt="FIFA WC 2026" className="w-14 h-14 object-contain drop-shadow-xl" />
+          </div>
           <h1 className="text-5xl font-black tracking-tight">
-            ⚽ Pro Predictor
+            Pro Predictor
           </h1>
 
           <p className="text-zinc-500 mt-4">

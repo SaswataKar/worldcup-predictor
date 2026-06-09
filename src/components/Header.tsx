@@ -24,7 +24,10 @@ export default function Header({ user }: { user?: any }) {
           {/* LEFT: logo + clock */}
           <div className="flex items-center gap-4 min-w-0">
             <div className="min-w-0">
-              <h1 className="text-2xl font-black tracking-tight whitespace-nowrap">⚽ Pro Predictor</h1>
+              <h1 className="text-2xl font-black tracking-tight whitespace-nowrap flex items-center gap-2">
+                <img src="/wc2026-loho.png" alt="FIFA WC 2026" className="w-9 h-9 object-contain drop-shadow-lg" />
+                Pro Predictor
+              </h1>
               <p className="text-zinc-400 text-xs mt-0.5 truncate">
                 {user?.name ? `Welcome, ${user.name}` : "FIFA World Cup 2026"}
               </p>
