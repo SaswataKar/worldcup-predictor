@@ -5,6 +5,7 @@ import PredictionControls from "./PredictionControls";
 
 type MatchCardProps = {
   match: any;
+  canPredict: (kickoffTime: string) => boolean;
   predictions: any;
   predictedScores: any;
   setPredictedScores: any;
@@ -21,6 +22,7 @@ type MatchCardProps = {
 
 export default function MatchCard({
   match,
+  canPredict,
   predictions,
   predictedScores,
   setPredictedScores,
@@ -40,11 +42,15 @@ export default function MatchCard({
   const kickoffTime = match.kickoff_time ? new Date(match.kickoff_time) : null;
   const now = new Date();
 
+  // Single source of truth for lock state:
+  // locked = match has started/finished OR canPredict returns false
+  const isOpen = canPredict(match.kickoff_time);
   const hasStarted = kickoffTime
     ? now >= new Date(kickoffTime.getTime() - 1 * 60 * 1000)
     : false;
 
   const locked =
+    !isOpen ||
     hasStarted ||
     match.status === "FINISHED" ||
     match.status === "LIVE" ||
@@ -91,23 +97,25 @@ export default function MatchCard({
     });
   };
 
-  const statusColor =
-    match.status === "LIVE" || match.status === "IN_PLAY"
-      ? "text-red-400"
-      : match.status === "FINISHED"
-      ? "text-zinc-500"
-      : locked
-      ? "text-red-400"
-      : "text-emerald-400";
-
   const statusLabel =
     match.status === "LIVE" || match.status === "IN_PLAY"
       ? "Live"
       : match.status === "FINISHED"
       ? "FT"
-      : locked
+      : hasStarted
       ? "Locked"
-      : "Open";
+      : isOpen
+      ? "Open"
+      : "Locked";
+
+  const statusPillClass =
+    match.status === "LIVE" || match.status === "IN_PLAY"
+      ? "border-red-500/40 bg-red-500/10 text-red-400"
+      : match.status === "FINISHED"
+      ? "border-zinc-700 bg-zinc-800/50 text-zinc-500"
+      : isOpen
+      ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-400"
+      : "border-red-500/40 bg-red-500/10 text-red-400";
 
   return (
     <motion.div
@@ -159,17 +167,7 @@ export default function MatchCard({
           <div className="flex items-center gap-3 flex-wrap text-xs font-semibold">
 
             {/* STATUS PILL */}
-            <span
-              className={`px-2.5 py-1 rounded-full border text-[11px] font-black tracking-wide ${
-                match.status === "LIVE" || match.status === "IN_PLAY"
-                  ? "border-red-500/40 bg-red-500/10 text-red-400"
-                  : match.status === "FINISHED"
-                  ? "border-zinc-700 bg-zinc-800/50 text-zinc-500"
-                  : locked
-                  ? "border-red-500/40 bg-red-500/10 text-red-400"
-                  : "border-emerald-500/40 bg-emerald-500/10 text-emerald-400"
-              }`}
-            >
+            <span className={`px-2.5 py-1 rounded-full border text-[11px] font-black tracking-wide ${statusPillClass}`}>
               {statusLabel}
             </span>
 

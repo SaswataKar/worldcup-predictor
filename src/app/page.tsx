@@ -194,35 +194,10 @@ export default function Home() {
     toast.success("🐐 G.O.A.T activated!");
   };
 
-  // GROUP MATCHES
-  const groupedMatches = useMemo(() => {
-    const grouped: any = {};
-
-    matches.forEach((match) => {
-      if (!match.kickoff_time) return;
-
-      const kickoff = new Date(match.kickoff_time);
-      if (isNaN(kickoff.getTime())) return;
-
-      const date = kickoff.toISOString().split("T")[0];
-      if (!grouped[date]) grouped[date] = [];
-      grouped[date].push(match);
-    });
-
-    return grouped;
-  }, [matches]);
-
-  // TBD MATCHES
-  const tbdMatches = useMemo(() => {
-    return matches.filter((match) => {
-      if (!match.kickoff_time) return true;
-      const kickoff = new Date(match.kickoff_time);
-      return isNaN(kickoff.getTime());
-    });
-  }, [matches]);
-
-  // LOCK LOGIC
-  const canPredict = (kickoffTime: string) => {
+  // LOCK LOGIC — single source of truth
+  // Open: from midnight the day before kickoff until 1 minute before kickoff
+  // Everything else (too early, already started, finished) = locked
+  const canPredict = (kickoffTime: string): boolean => {
     if (!kickoffTime) return false;
 
     const now = new Date();
@@ -237,6 +212,52 @@ export default function Home() {
 
     return now >= openTime && now < closeTime;
   };
+
+  // ROLLING 3-DAY WINDOW
+  // Anchor: closest matchday (today or nearest future date with matches)
+  // Show: anchor + next 2 matchdays
+  const visibleGroupedMatches = useMemo(() => {
+    const grouped: Record<string, any[]> = {};
+
+    matches.forEach((match) => {
+      if (!match.kickoff_time) return;
+      const kickoff = new Date(match.kickoff_time);
+      if (isNaN(kickoff.getTime())) return;
+      const date = kickoff.toISOString().split("T")[0];
+      if (!grouped[date]) grouped[date] = [];
+      grouped[date].push(match);
+    });
+
+    const today = new Date().toISOString().split("T")[0];
+
+    // All matchdays sorted ascending
+    const allDays = Object.keys(grouped).sort();
+
+    // Anchor: today if it has matches, otherwise the next matchday from today
+    const futureDays = allDays.filter((d) => d >= today);
+    const anchor = futureDays[0] ?? allDays[allDays.length - 1];
+
+    if (!anchor) return {};
+
+    const anchorIndex = allDays.indexOf(anchor);
+    const windowDays = allDays.slice(anchorIndex, anchorIndex + 3);
+
+    const result: Record<string, any[]> = {};
+    windowDays.forEach((day) => {
+      result[day] = grouped[day];
+    });
+
+    return result;
+  }, [matches]);
+
+  // TBD MATCHES
+  const tbdMatches = useMemo(() => {
+    return matches.filter((match) => {
+      if (!match.kickoff_time) return true;
+      const kickoff = new Date(match.kickoff_time);
+      return isNaN(kickoff.getTime());
+    });
+  }, [matches]);
 
   // SUBMIT
   const submitPrediction = async (matchId: number) => {
@@ -284,7 +305,6 @@ export default function Home() {
       return;
     }
 
-    // Clear cancelled state so polling tracks this match/booster again
     cancelledMatchIds.current.delete(matchId);
 
     if (selectedInventoryBooster) {
@@ -294,7 +314,6 @@ export default function Home() {
     }
 
     setPredictions({ ...predictions, [matchId]: payload });
-
     toast.success("Prediction submitted!");
   };
 
@@ -313,10 +332,8 @@ export default function Home() {
       setUsedBoosters((prev) => prev.filter((b) => b !== prediction.booster_used));
     }
 
-    // Suppress polling restore immediately
     cancelledMatchIds.current.add(matchId);
 
-    // Optimistically clear local state
     setPredictions((prev: any) => {
       const updated = { ...prev };
       delete updated[matchId];
@@ -336,7 +353,6 @@ export default function Home() {
       .eq("user_id", user.id);
 
     if (response.error) {
-      // Rollback everything
       cancelledMatchIds.current.delete(matchId);
       if (prediction?.booster_used && prediction.booster_used !== "none") {
         cancelledBoosters.current.delete(prediction.booster_used);
@@ -376,7 +392,6 @@ export default function Home() {
           {tbdMatches.length > 0 && (
             <div className="mb-16">
               <div className="text-3xl font-black mb-6">🕘 TBD Fixtures</div>
-
               <div className="space-y-4">
                 {tbdMatches.map((match) => (
                   <div
@@ -393,9 +408,9 @@ export default function Home() {
             </div>
           )}
 
-          {/* GROUPED */}
+          {/* ROLLING 3-DAY WINDOW */}
           <div className="space-y-16">
-            {Object.entries(groupedMatches).map(([date, dateMatches]: any) => (
+            {Object.entries(visibleGroupedMatches).map(([date, dateMatches]: any) => (
               <div key={date}>
                 <div className="flex items-center justify-between mb-8">
                   <div className="text-4xl font-black">
@@ -424,6 +439,7 @@ export default function Home() {
                     <MatchCard
                       key={match.id}
                       match={match}
+                      canPredict={canPredict}
                       predictions={predictions}
                       predictedScores={predictedScores}
                       setPredictedScores={setPredictedScores}
