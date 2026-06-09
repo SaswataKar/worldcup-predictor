@@ -49,10 +49,10 @@ const POSITION_LABELS: Record<string, string> = {
   Offence: "Forwards",
 };
 const POSITION_COLORS: Record<string, string> = {
-  Goalkeeper: "text-yellow-300 border-yellow-500/30 bg-yellow-500/10",
-  Defence: "text-sky-300 border-sky-500/30 bg-sky-500/10",
-  Midfield: "text-emerald-300 border-emerald-500/30 bg-emerald-500/10",
-  Offence: "text-red-300 border-red-500/30 bg-red-500/10",
+  Goalkeeper: "text-yellow-300 border-yellow-500/30",
+  Defence: "text-sky-300 border-sky-500/30",
+  Midfield: "text-emerald-300 border-emerald-500/30",
+  Offence: "text-red-300 border-red-500/30",
 };
 
 function getAge(dob: string | null) {
@@ -74,24 +74,45 @@ function groupByPosition(squad: Player[]) {
 
 // ─── Team Card (collapsed) ────────────────────────────────────────────────────
 
-function TeamCard({ team, onClick }: { team: Team; onClick: () => void }) {
+function TeamCard({
+  team,
+  selected,
+  onClick,
+}: {
+  team: Team;
+  selected: boolean;
+  onClick: () => void;
+}) {
   return (
     <motion.button
-      whileHover={{ scale: 1.03 }}
-      whileTap={{ scale: 0.98 }}
+      whileHover={{ scale: selected ? 1 : 1.03 }}
+      whileTap={{ scale: 0.97 }}
       transition={{ duration: 0.15 }}
       onClick={onClick}
-      className="w-full text-left bg-zinc-950 border border-zinc-800/60 rounded-3xl p-6 flex flex-col items-center gap-4 hover:border-zinc-700 hover:bg-zinc-900 transition-colors shadow-xl"
+      className={`w-full text-left rounded-3xl p-6 flex flex-col items-center gap-4
+        backdrop-blur-md border transition-all duration-300 relative overflow-hidden
+        ${
+          selected
+            ? "border-yellow-500/35 shadow-[0_0_36px_8px_rgba(234,179,8,0.18),0_0_0_1px_rgba(234,179,8,0.28),inset_0_1px_0_rgba(255,255,255,0.09)]"
+            : "border-white/[0.07] shadow-[0_0_0_1px_rgba(255,255,255,0.04),inset_0_1px_0_rgba(255,255,255,0.05)] hover:border-white/[0.13] hover:shadow-[0_0_24px_5px_rgba(255,255,255,0.07),0_0_0_1px_rgba(255,255,255,0.11),inset_0_1px_0_rgba(255,255,255,0.07)]"
+        }`}
     >
+      {/* top glass highlight */}
+      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/[0.10] to-transparent pointer-events-none" />
+
       <img
         src={team.crest}
         alt={team.name}
         className="w-16 h-16 object-contain drop-shadow-lg"
-        onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+        onError={(e) => {
+          (e.target as HTMLImageElement).style.display = "none";
+        }}
       />
       <div className="text-center">
         <div className="font-black text-base leading-tight">{team.name}</div>
-        <div className="text-zinc-500 text-xs font-bold mt-1 tracking-widest uppercase">{team.tla}</div>
+        <div className="text-zinc-500 text-xs font-bold mt-1 tracking-widest uppercase">
+          {team.tla}
+        </div>
       </div>
       {team.coach?.name && (
         <div className="text-xs text-zinc-600 font-semibold truncate w-full text-center">
@@ -116,18 +137,26 @@ function TeamDetail({ team, onClose }: { team: Team; onClose: () => void }) {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 16 }}
       transition={{ duration: 0.25 }}
-      className="bg-zinc-950 border border-zinc-800 rounded-3xl overflow-hidden shadow-2xl mb-10"
+      className="relative rounded-3xl border border-yellow-500/25 backdrop-blur-md overflow-hidden mb-10
+        shadow-[0_0_48px_12px_rgba(234,179,8,0.12),0_0_0_1px_rgba(234,179,8,0.22),inset_0_1px_0_rgba(255,255,255,0.08)]"
     >
+      {/* top glass highlight */}
+      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-yellow-300/[0.15] to-transparent pointer-events-none z-10" />
+
       {/* HEADER */}
-      <div className="relative flex items-center gap-6 px-8 py-8 border-b border-zinc-800/60 bg-gradient-to-r from-zinc-900 to-zinc-950">
+      <div className="relative flex items-center gap-6 px-8 py-8 border-b border-white/[0.07]">
         <img
           src={team.crest}
           alt={team.name}
           className="w-20 h-20 object-contain drop-shadow-2xl shrink-0"
-          onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+          onError={(e) => {
+            (e.target as HTMLImageElement).style.display = "none";
+          }}
         />
         <div className="flex-1 min-w-0">
-          <div className="text-zinc-500 text-xs font-black uppercase tracking-[0.3em] mb-1">{team.tla}</div>
+          <div className="text-zinc-500 text-xs font-black uppercase tracking-[0.3em] mb-1">
+            {team.tla}
+          </div>
           <h2 className="text-4xl font-black leading-tight">{team.name}</h2>
           <div className="flex flex-wrap gap-4 mt-3 text-sm text-zinc-400">
             {team.coach?.name && (
@@ -154,7 +183,8 @@ function TeamDetail({ team, onClose }: { team: Team; onClose: () => void }) {
         </div>
         <button
           onClick={onClose}
-          className="shrink-0 w-10 h-10 rounded-2xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 flex items-center justify-center text-zinc-400 hover:text-white transition-colors"
+          className="shrink-0 w-10 h-10 rounded-2xl bg-white/[0.05] border border-white/[0.10] backdrop-blur-md
+            flex items-center justify-center text-zinc-400 hover:text-white hover:border-white/[0.20] transition-all"
         >
           ✕
         </button>
@@ -170,9 +200,12 @@ function TeamDetail({ team, onClose }: { team: Team; onClose: () => void }) {
             return (
               <div key={pos}>
                 {/* Position heading */}
-                <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border text-xs font-black mb-4 ${POSITION_COLORS[pos]}`}>
+                <div
+                  className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border text-xs font-black mb-4 ${POSITION_COLORS[pos]}`}
+                >
                   {POSITION_LABELS[pos]} · {players.length}
                 </div>
+
                 {/* Player rows */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                   {players
@@ -180,10 +213,14 @@ function TeamDetail({ team, onClose }: { team: Team; onClose: () => void }) {
                     .map((player) => (
                       <div
                         key={player.id}
-                        className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-zinc-900 border border-zinc-800"
+                        className="flex items-center gap-3 px-4 py-3 rounded-2xl
+                          border border-white/[0.06] backdrop-blur-sm
+                          shadow-[0_0_0_1px_rgba(255,255,255,0.03),inset_0_1px_0_rgba(255,255,255,0.05)]
+                          hover:border-white/[0.11] hover:shadow-[0_0_14px_3px_rgba(255,255,255,0.05),inset_0_1px_0_rgba(255,255,255,0.07)]
+                          transition-all duration-200"
                       >
                         {/* Shirt number */}
-                        <div className="w-7 h-7 rounded-lg bg-zinc-800 border border-zinc-700 flex items-center justify-center text-xs font-black text-zinc-400 shrink-0">
+                        <div className="w-7 h-7 rounded-lg bg-white/[0.05] border border-white/[0.08] flex items-center justify-center text-xs font-black text-zinc-400 shrink-0">
                           {player.shirtNumber ?? "–"}
                         </div>
                         <div className="min-w-0 flex-1">
@@ -191,7 +228,9 @@ function TeamDetail({ team, onClose }: { team: Team; onClose: () => void }) {
                           <div className="text-xs text-zinc-600 truncate">
                             {player.nationality}
                             {player.dateOfBirth && (
-                              <span className="ml-2 text-zinc-700">age {getAge(player.dateOfBirth)}</span>
+                              <span className="ml-2 text-zinc-700">
+                                age {getAge(player.dateOfBirth)}
+                              </span>
                             )}
                           </div>
                         </div>
@@ -220,7 +259,10 @@ export default function TeamsPage() {
 
   useEffect(() => {
     const stored = Cookies.get("user");
-    if (!stored) { router.push("/login"); return; }
+    if (!stored) {
+      router.push("/login");
+      return;
+    }
     setUser(JSON.parse(stored));
 
     fetch("/api/teams", { cache: "no-store" })
@@ -255,7 +297,6 @@ export default function TeamsPage() {
       setSelectedTeam(null);
     } else {
       setSelectedTeam(team);
-      // Scroll to top of content so detail panel is visible
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
   };
@@ -283,7 +324,9 @@ export default function TeamsPage() {
           {/* SEARCH */}
           {!loading && teams.length > 0 && (
             <div className="relative mb-8 max-w-md">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 text-lg">🔍</span>
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 text-lg">
+                🔍
+              </span>
               <input
                 type="text"
                 placeholder="Search teams…"
@@ -292,12 +335,16 @@ export default function TeamsPage() {
                   setSearch(e.target.value);
                   setSelectedTeam(null);
                 }}
-                className="w-full bg-zinc-900 border border-zinc-700 rounded-2xl pl-11 pr-4 py-3 text-white placeholder-zinc-600 font-semibold focus:outline-none focus:border-zinc-500 transition-colors"
+                className="w-full backdrop-blur-md border border-white/[0.08] rounded-2xl pl-11 pr-4 py-3
+                  text-white placeholder-zinc-600 font-semibold
+                  shadow-[0_0_0_1px_rgba(255,255,255,0.04),inset_0_1px_0_rgba(255,255,255,0.05)]
+                  focus:outline-none focus:border-white/[0.18] focus:shadow-[0_0_20px_4px_rgba(255,255,255,0.06),0_0_0_1px_rgba(255,255,255,0.14)]
+                  transition-all duration-300"
               />
               {search && (
                 <button
                   onClick={() => setSearch("")}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white transition-colors"
                 >
                   ✕
                 </button>
@@ -314,7 +361,8 @@ export default function TeamsPage() {
 
           {/* ERROR */}
           {error && !loading && (
-            <div className="bg-red-500/10 border border-red-500/20 rounded-3xl p-10 text-center">
+            <div className="backdrop-blur-md border border-red-500/25 rounded-3xl p-10 text-center
+              shadow-[0_0_28px_6px_rgba(239,68,68,0.10),0_0_0_1px_rgba(239,68,68,0.18)]">
               <div className="text-3xl mb-4">⚠️</div>
               <div className="text-red-300 font-black text-xl mb-2">Failed to load teams</div>
               <div className="text-red-400/70 text-sm">{error}</div>
@@ -343,19 +391,12 @@ export default function TeamsPage() {
 
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
                 {filtered.map((team) => (
-                  <div
+                  <TeamCard
                     key={team.id}
-                    className={`transition-all duration-200 ${
-                      selectedTeam?.id === team.id
-                        ? "ring-2 ring-yellow-400/60 rounded-3xl"
-                        : ""
-                    }`}
-                  >
-                    <TeamCard
-                      team={team}
-                      onClick={() => handleSelectTeam(team)}
-                    />
-                  </div>
+                    team={team}
+                    selected={selectedTeam?.id === team.id}
+                    onClick={() => handleSelectTeam(team)}
+                  />
                 ))}
               </div>
             </>

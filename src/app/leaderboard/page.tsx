@@ -18,6 +18,37 @@ type LeaderEntry = {
   correct_results: number;
 };
 
+// Per-rank glow + accent config
+const RANK_CONFIG: Record<
+  number,
+  { glow: string; border: string; badge: string; label: string }
+> = {
+  0: {
+    label: "🥇",
+    badge: "bg-yellow-500/20 text-yellow-300 border border-yellow-500/30",
+    border: "border-yellow-500/30",
+    glow: "shadow-[0_0_36px_8px_rgba(234,179,8,0.18),0_0_0_1px_rgba(234,179,8,0.30),inset_0_1px_0_rgba(255,255,255,0.08)]",
+  },
+  1: {
+    label: "🥈",
+    badge: "bg-zinc-400/10 text-zinc-200 border border-zinc-400/25",
+    border: "border-zinc-400/20",
+    glow: "shadow-[0_0_28px_6px_rgba(161,161,170,0.12),0_0_0_1px_rgba(161,161,170,0.22),inset_0_1px_0_rgba(255,255,255,0.07)]",
+  },
+  2: {
+    label: "🥉",
+    badge: "bg-amber-700/20 text-amber-400 border border-amber-700/30",
+    border: "border-amber-700/25",
+    glow: "shadow-[0_0_28px_6px_rgba(180,83,9,0.15),0_0_0_1px_rgba(180,83,9,0.25),inset_0_1px_0_rgba(255,255,255,0.07)]",
+  },
+};
+
+const DEFAULT_ROW = {
+  badge: "bg-zinc-800/60 text-zinc-400 border border-zinc-700/40",
+  border: "border-white/[0.07]",
+  glow: "shadow-[0_0_0_1px_rgba(255,255,255,0.05),inset_0_1px_0_rgba(255,255,255,0.04)] hover:border-white/[0.12] hover:shadow-[0_0_20px_4px_rgba(255,255,255,0.06),0_0_0_1px_rgba(255,255,255,0.10),inset_0_1px_0_rgba(255,255,255,0.06)]",
+};
+
 export default function LeaderboardPage() {
   const router = useRouter();
   const [leaders, setLeaders] = useState<LeaderEntry[]>([]);
@@ -34,10 +65,7 @@ export default function LeaderboardPage() {
     }
     setUser(JSON.parse(storedUser));
 
-    // Full sync on first load to ensure all users are in the table
     fetchLeaderboard(true);
-
-    // Poll the leaderboard table every 30s (no sync — just read)
     const interval = setInterval(() => fetchLeaderboard(false), 30000);
     return () => clearInterval(interval);
   }, []);
@@ -58,13 +86,6 @@ export default function LeaderboardPage() {
       setLastUpdated(new Date());
     }
     setLoading(false);
-  };
-
-  const rankStyle = (index: number) => {
-    if (index === 0) return "bg-yellow-500/20 text-yellow-300";
-    if (index === 1) return "bg-zinc-500/20 text-zinc-200";
-    if (index === 2) return "bg-amber-800/30 text-amber-400";
-    return "bg-zinc-800 text-zinc-300";
   };
 
   return (
@@ -96,7 +117,12 @@ export default function LeaderboardPage() {
               </p>
               {lastUpdated && (
                 <span className="text-zinc-600 text-xs">
-                  Last refreshed {lastUpdated.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+                  Last refreshed{" "}
+                  {lastUpdated.toLocaleTimeString("en-IN", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    second: "2-digit",
+                  })}
                 </span>
               )}
             </div>
@@ -111,42 +137,71 @@ export default function LeaderboardPage() {
 
           {/* TABLE */}
           {!loading && (
-            <div className="space-y-4">
-              {leaders.map((leader, index) => (
-                <div
-                  key={leader.id}
-                  className="overflow-hidden rounded-3xl border border-zinc-800/60 bg-zinc-950 shadow-xl px-6 py-5 flex items-center justify-between flex-wrap gap-6"
-                >
-                  {/* LEFT */}
-                  <div className="flex items-center gap-5">
-                    <div
-                      className={`w-14 h-14 rounded-2xl flex items-center justify-center text-xl font-black ${rankStyle(index)}`}
-                    >
-                      #{index + 1}
+            <div className="space-y-3">
+              {leaders.map((leader, index) => {
+                const cfg = RANK_CONFIG[index] ?? DEFAULT_ROW;
+                const isMe = leader.username === user?.username;
+                // Current user row gets an extra emerald tint regardless of rank
+                const meCls = isMe
+                  ? "shadow-[0_0_28px_6px_rgba(34,197,94,0.14),0_0_0_1px_rgba(34,197,94,0.24),inset_0_1px_0_rgba(255,255,255,0.08)] border-emerald-500/30"
+                  : `${cfg.glow} ${cfg.border}`;
+
+                return (
+                  <div
+                    key={leader.id}
+                    className={`relative overflow-hidden rounded-3xl border backdrop-blur-md
+                      px-6 py-5 flex items-center justify-between flex-wrap gap-6
+                      transition-all duration-300 ${meCls}`}
+                  >
+                    {/* top-edge glass highlight */}
+                    <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/[0.09] to-transparent pointer-events-none" />
+
+                    {/* LEFT */}
+                    <div className="flex items-center gap-5">
+                      {/* Rank badge */}
+                      <div
+                        className={`w-14 h-14 rounded-2xl flex items-center justify-center text-xl font-black shrink-0 ${cfg.badge ?? DEFAULT_ROW.badge}`}
+                      >
+                        {index < 3 ? (cfg as typeof RANK_CONFIG[0]).label : `#${index + 1}`}
+                      </div>
+
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-2xl font-black">{leader.username}</span>
+                          {isMe && (
+                            <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/25 text-emerald-400 text-[10px] font-black tracking-widest uppercase">
+                              You
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-4 text-zinc-500 text-sm mt-1">
+                          <span>🎯 {leader.exact_predictions} exact</span>
+                          <span className="text-zinc-700">·</span>
+                          <span>✅ {leader.correct_results} correct</span>
+                        </div>
+                      </div>
                     </div>
 
-                    <div>
-                      <div className="text-2xl font-black">{leader.username}</div>
-                      <div className="flex items-center gap-4 text-zinc-500 text-sm mt-1">
-                        <span>🎯 {leader.exact_predictions} exact</span>
-                        <span className="text-zinc-700">·</span>
-                        <span>✅ {leader.correct_results} correct</span>
+                    {/* RIGHT */}
+                    <div className="text-right">
+                      <div className="text-[11px] text-zinc-600 uppercase tracking-widest mb-1">
+                        Total Points
+                      </div>
+                      <div
+                        className={`text-5xl font-black tabular-nums ${
+                          index === 0 ? "text-yellow-300" : index === 1 ? "text-zinc-200" : index === 2 ? "text-amber-400" : ""
+                        }`}
+                      >
+                        {leader.total_points}
                       </div>
                     </div>
                   </div>
-
-                  {/* RIGHT */}
-                  <div className="text-right">
-                    <div className="text-[11px] text-zinc-600 uppercase tracking-widest mb-1">
-                      Total Points
-                    </div>
-                    <div className="text-5xl font-black">{leader.total_points}</div>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
 
               {leaders.length === 0 && (
-                <div className="bg-zinc-950 border border-zinc-800 rounded-3xl p-16 text-center">
+                <div className="rounded-3xl border border-white/[0.07] backdrop-blur-md p-16 text-center
+                  shadow-[0_0_0_1px_rgba(255,255,255,0.04),inset_0_1px_0_rgba(255,255,255,0.05)]">
                   <div className="text-6xl mb-6">🏆</div>
                   <div className="text-3xl font-black mb-3">No rankings yet</div>
                   <div className="text-zinc-500">Start predicting to appear here.</div>
