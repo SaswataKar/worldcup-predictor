@@ -102,7 +102,7 @@ export default function HowItWorks() {
                 <div
                   key={step.title}
                   className={`rounded-3xl border ${step.border} backdrop-blur-md p-6
-                    bg-white/[0.03] shadow-[0_4px_24px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.05)]`}
+                    shadow-[0_0_0_1px_rgba(255,255,255,0.04),inset_0_1px_0_rgba(255,255,255,0.07)]`}
                 >
                   <div className="flex items-center gap-3 mb-4">
                     <span className="text-2xl">{step.icon}</span>

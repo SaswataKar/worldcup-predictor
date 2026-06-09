@@ -275,29 +275,24 @@ export default function MatchCard({
     ? "border-l-emerald-500/70"
     : "border-l-zinc-600/40";
 
-  // Outer glow colour
+  // Gradient glow — coloured spread shadow, no fill
   const cardGlow = isLive
-    ? "shadow-[0_0_0_1px_rgba(239,68,68,0.15),0_4px_32px_rgba(239,68,68,0.12),0_1px_0_rgba(255,255,255,0.06)_inset]"
+    ? "shadow-[0_0_24px_4px_rgba(239,68,68,0.18),0_0_0_1px_rgba(239,68,68,0.25),inset_0_1px_0_rgba(255,255,255,0.07)]"
     : isFinished && prediction && !prediction.processed
-    ? "shadow-[0_0_0_1px_rgba(234,179,8,0.15),0_4px_32px_rgba(234,179,8,0.10),0_1px_0_rgba(255,255,255,0.06)_inset]"
+    ? "shadow-[0_0_24px_4px_rgba(234,179,8,0.15),0_0_0_1px_rgba(234,179,8,0.22),inset_0_1px_0_rgba(255,255,255,0.07)]"
     : prediction?.processed
-    ? "shadow-[0_0_0_1px_rgba(34,197,94,0.12),0_4px_32px_rgba(34,197,94,0.08),0_1px_0_rgba(255,255,255,0.06)_inset]"
+    ? "shadow-[0_0_20px_3px_rgba(34,197,94,0.13),0_0_0_1px_rgba(34,197,94,0.18),inset_0_1px_0_rgba(255,255,255,0.06)]"
     : isOpen
-    ? "shadow-[0_0_0_1px_rgba(34,197,94,0.12),0_4px_24px_rgba(34,197,94,0.08),0_1px_0_rgba(255,255,255,0.06)_inset]"
-    : "shadow-[0_4px_24px_rgba(0,0,0,0.4),0_1px_0_rgba(255,255,255,0.05)_inset]";
+    ? "shadow-[0_0_20px_3px_rgba(34,197,94,0.10),0_0_0_1px_rgba(34,197,94,0.15),inset_0_1px_0_rgba(255,255,255,0.06)]"
+    : "shadow-[0_0_0_1px_rgba(255,255,255,0.06),inset_0_1px_0_rgba(255,255,255,0.04)]";
 
   return (
     <div
-      className={`relative overflow-hidden rounded-3xl border border-zinc-700/30 border-l-4 ${cardAccent} ${cardGlow}
-        backdrop-blur-md
-        hover:border-zinc-600/40
+      className={`overflow-hidden rounded-3xl border-l-4 ${cardAccent} ${cardGlow}
+        backdrop-blur-md border border-white/[0.07]
         transition-[box-shadow,border-color] duration-300`}
     >
-      {/* PITCH BACKGROUND — visible on both collapsed and expanded */}
-      <PitchBackground />
-
-      {/* Card content sits above the pitch */}
-      <div className="relative z-10">
+      <div>
 
       {/* COLLAPSED ROW */}
       <button
@@ -452,11 +447,11 @@ export default function MatchCard({
         >
           {/* TIMING STRIP */}
           <div className="flex items-stretch gap-3 mb-6">
-            <div className="flex-1 bg-white/[0.06] border border-white/[0.08] rounded-2xl px-5 py-4">
+            <div className="flex-1 border border-white/[0.07] rounded-2xl px-5 py-4">
               <div className="text-[10px] uppercase tracking-widest text-zinc-500 mb-1">Kickoff</div>
               <div className="text-sm font-black">{getISTKickoff()}</div>
             </div>
-            <div className="flex-1 bg-white/[0.06] border border-white/[0.08] rounded-2xl px-5 py-4">
+            <div className="flex-1 border border-white/[0.07] rounded-2xl px-5 py-4">
               <div className="text-[10px] uppercase tracking-widest text-zinc-500 mb-1">Predictions Close</div>
               <div className={`text-sm font-black ${locked ? "text-red-400" : ""}`}>{getCloseTime()}</div>
             </div>

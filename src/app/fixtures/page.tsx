@@ -149,9 +149,9 @@ export default function FixturesPage() {
                     return (
                       <div
                         key={match.id}
-                        className="overflow-hidden rounded-3xl border border-zinc-700/30 px-6 py-5
-                          bg-white/[0.04] backdrop-blur-md
-                          shadow-[0_4px_24px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.06)]"
+                        className="overflow-hidden rounded-3xl border border-white/[0.07] px-6 py-5
+                          backdrop-blur-md
+                          shadow-[0_0_0_1px_rgba(255,255,255,0.05),inset_0_1px_0_rgba(255,255,255,0.06)]"
                       >
                         <div className="flex items-center justify-between gap-4 flex-wrap">
                           {/* TEAMS + SCORE */}

@@ -161,9 +161,14 @@ export default function BoosterInventory({
                 const isUsedElsewhere = !!assignedDay && assignedDay !== activeMatchday;
                 const isLoading = loadingKey === booster.key;
 
-                let cardClass = "border-zinc-700/30 bg-white/[0.04] backdrop-blur-md shadow-[0_4px_24px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.06)]";
-                if (isActiveToday) cardClass = `${booster.border} bg-gradient-to-br ${booster.glow} backdrop-blur-md shadow-[0_4px_32px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.08)]`;
-                if (isUsedElsewhere) cardClass = "border-zinc-700/20 bg-white/[0.02] backdrop-blur-md opacity-50 grayscale";
+                const glowMap: Record<string, string> = {
+                  "2x":  "shadow-[0_0_28px_6px_rgba(234,179,8,0.20),0_0_0_1px_rgba(234,179,8,0.30),inset_0_1px_0_rgba(255,255,255,0.08)]",
+                  "3x":  "shadow-[0_0_28px_6px_rgba(192,38,211,0.20),0_0_0_1px_rgba(192,38,211,0.30),inset_0_1px_0_rgba(255,255,255,0.08)]",
+                  draw:  "shadow-[0_0_28px_6px_rgba(34,197,94,0.20),0_0_0_1px_rgba(34,197,94,0.30),inset_0_1px_0_rgba(255,255,255,0.08)]",
+                };
+                let cardClass = "border-white/[0.08] backdrop-blur-md shadow-[0_0_0_1px_rgba(255,255,255,0.05),inset_0_1px_0_rgba(255,255,255,0.04)]";
+                if (isActiveToday) cardClass = `${booster.border} backdrop-blur-md ${glowMap[booster.key] ?? ""}`;
+                if (isUsedElsewhere) cardClass = "border-white/[0.04] backdrop-blur-md opacity-40 grayscale";
 
                 return (
                   <motion.div
@@ -172,8 +177,8 @@ export default function BoosterInventory({
                     transition={{ duration: 0.15 }}
                     className={`relative overflow-hidden rounded-3xl border p-6 flex flex-col h-full transition-all duration-300 ${cardClass}`}
                   >
-                    {/* DOT TEXTURE */}
-                    <div className="absolute inset-0 opacity-[0.04] bg-[radial-gradient(circle,#fff_1px,transparent_1px)] [background-size:16px_16px]" />
+                    {/* top-edge glass highlight */}
+                    <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/[0.12] to-transparent" />
 
                     <div className="relative z-10 flex flex-col flex-1">
                       <div className="flex items-start justify-between">
