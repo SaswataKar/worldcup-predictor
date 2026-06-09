@@ -330,7 +330,7 @@ export default function Home() {
       prediction?.booster_used &&
       prediction.booster_used !== "none" &&
       match &&
-      canPredict(match.kickoff_time)
+      canPredict(match.kickoff_time ?? "")
     ) {
       cancelledBoosters.current.add(prediction.booster_used);
       setUsedBoosters((prev) => prev.filter((b) => b !== prediction.booster_used));
