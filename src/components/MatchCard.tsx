@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import PredictionControls from "./PredictionControls";
 import type { Match, Prediction, PredictedScore, MatchEvent } from "@/types";
 
@@ -232,13 +232,17 @@ export default function MatchCard({
   return (
     <motion.div
       layout
-      transition={{ duration: 0.3 }}
-      className={`overflow-hidden rounded-3xl border border-zinc-700/50 border-l-4 ${cardAccent} bg-zinc-900 shadow-xl hover:border-zinc-600/60 transition-colors duration-200`}
+      transition={{ layout: { type: "spring", stiffness: 300, damping: 30 } }}
+      className={`overflow-hidden rounded-3xl border border-zinc-700/40 border-l-4 ${cardAccent}
+        bg-white/[0.04] backdrop-blur-md
+        shadow-[0_4px_24px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.06)]
+        hover:bg-white/[0.06] hover:shadow-[0_8px_32px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.08)]
+        transition-all duration-300`}
     >
       {/* COLLAPSED ROW */}
       <button
         onClick={() => setExpandedMatches({ ...expandedMatches, [match.id]: !expanded })}
-        className="w-full px-6 py-5 text-left hover:bg-white/[0.03] transition-colors"
+        className="w-full px-6 py-5 text-left"
       >
         <div className="flex items-center justify-between gap-4 flex-wrap">
           {/* TEAMS + SCORE */}
@@ -369,21 +373,24 @@ export default function MatchCard({
       </button>
 
       {/* EXPANDED */}
+      <AnimatePresence initial={false}>
       {expanded && (
         <motion.div
-          initial={{ opacity: 0, height: 0 }}
-          animate={{ opacity: 1, height: "auto" }}
-          transition={{ duration: 0.25 }}
-          className="border-t border-zinc-700/40 bg-zinc-900/80 px-6 py-6"
+          key="expanded"
+          initial={{ opacity: 0, y: -8, scale: 0.99 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: -6, scale: 0.98 }}
+          transition={{ type: "spring", stiffness: 340, damping: 28, mass: 0.8 }}
+          className="border-t border-white/[0.06] bg-white/[0.02] backdrop-blur-sm px-6 py-6"
         >
           {/* TIMING STRIP */}
           <div className="flex items-stretch gap-3 mb-6">
-            <div className="flex-1 bg-zinc-900 border border-zinc-800 rounded-2xl px-5 py-4">
-              <div className="text-[10px] uppercase tracking-widest text-zinc-600 mb-1">Kickoff</div>
+            <div className="flex-1 bg-white/[0.05] border border-white/[0.08] rounded-2xl px-5 py-4 backdrop-blur-sm">
+              <div className="text-[10px] uppercase tracking-widest text-zinc-500 mb-1">Kickoff</div>
               <div className="text-sm font-black">{getISTKickoff()}</div>
             </div>
-            <div className="flex-1 bg-zinc-900 border border-zinc-800 rounded-2xl px-5 py-4">
-              <div className="text-[10px] uppercase tracking-widest text-zinc-600 mb-1">Predictions Close</div>
+            <div className="flex-1 bg-white/[0.05] border border-white/[0.08] rounded-2xl px-5 py-4 backdrop-blur-sm">
+              <div className="text-[10px] uppercase tracking-widest text-zinc-500 mb-1">Predictions Close</div>
               <div className={`text-sm font-black ${locked ? "text-red-400" : ""}`}>{getCloseTime()}</div>
             </div>
             <div
@@ -474,6 +481,7 @@ export default function MatchCard({
           {(isLive || isFinished) && <EventTimeline match={match} />}
         </motion.div>
       )}
+      </AnimatePresence>
     </motion.div>
   );
 }
