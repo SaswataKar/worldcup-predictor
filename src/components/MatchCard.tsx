@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import PredictionControls from "./PredictionControls";
 import type { Match, Prediction, PredictedScore, MatchEvent } from "@/types";
 
@@ -376,14 +376,18 @@ export default function MatchCard({
         </div>
       </button>
 
-      {/* EXPANDED — CSS grid-rows trick: animates height to/from auto with no JS */}
-      <div
-        className="grid transition-[grid-template-rows] duration-200 ease-out"
-        style={{ gridTemplateRows: expanded ? "1fr" : "0fr" }}
-      >
-        <div className="overflow-hidden">
-        <div
-          className={`border-t border-white/[0.06] bg-white/[0.02] backdrop-blur-sm px-6 py-6 transition-opacity duration-200 ${expanded ? "opacity-100" : "opacity-0"}`}
+      {/* EXPANDED */}
+      <AnimatePresence initial={false}>
+      {expanded && (
+        <motion.div
+          key="panel"
+          initial={{ height: 0, opacity: 0 }}
+          animate={{ height: "auto", opacity: 1 }}
+          exit={{ height: 0, opacity: 0 }}
+          transition={{ duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
+          style={{ overflow: "hidden" }}
+        >
+        <div className="border-t border-white/[0.06] bg-white/[0.02] backdrop-blur-sm px-6 py-6"
         >
           {/* TIMING STRIP */}
           <div className="flex items-stretch gap-3 mb-6">
@@ -482,8 +486,9 @@ export default function MatchCard({
           {/* MATCH EVENTS TIMELINE — shown for live and finished matches */}
           {(isLive || isFinished) && <EventTimeline match={match} />}
         </div>
-        </div>
-      </div>
+        </motion.div>
+      )}
+      </AnimatePresence>
     </div>
   );
 }
