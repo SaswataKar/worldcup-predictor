@@ -1,60 +1,38 @@
 "use client";
 
 import Cookies from "js-cookie";
-
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import ISTClock from "./ISTClock";
 
-export default function Header({
-  user,
-}: {
-  user?: any;
-}) {
-  const pathname =
-    usePathname();
-
+export default function Header({ user }: { user?: any }) {
+  const pathname = usePathname();
   const router = useRouter();
 
   const tabs = [
-    {
-      label: "Predictor",
-      href: "/",
-    },
-
-    {
-      label: "Fixtures",
-      href: "/fixtures",
-    },
-
-    {
-      label: "Leaderboard",
-      href: "/leaderboard",
-    },
+    { label: "Predictor", href: "/" },
+    { label: "Fixtures", href: "/fixtures" },
+    { label: "Leaderboard", href: "/leaderboard" },
   ];
 
   return (
     <header className="sticky top-0 z-50 mb-10">
-      <div className="backdrop-blur-xl bg-black/60 border border-zinc-800 rounded-2xl px-6 py-4 flex justify-between items-center shadow-2xl">
+      <div className="backdrop-blur-xl bg-black/60 border border-zinc-800 rounded-2xl px-6 py-4 flex justify-between items-center gap-4 shadow-2xl flex-wrap">
         {/* LEFT */}
-        <div>
-          <h1 className="text-3xl font-black tracking-tight">
-            ⚽ Pro Predictor
-          </h1>
-          <p className="text-zinc-400 text-sm mt-1">
-            {user?.name
-              ? `Welcome, ${user.name}`
-              : "FIFA World Cup 2026"}
-          </p>
+        <div className="flex items-center gap-4">
+          <div>
+            <h1 className="text-3xl font-black tracking-tight">⚽ Pro Predictor</h1>
+            <p className="text-zinc-400 text-sm mt-0.5">
+              {user?.name ? `Welcome, ${user.name}` : "FIFA World Cup 2026"}
+            </p>
+          </div>
+          <ISTClock />
         </div>
 
         {/* CENTER NAV */}
         <div className="flex items-center gap-3 bg-zinc-900 p-2 rounded-2xl border border-zinc-800">
           {tabs.map((tab) => {
-            const active =
-              pathname ===
-              tab.href;
-
+            const active = pathname === tab.href;
             return (
               <Link
                 key={tab.href}
@@ -75,7 +53,6 @@ export default function Header({
         <button
           onClick={() => {
             Cookies.remove("user");
-
             router.push("/login");
           }}
           className="bg-red-500 hover:bg-red-600 px-5 py-2 rounded-xl font-bold transition-all duration-200 hover:scale-105"

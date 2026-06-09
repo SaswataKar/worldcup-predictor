@@ -9,6 +9,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Header from "@/components/Header";
 import MatchCard from "@/components/MatchCard";
 import BoosterInventory from "@/components/BoosterInventory";
+import HowItWorks from "@/components/HowItWorks";
 import PageWrapper from "@/components/PageWrapper";
 
 import { supabase } from "@/lib/supabase";
@@ -388,6 +389,8 @@ export default function Home() {
       <main className="min-h-screen text-white p-6">
         <div className="max-w-7xl mx-auto">
           <Header user={user} />
+
+          <HowItWorks />
 
           <BoosterInventory
             usedBoosterTypes={usedBoosterTypes}
