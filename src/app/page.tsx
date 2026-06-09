@@ -154,7 +154,7 @@ export default function Home() {
     setActiveDayBoosters(byDay);
   };
 
-  // ACTIVATE BOOSTER (any type, any day)
+  // ACTIVATE BOOSTER — always stamps to the active matchday
   const activateBooster = async (boosterType: string, date: string) => {
     if (!user) return;
 
@@ -176,6 +176,38 @@ export default function Home() {
     }));
 
     toast.success(`${BOOSTER_NAMES[boosterType] ?? boosterType} activated!`);
+  };
+
+  // REMOVE BOOSTER — returns it to inventory
+  const removeBooster = async (boosterType: string) => {
+    if (!user) return;
+
+    const assignedDate = Object.entries(activeDayBoosters).find(([, types]) =>
+      types.includes(boosterType)
+    )?.[0];
+
+    if (!assignedDate) return;
+
+    const { error } = await supabase
+      .from("daily_boosters")
+      .delete()
+      .eq("user_id", user.id)
+      .eq("booster_type", boosterType);
+
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+
+    setUsedBoosterTypes((prev) => prev.filter((b) => b !== boosterType));
+    setActiveDayBoosters((prev) => {
+      const updated = { ...prev };
+      updated[assignedDate] = (updated[assignedDate] || []).filter((b) => b !== boosterType);
+      if (updated[assignedDate].length === 0) delete updated[assignedDate];
+      return updated;
+    });
+
+    toast.success("Booster returned to inventory");
   };
 
   // LOCK LOGIC — open from midnight the day before kickoff until 1 minute before kickoff
@@ -217,7 +249,14 @@ export default function Home() {
     return result;
   }, [matches]);
 
-  const visibleDays = useMemo(() => Object.keys(visibleGroupedMatches), [visibleGroupedMatches]);
+  // The matchday currently open for predictions (has at least one predictable match)
+  const activeMatchday = useMemo(() => {
+    return (
+      Object.entries(visibleGroupedMatches).find(([, dayMatches]) =>
+        dayMatches.some((m) => canPredict(m.kickoff_time ?? ""))
+      )?.[0] ?? null
+    );
+  }, [visibleGroupedMatches]);
 
   // TBD MATCHES
   const tbdMatches = useMemo(() => {
@@ -326,8 +365,9 @@ export default function Home() {
           <BoosterInventory
             usedBoosterTypes={usedBoosterTypes}
             activeDayBoosters={activeDayBoosters}
-            visibleDays={visibleDays}
+            activeMatchday={activeMatchday}
             onActivate={activateBooster}
+            onRemove={removeBooster}
           />
 
           {/* TBD */}
