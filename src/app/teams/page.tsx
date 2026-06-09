@@ -309,7 +309,6 @@ export default function TeamsPage() {
           {loading && (
             <div className="text-center py-32">
               <div className="text-4xl font-black animate-pulse">⚽ Loading teams…</div>
-              <div className="text-zinc-600 mt-3">Fetching squads from football-data.org</div>
             </div>
           )}
 
