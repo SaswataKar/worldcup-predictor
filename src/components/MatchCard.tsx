@@ -2,22 +2,22 @@
 
 import { motion } from "framer-motion";
 import PredictionControls from "./PredictionControls";
+import type { Match, Prediction, PredictedScore } from "@/types";
 
 type MatchCardProps = {
-  match: any;
+  match: Match;
   canPredict: (kickoffTime: string) => boolean;
-  predictions: any;
-  predictedScores: any;
-  setPredictedScores: any;
-  expandedMatches: any;
-  setExpandedMatches: any;
-  submitPrediction: any;
-  cancelPrediction: any;
-  selectedInventoryBooster: any;
-  setSelectedInventoryBooster: any;
-  usedBoosters: any;
-  setUsedBoosters: any;
-  goatDays: any[];
+  predictions: Record<number, Prediction>;
+  predictedScores: Record<number, PredictedScore>;
+  setPredictedScores: (scores: Record<number, PredictedScore>) => void;
+  expandedMatches: Record<number, boolean>;
+  setExpandedMatches: (expanded: Record<number, boolean>) => void;
+  submitPrediction: (matchId: number) => void;
+  cancelPrediction: (matchId: number) => void;
+  selectedInventoryBooster: string | null;
+  setSelectedInventoryBooster: (booster: string | null) => void;
+  usedBoosters: string[];
+  goatDays: string[];
 };
 
 export default function MatchCard({
@@ -33,7 +33,6 @@ export default function MatchCard({
   selectedInventoryBooster,
   setSelectedInventoryBooster,
   usedBoosters,
-  setUsedBoosters,
   goatDays,
 }: MatchCardProps) {
   const expanded = expandedMatches[match.id];
@@ -42,9 +41,7 @@ export default function MatchCard({
   const kickoffTime = match.kickoff_time ? new Date(match.kickoff_time) : null;
   const now = new Date();
 
-  // Single source of truth for lock state:
-  // locked = match has started/finished OR canPredict returns false
-  const isOpen = canPredict(match.kickoff_time);
+  const isOpen = canPredict(match.kickoff_time ?? "");
   const hasStarted = kickoffTime
     ? now >= new Date(kickoffTime.getTime() - 1 * 60 * 1000)
     : false;
@@ -65,9 +62,7 @@ export default function MatchCard({
   const getCountdown = () => {
     if (!match.kickoff_time) return "TBD";
     const diff = kickoffTime!.getTime() - now.getTime();
-    if (diff <= 0) {
-      return match.status === "FINISHED" ? "Full Time" : "Live / Closed";
-    }
+    if (diff <= 0) return match.status === "FINISHED" ? "Full Time" : "Live / Closed";
     const hours = Math.floor(diff / (1000 * 60 * 60));
     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
     return `${hours}h ${minutes}m`;
@@ -125,13 +120,10 @@ export default function MatchCard({
     >
       {/* COLLAPSED ROW */}
       <button
-        onClick={() =>
-          setExpandedMatches({ ...expandedMatches, [match.id]: !expanded })
-        }
+        onClick={() => setExpandedMatches({ ...expandedMatches, [match.id]: !expanded })}
         className="w-full px-6 py-5 text-left hover:bg-white/[0.02] transition-colors"
       >
         <div className="flex items-center justify-between gap-4 flex-wrap">
-
           {/* TEAMS + SCORE */}
           <div className="flex items-center gap-4 min-w-0">
             <div className="flex items-center gap-2">
@@ -143,9 +135,7 @@ export default function MatchCard({
             </div>
 
             <div className="flex items-center justify-center min-w-[56px]">
-              {match.status === "FINISHED" ||
-              match.status === "LIVE" ||
-              match.status === "IN_PLAY" ? (
+              {match.status === "FINISHED" || match.status === "LIVE" || match.status === "IN_PLAY" ? (
                 <span className="text-xl font-black tabular-nums">
                   {match.team1_score} – {match.team2_score}
                 </span>
@@ -165,13 +155,10 @@ export default function MatchCard({
 
           {/* META */}
           <div className="flex items-center gap-3 flex-wrap text-xs font-semibold">
-
-            {/* STATUS PILL */}
             <span className={`px-2.5 py-1 rounded-full border text-[11px] font-black tracking-wide ${statusPillClass}`}>
               {statusLabel}
             </span>
 
-            {/* KICKOFF */}
             <div className="text-zinc-400 hidden sm:flex flex-col items-end leading-tight">
               <span className="text-[11px] text-zinc-600 uppercase tracking-widest">Match-Kickoff</span>
               <span>{getISTKickoff()}</span>
@@ -179,22 +166,17 @@ export default function MatchCard({
 
             <div className="text-zinc-700 hidden sm:block">·</div>
 
-            {/* CLOSE TIME */}
             <div className="text-zinc-400 hidden sm:flex flex-col items-end leading-tight">
               <span className="text-[11px] text-zinc-600 uppercase tracking-widest">Prediction-Closes</span>
-              <span className={locked ? "text-red-400" : "text-zinc-400"}>
-                {getCloseTime()}
-              </span>
+              <span className={locked ? "text-red-400" : "text-zinc-400"}>{getCloseTime()}</span>
             </div>
 
             <div className="text-zinc-700">·</div>
 
-            {/* COUNTDOWN */}
             <span className={`tabular-nums ${locked ? "text-red-400" : "text-zinc-500"}`}>
               ⏳ {getCountdown()}
             </span>
 
-            {/* PREDICTION SCORE */}
             {prediction && (
               <>
                 <div className="text-zinc-700">·</div>
@@ -204,17 +186,13 @@ export default function MatchCard({
               </>
             )}
 
-            {/* POINTS */}
             {prediction?.processed && (
               <>
                 <div className="text-zinc-700">·</div>
-                <span className="text-yellow-300 font-black">
-                  +{prediction.awarded_points} 🏆
-                </span>
+                <span className="text-yellow-300 font-black">+{prediction.awarded_points} 🏆</span>
               </>
             )}
 
-            {/* BOOSTERS */}
             {prediction?.booster_used && prediction.booster_used !== "none" && (
               <>
                 <div className="text-zinc-700">·</div>
@@ -232,7 +210,6 @@ export default function MatchCard({
               </>
             )}
 
-            {/* CHEVRON */}
             <motion.span
               animate={{ rotate: expanded ? 180 : 0 }}
               transition={{ duration: 0.2 }}
@@ -268,21 +245,13 @@ export default function MatchCard({
           {/* TIMING STRIP */}
           <div className="flex items-stretch gap-3 mb-6">
             <div className="flex-1 bg-zinc-900 border border-zinc-800 rounded-2xl px-5 py-4">
-              <div className="text-[10px] uppercase tracking-widest text-zinc-600 mb-1">
-                Kickoff
-              </div>
+              <div className="text-[10px] uppercase tracking-widest text-zinc-600 mb-1">Kickoff</div>
               <div className="text-sm font-black">{getISTKickoff()}</div>
             </div>
-
             <div className="flex-1 bg-zinc-900 border border-zinc-800 rounded-2xl px-5 py-4">
-              <div className="text-[10px] uppercase tracking-widest text-zinc-600 mb-1">
-                Predictions Close
-              </div>
-              <div className={`text-sm font-black ${locked ? "text-red-400" : ""}`}>
-                {getCloseTime()}
-              </div>
+              <div className="text-[10px] uppercase tracking-widest text-zinc-600 mb-1">Predictions Close</div>
+              <div className={`text-sm font-black ${locked ? "text-red-400" : ""}`}>{getCloseTime()}</div>
             </div>
-
             <div
               className={`flex items-center justify-center px-5 rounded-2xl border font-black text-sm ${
                 locked
@@ -294,7 +263,6 @@ export default function MatchCard({
             </div>
           </div>
 
-          {/* CONTROLS */}
           <PredictionControls
             match={match}
             locked={locked}

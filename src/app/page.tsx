@@ -13,18 +13,19 @@ import BoosterInventory from "@/components/BoosterInventory";
 import PageWrapper from "@/components/PageWrapper";
 
 import { supabase } from "@/lib/supabase";
+import type { Match, Prediction, PredictedScore, User } from "@/types";
 
 export default function Home() {
   const router = useRouter();
 
-  const [user, setUser] = useState<any>(null);
-  const [matches, setMatches] = useState<any[]>([]);
-  const [predictions, setPredictions] = useState<any>({});
-  const [predictedScores, setPredictedScores] = useState<any>({});
-  const [expandedMatches, setExpandedMatches] = useState<any>({});
-  const [selectedInventoryBooster, setSelectedInventoryBooster] = useState<any>(null);
-  const [usedBoosters, setUsedBoosters] = useState<any[]>([]);
-  const [goatDays, setGoatDays] = useState<any[]>([]);
+  const [user, setUser] = useState<User | null>(null);
+  const [matches, setMatches] = useState<Match[]>([]);
+  const [predictions, setPredictions] = useState<Record<number, Prediction>>({});
+  const [predictedScores, setPredictedScores] = useState<Record<number, PredictedScore>>({});
+  const [expandedMatches, setExpandedMatches] = useState<Record<number, boolean>>({});
+  const [selectedInventoryBooster, setSelectedInventoryBooster] = useState<string | null>(null);
+  const [usedBoosters, setUsedBoosters] = useState<string[]>([]);
+  const [goatDays, setGoatDays] = useState<string[]>([]);
 
   const cancelledMatchIds = useRef<Set<number>>(new Set());
   const cancelledBoosters = useRef<Set<string>>(new Set());
@@ -450,7 +451,6 @@ export default function Home() {
                       selectedInventoryBooster={selectedInventoryBooster}
                       setSelectedInventoryBooster={setSelectedInventoryBooster}
                       usedBoosters={usedBoosters}
-                      setUsedBoosters={setUsedBoosters}
                       goatDays={goatDays}
                     />
                   ))}
