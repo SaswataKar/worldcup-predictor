@@ -14,6 +14,8 @@ const STEPS = [
       "Predictions open at midnight the day before each match.",
       "They close exactly 1 minute before kick-off — no late entries.",
       "You can edit or cancel any prediction while it's still open.",
+      "The home page shows the current matchday plus the next 2 upcoming matchdays only.",
+      "All other fixtures are available in the Fixtures tab.",
     ],
   },
   {
