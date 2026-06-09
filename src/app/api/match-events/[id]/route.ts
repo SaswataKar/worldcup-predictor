@@ -5,11 +5,12 @@ import { NextResponse } from "next/server";
 // Lineups (homeTeam.lineup / bench) may be empty on free tier — test with a real match.
 export async function GET(
   _req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const response = await fetch(
-      `https://api.football-data.org/v4/matches/${params.id}`,
+      `https://api.football-data.org/v4/matches/${id}`,
       {
         headers: { "X-Auth-Token": process.env.FOOTBALL_DATA_API_KEY! },
         next: { revalidate: 60 }, // 60s cache — fine for post-match; live will re-fetch
