@@ -170,8 +170,9 @@ export default function MatchCard({
             {prediction && (
               <>
                 <div className="text-zinc-700">·</div>
-                <span className="text-white font-black">
-                  {prediction.predicted_team1_score}–{prediction.predicted_team2_score}
+                {/* Predicted score badge — stands out from surrounding meta */}
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-zinc-800 border border-zinc-700 text-white font-black text-xs tabular-nums">
+                  🎯 {prediction.predicted_team1_score}–{prediction.predicted_team2_score}
                 </span>
               </>
             )}
@@ -179,7 +180,33 @@ export default function MatchCard({
             {prediction?.processed && (
               <>
                 <div className="text-zinc-700">·</div>
-                <span className="text-yellow-300 font-black">+{prediction.awarded_points} 🏆</span>
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-yellow-400/10 border border-yellow-400/30 text-yellow-300 font-black text-xs">
+                  +{prediction.awarded_points} 🏆
+                </span>
+              </>
+            )}
+
+            {/* Live / calculating indicators in collapsed row */}
+            {prediction && !prediction.processed && (match.status === "LIVE" || match.status === "IN_PLAY") && (
+              <>
+                <div className="text-zinc-700">·</div>
+                <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-red-400">
+                  <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse inline-block" />
+                  Live
+                </span>
+              </>
+            )}
+
+            {prediction && !prediction.processed && match.status === "FINISHED" && (
+              <>
+                <div className="text-zinc-700">·</div>
+                <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-yellow-400">
+                  <svg className="w-3 h-3 animate-spin" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 00-8 8h4z"/>
+                  </svg>
+                  Calculating
+                </span>
               </>
             )}
 
@@ -247,6 +274,34 @@ export default function MatchCard({
               ⏳ {getCountdown()}
             </div>
           </div>
+
+          {/* MATCH STATUS BANNER for predicted-but-unscored matches */}
+          {prediction && !prediction.processed && (
+            <>
+              {(match.status === "LIVE" || match.status === "IN_PLAY") && (
+                <div className="flex items-center gap-3 px-5 py-4 rounded-2xl bg-red-500/10 border border-red-500/20 mb-6">
+                  <span className="w-2.5 h-2.5 rounded-full bg-red-400 animate-pulse shrink-0" />
+                  <div>
+                    <div className="text-red-300 font-black text-sm">Match in progress</div>
+                    <div className="text-red-400/70 text-xs mt-0.5">Your prediction is locked in — wait for the final whistle.</div>
+                  </div>
+                </div>
+              )}
+
+              {match.status === "FINISHED" && (
+                <div className="flex items-center gap-3 px-5 py-4 rounded-2xl bg-yellow-500/10 border border-yellow-500/20 mb-6">
+                  <svg className="w-4 h-4 text-yellow-400 animate-spin shrink-0" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 00-8 8h4z"/>
+                  </svg>
+                  <div>
+                    <div className="text-yellow-300 font-black text-sm">Scores are being calculated</div>
+                    <div className="text-yellow-400/70 text-xs mt-0.5">Your points will appear here as soon as processing completes.</div>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
 
           {/* ACTIVE BOOSTERS STRIP */}
           {activeBoosters.length > 0 && (
