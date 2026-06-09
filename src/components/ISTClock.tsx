@@ -3,9 +3,8 @@
 import { useEffect, useState } from "react";
 
 export default function ISTClock() {
-  const [h, setH] = useState("00");
+  const [h, setH] = useState("12");
   const [m, setM] = useState("00");
-  const [s, setS] = useState("00");
   const [amPm, setAmPm] = useState("AM");
   const [date, setDate] = useState("");
   const [blink, setBlink] = useState(true);
@@ -13,29 +12,34 @@ export default function ISTClock() {
   useEffect(() => {
     const tick = () => {
       const now = new Date();
-      // 12-hour time in IST
+
       const timeStr = now.toLocaleTimeString("en-IN", {
         timeZone: "Asia/Kolkata",
         hour: "2-digit",
         minute: "2-digit",
-        second: "2-digit",
         hour12: true,
       });
-      // "02:45:09 pm" → split on space → ["02:45:09", "pm"]
-      const [hms, ampm] = timeStr.split(" ");
-      const parts = (hms ?? "").split(":");
-      setH(parts[0] ?? "00");
+      // "02:45 pm" → split on space
+      const [hm, ap] = timeStr.split(" ");
+      const parts = (hm ?? "").split(":");
+      setH(parts[0] ?? "12");
       setM(parts[1] ?? "00");
-      setS(parts[2] ?? "00");
-      setAmPm((ampm ?? "").toUpperCase());
-      setDate(
-        now.toLocaleDateString("en-IN", {
-          timeZone: "Asia/Kolkata",
-          weekday: "short",
-          day: "numeric",
-          month: "short",
-        })
-      );
+      setAmPm((ap ?? "AM").toUpperCase());
+
+      const day = now.toLocaleDateString("en-IN", {
+        timeZone: "Asia/Kolkata",
+        weekday: "short",
+      });
+      const dayNum = now.toLocaleDateString("en-IN", {
+        timeZone: "Asia/Kolkata",
+        day: "numeric",
+      });
+      const month = now.toLocaleDateString("en-IN", {
+        timeZone: "Asia/Kolkata",
+        month: "short",
+      });
+      setDate(`${day}, ${dayNum} ${month}`);
+
       setBlink((v) => !v);
     };
     tick();
@@ -48,12 +52,12 @@ export default function ISTClock() {
       rounded-2xl overflow-hidden
       bg-[#0a0a0a] border border-white/[0.10]
       shadow-[0_0_18px_3px_rgba(234,179,8,0.10),0_0_0_1px_rgba(255,255,255,0.06),inset_0_1px_0_rgba(255,255,255,0.08)]
-      px-4 py-2.5 min-w-[130px]"
+      px-4 py-2.5 min-w-[110px]"
     >
-      {/* subtle top highlight */}
+      {/* subtle gold top highlight */}
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-yellow-400/[0.25] to-transparent" />
 
-      {/* FIFA-style digit display */}
+      {/* FIFA-style digit display — HH : MM */}
       <div className="flex items-center gap-0.5 tabular-nums leading-none">
         {/* Hours */}
         <div className="flex gap-px">
@@ -65,10 +69,10 @@ export default function ISTClock() {
           </span>
         </div>
 
-        {/* Colon — blinks every second */}
+        {/* Blinking colon */}
         <span
-          className="text-yellow-400 font-black text-lg mx-0.5 leading-none transition-opacity duration-100"
-          style={{ opacity: blink ? 1 : 0.2 }}
+          className="text-yellow-400 font-black text-xl mx-0.5 leading-none transition-opacity duration-100"
+          style={{ opacity: blink ? 1 : 0.15 }}
         >
           :
         </span>
@@ -83,31 +87,31 @@ export default function ISTClock() {
           </span>
         </div>
 
-        {/* Colon */}
-        <span
-          className="text-yellow-400 font-black text-lg mx-0.5 leading-none transition-opacity duration-100"
-          style={{ opacity: blink ? 1 : 0.2 }}
-        >
-          :
-        </span>
-
-        {/* Seconds */}
-        <div className="flex gap-px">
-          <span className="bg-zinc-800 text-white font-black text-lg px-1.5 py-0.5 rounded-md leading-none min-w-[22px] text-center">
-            {s[0]}
-          </span>
-          <span className="bg-zinc-800 text-white font-black text-lg px-1.5 py-0.5 rounded-md leading-none min-w-[22px] text-center">
-            {s[1]}
-          </span>
-        </div>
-        {/* AM/PM badge */}
+        {/* AM/PM */}
         <span className="ml-1.5 text-[11px] font-black text-yellow-400 leading-none self-center">
           {amPm}
         </span>
       </div>
 
-      {/* Date */}
-      <div className="text-[9px] text-zinc-500 mt-1.5 tracking-wide">{date}</div>
+      {/* Manual scoreboard date — individual flip-board tiles */}
+      <div className="flex items-center gap-0.5 mt-2">
+        {date.split("").map((char, i) =>
+          char === " " ? (
+            <span key={i} className="w-1" />
+          ) : (
+            <span
+              key={i}
+              className="inline-flex items-center justify-center
+                bg-zinc-800 border-b-2 border-zinc-600
+                text-[9px] font-black uppercase tracking-tight text-amber-300
+                rounded-[3px] px-[3px] py-[2px] min-w-[9px] leading-none
+                shadow-[inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-1px_0_rgba(0,0,0,0.4)]"
+            >
+              {char}
+            </span>
+          )
+        )}
+      </div>
     </div>
   );
 }
