@@ -25,7 +25,7 @@ const BOOSTER_NAMES: Record<string, string> = {
 };
 
 export default function Home() {
-  const locale = useLocaleCtx();
+  const { locale } = useLocaleCtx();
   const router = useRouter();
 
   const [user, setUser] = useState<User | null>(null);

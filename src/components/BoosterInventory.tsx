@@ -76,7 +76,7 @@ export default function BoosterInventory({
   onActivate,
   onRemove,
 }: Props) {
-  const locale = useLocaleCtx();
+  const { locale } = useLocaleCtx();
   const [open, setOpen] = useState(false);
   const [loadingKey, setLoadingKey] = useState<string | null>(null);
 

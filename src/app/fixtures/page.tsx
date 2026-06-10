@@ -12,7 +12,7 @@ import { useLocaleCtx } from "@/context/LocaleContext";
 import { groupMatches, buildGroupLabels } from "@/lib/matchGroups";
 
 export default function FixturesPage() {
-  const locale = useLocaleCtx();
+  const { locale } = useLocaleCtx();
   const router = useRouter();
   const [matches, setMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(true);

@@ -5,7 +5,8 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 import ISTClock from "./ISTClock";
-import { useLocale, LOCALES } from "@/hooks/useLocale";
+import { LOCALES } from "@/hooks/useLocale";
+import { useLocaleCtx } from "@/context/LocaleContext";
 
 export default function Header({ user, hideNav }: { user?: any; hideNav?: boolean }) {
   const pathname = usePathname();
@@ -14,7 +15,7 @@ export default function Header({ user, hideNav }: { user?: any; hideNav?: boolea
   const [langOpen, setLangOpen] = useState(false);
   const [mobileLangOpen, setMobileLangOpen] = useState(false);
   const langRef = useRef<HTMLDivElement>(null);
-  const { locale, setLocale } = useLocale();
+  const { locale, setLocale } = useLocaleCtx();
 
   // Don't render language label until locale is hydrated — prevents "English" flash
   const [mounted, setMounted] = useState(false);

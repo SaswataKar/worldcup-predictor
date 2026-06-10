@@ -173,7 +173,7 @@ export default function MatchCard({
   cancelPrediction,
   activeDayBoosters,
 }: MatchCardProps) {
-  const locale = useLocaleCtx();
+  const { locale } = useLocaleCtx();
   const expanded = expandedMatches[match.id];
   const prediction = predictions[match.id];
 

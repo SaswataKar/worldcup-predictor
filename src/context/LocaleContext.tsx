@@ -2,6 +2,11 @@
 
 import { createContext, useContext } from "react";
 
-export const LocaleContext = createContext<string>("en-US");
+type LocaleCtx = { locale: string; setLocale: (code: string) => void };
+
+export const LocaleContext = createContext<LocaleCtx>({
+  locale: "en-US",
+  setLocale: () => {},
+});
 
 export const useLocaleCtx = () => useContext(LocaleContext);
