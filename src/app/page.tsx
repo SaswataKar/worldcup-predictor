@@ -9,6 +9,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Header from "@/components/Header";
 import MatchCard from "@/components/MatchCard";
 import BoosterInventory from "@/components/BoosterInventory";
+import GroupCountdown from "@/components/GroupCountdown";
 import HowItWorks from "@/components/HowItWorks";
 import PageWrapper from "@/components/PageWrapper";
 
@@ -263,16 +264,14 @@ export default function Home() {
     toast.success("Booster returned to inventory");
   };
 
-  // LOCK LOGIC — open from midnight the day before kickoff until 1 minute before kickoff
+  // LOCK LOGIC — open exactly 24h before kickoff, closes 1 minute before kickoff
   const canPredict = (kickoffTime: string): boolean => {
     if (!kickoffTime) return false;
     const now = new Date();
     const kickoff = new Date(kickoffTime);
     if (isNaN(kickoff.getTime())) return false;
-    const openTime = new Date(kickoff);
-    openTime.setDate(openTime.getDate() - 1);
-    openTime.setHours(0, 0, 0, 0);
-    const closeTime = new Date(kickoff.getTime() - 1 * 60 * 1000);
+    const openTime = new Date(kickoff.getTime() - 24 * 60 * 60 * 1000);
+    const closeTime = new Date(kickoff.getTime() - 60 * 1000);
     return now >= openTime && now < closeTime;
   };
 
@@ -487,6 +486,9 @@ export default function Home() {
                     <div className="bg-zinc-900 border border-zinc-700/60 rounded-full px-3 py-1 text-xs font-black text-zinc-400">
                       {dateMatches.length} {dateMatches.length === 1 ? "match" : "matches"}
                     </div>
+
+                    {/* Live prediction countdown */}
+                    <GroupCountdown matches={dateMatches} />
 
                     {/* Active booster badges */}
                     {dayBoosters.map((b) => (

@@ -12,8 +12,13 @@ export default function Header({ user, hideNav }: { user?: any; hideNav?: boolea
   const router = useRouter();
   const [activeLeagueName, setActiveLeagueName] = useState<string | null>(null);
   const [langOpen, setLangOpen] = useState(false);
+  const [mobileLangOpen, setMobileLangOpen] = useState(false);
   const langRef = useRef<HTMLDivElement>(null);
   const { locale, setLocale } = useLocale();
+
+  // Don't render language label until locale is hydrated — prevents "English" flash
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
 
   useEffect(() => {
     const raw = Cookies.get("activeLeague");
@@ -45,6 +50,29 @@ export default function Header({ user, hideNav }: { user?: any; hideNav?: boolea
 
   const currentLang = LOCALES.find((l) => l.code === locale) ?? LOCALES[0];
 
+  const LangList = ({ onPick }: { onPick: () => void }) => (
+    <>
+      <div className="px-3 py-2 text-[10px] uppercase tracking-[0.2em] text-zinc-600 font-black border-b border-white/[0.06]">
+        Language
+      </div>
+      {LOCALES.map((l) => (
+        <button
+          key={l.code}
+          onClick={() => { setLocale(l.code); onPick(); }}
+          className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-sm font-bold transition-colors text-left
+            ${locale === l.code
+              ? "bg-yellow-400/10 text-yellow-300"
+              : "text-zinc-300 hover:bg-white/[0.05]"
+            }`}
+        >
+          <span className="text-base">{l.flag}</span>
+          <span>{l.label}</span>
+          {locale === l.code && <span className="ml-auto text-yellow-400 text-xs">✓</span>}
+        </button>
+      ))}
+    </>
+  );
+
   return (
     <header className="sticky top-0 z-50 mb-10">
       <div className="backdrop-blur-xl bg-black/60 border border-zinc-800 rounded-2xl shadow-2xl overflow-hidden">
@@ -68,7 +96,7 @@ export default function Header({ user, hideNav }: { user?: any; hideNav?: boolea
           {/* RIGHT: lang picker + league chip + logout */}
           <div className="flex items-center gap-2 shrink-0">
 
-            {/* Language picker */}
+            {/* Desktop language picker */}
             <div ref={langRef} className="relative hidden sm:block">
               <button
                 onClick={() => setLangOpen((v) => !v)}
@@ -76,32 +104,41 @@ export default function Header({ user, hideNav }: { user?: any; hideNav?: boolea
                   text-xs font-black text-zinc-300 hover:bg-zinc-700 transition-all whitespace-nowrap"
                 title="Change language"
               >
-                <span>{currentLang.flag}</span>
-                <span className="text-zinc-400">{currentLang.label}</span>
+                <span>{mounted ? currentLang.flag : "🌐"}</span>
+                <span className="text-zinc-400">{mounted ? currentLang.label : "…"}</span>
                 <span className="text-zinc-600 text-[10px]">{langOpen ? "▲" : "▼"}</span>
               </button>
 
               {langOpen && (
                 <div className="absolute right-0 top-full mt-2 w-44 rounded-2xl border border-white/[0.10] bg-zinc-900/95 backdrop-blur-xl shadow-2xl overflow-hidden z-50">
-                  <div className="px-3 py-2 text-[10px] uppercase tracking-[0.2em] text-zinc-600 font-black border-b border-white/[0.06]">
-                    Language
-                  </div>
-                  {LOCALES.map((l) => (
-                    <button
-                      key={l.code}
-                      onClick={() => { setLocale(l.code); setLangOpen(false); }}
-                      className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-sm font-bold transition-colors text-left
-                        ${locale === l.code
-                          ? "bg-yellow-400/10 text-yellow-300"
-                          : "text-zinc-300 hover:bg-white/[0.05]"
-                        }`}
-                    >
-                      <span className="text-base">{l.flag}</span>
-                      <span>{l.label}</span>
-                      {locale === l.code && <span className="ml-auto text-yellow-400 text-xs">✓</span>}
-                    </button>
-                  ))}
+                  <LangList onPick={() => setLangOpen(false)} />
                 </div>
+              )}
+            </div>
+
+            {/* Mobile language picker — globe icon */}
+            <div className="relative sm:hidden">
+              <button
+                onClick={() => setMobileLangOpen((v) => !v)}
+                className="flex items-center justify-center w-9 h-9 rounded-xl bg-zinc-800/80 border border-white/[0.08]
+                  text-base hover:bg-zinc-700 transition-all"
+                title="Change language"
+              >
+                {mounted ? currentLang.flag : "🌐"}
+              </button>
+
+              {mobileLangOpen && (
+                <>
+                  {/* Backdrop */}
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setMobileLangOpen(false)}
+                  />
+                  {/* Sheet */}
+                  <div className="absolute right-0 top-full mt-2 w-52 rounded-2xl border border-white/[0.10] bg-zinc-900/98 backdrop-blur-xl shadow-2xl overflow-hidden z-50">
+                    <LangList onPick={() => setMobileLangOpen(false)} />
+                  </div>
+                </>
               )}
             </div>
 

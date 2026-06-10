@@ -20,14 +20,17 @@ export function useLocale() {
 
   useEffect(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
+    if (stored && LOCALES.find((l) => l.code === stored)) {
       setLocaleState(stored);
-    } else {
-      // Default to browser locale if it matches one of our options, else en-US
-      const browser = navigator.language;
-      const match = LOCALES.find((l) => l.code === browser || l.code.startsWith(browser));
-      setLocaleState(match?.code ?? "en-US");
+      return;
     }
+    // Match browser language family (e.g. "hi-IN", "es-MX", "en-GB" all map correctly)
+    const browserLang = navigator.language; // e.g. "hi-IN", "en-GB"
+    const browserBase = browserLang.split("-")[0]; // "hi", "en", "es"
+    const match =
+      LOCALES.find((l) => l.code === browserLang) ??
+      LOCALES.find((l) => l.code.split("-")[0] === browserBase);
+    setLocaleState(match?.code ?? "en-US");
   }, []);
 
   const setLocale = useCallback((code: string) => {
