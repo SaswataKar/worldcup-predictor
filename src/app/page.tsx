@@ -32,7 +32,15 @@ export default function Home() {
   const [expandedMatches, setExpandedMatches] = useState<Record<number, boolean>>({});
   const [usedBoosterTypes, setUsedBoosterTypes] = useState<string[]>([]);
   const [activeDayBoosters, setActiveDayBoosters] = useState<Record<string, string[]>>({});
-  const [useGamedayWindow, setUseGamedayWindow] = useState(false);
+
+  // Read matchday mode synchronously from cookie so it's correct on first render
+  const [useGamedayWindow] = useState<boolean>(() => {
+    try {
+      const raw = Cookies.get("activeLeague");
+      if (!raw) return false;
+      return JSON.parse(raw).matchday_mode === "gameday_window";
+    } catch { return false; }
+  });
 
   const cancelledMatchIds = useRef<Set<number>>(new Set());
 
@@ -65,9 +73,6 @@ export default function Home() {
           router.push("/leagues?select=1");
           return;
         }
-        const activeLeague = JSON.parse(activeLeagueCookie);
-        setUseGamedayWindow(activeLeague.matchday_mode === "gameday_window");
-
         setUser(existingUser);
         await fetchMatches();
         await fetchPredictions(existingUser.id);
@@ -297,7 +302,7 @@ export default function Home() {
     const result: Record<string, Match[]> = {};
     windowDays.forEach((day) => { result[day] = grouped[day]; });
     return result;
-  }, [matches]);
+  }, [matches, useGamedayWindow]);
 
   // The matchday currently open for predictions (has at least one predictable match)
   const activeMatchday = useMemo(() => {
