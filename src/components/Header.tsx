@@ -14,6 +14,7 @@ export default function Header({ user }: { user?: any }) {
     { label: "Fixtures", href: "/fixtures" },
     { label: "Teams", href: "/teams" },
     { label: "Leaderboard", href: "/leaderboard" },
+    { label: "Leagues", href: "/leagues" },
   ];
 
   return (
