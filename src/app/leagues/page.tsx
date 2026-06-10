@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Cookies from "js-cookie";
 import { motion, AnimatePresence } from "framer-motion";
 import Header from "@/components/Header";
@@ -43,6 +43,9 @@ function LeagueCard({
   onSelect,
   onLeave,
   selected,
+  isSelectMode,
+  isActive,
+  onSelectPlay,
 }: {
   league: League;
   isOwner: boolean;
@@ -50,6 +53,9 @@ function LeagueCard({
   onSelect: () => void;
   onLeave: () => void;
   selected: boolean;
+  isSelectMode?: boolean;
+  isActive?: boolean;
+  onSelectPlay?: () => void;
 }) {
   const [copied, setCopied] = useState(false);
 
@@ -120,9 +126,29 @@ function LeagueCard({
         </div>
       </div>
 
-      <div className="mt-3 text-[11px] text-zinc-600 font-semibold">
-        Tap to view mini-leaderboard →
-      </div>
+      {isSelectMode ? (
+        <div className="mt-4 flex items-center justify-between gap-3">
+          {isActive ? (
+            <span className="px-3 py-1.5 rounded-xl bg-emerald-500/15 border border-emerald-500/25 text-emerald-400 text-xs font-black">
+              ✓ Currently Active
+            </span>
+          ) : (
+            <span className="text-[11px] text-zinc-600 font-semibold">
+              {league.matchday_mode === "gameday_window" ? "⚡ Gameday Window rules" : "📅 Standard calendar rules"}
+            </span>
+          )}
+          <button
+            onClick={(e) => { e.stopPropagation(); onSelectPlay?.(); }}
+            className="px-4 py-2 rounded-2xl bg-yellow-400 text-black font-black text-xs hover:bg-yellow-300 transition-all shrink-0"
+          >
+            {isActive ? "Continue →" : "Play Here →"}
+          </button>
+        </div>
+      ) : (
+        <div className="mt-3 text-[11px] text-zinc-600 font-semibold">
+          Tap to view standings →
+        </div>
+      )}
     </motion.div>
   );
 }
@@ -245,7 +271,17 @@ function MiniLeaderboard({
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function LeaguesPage() {
+  return (
+    <Suspense>
+      <LeaguesPageInner />
+    </Suspense>
+  );
+}
+
+function LeaguesPageInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const isSelectMode = searchParams.get("select") === "1";
   const [user, setUser] = useState<any>(null);
   const [leagues, setLeagues] = useState<League[]>([]);
   const [loading, setLoading] = useState(true);
@@ -264,6 +300,18 @@ export default function LeaguesPage() {
   const [showJoin, setShowJoin] = useState(false);
   const [joinCode, setJoinCode] = useState("");
   const [joining, setJoining] = useState(false);
+
+  // Active league
+  const activeLeagueCookie = Cookies.get("activeLeague");
+  const activeLeagueId = activeLeagueCookie ? JSON.parse(activeLeagueCookie).id : null;
+
+  const selectAndPlay = (league: League | null) => {
+    const payload = league
+      ? { id: league.id, name: league.name, matchday_mode: league.matchday_mode ?? "standard" }
+      : { id: null, name: "Global", matchday_mode: "standard" };
+    Cookies.set("activeLeague", JSON.stringify(payload));
+    router.push("/");
+  };
 
   useEffect(() => {
     const stored = Cookies.get("user");
@@ -360,8 +408,45 @@ export default function LeaguesPage() {
   return (
     <PageWrapper>
       <main className="min-h-screen text-white p-3 sm:p-6">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-7xl mx-auto">
           <Header user={user} />
+
+          {/* Active Mode Banner — always shown */}
+          {activeLeagueCookie && (() => {
+            const al = JSON.parse(activeLeagueCookie);
+            const isGlobal = !al.id;
+            return (
+              <div className={`relative overflow-hidden rounded-2xl border backdrop-blur-md px-5 py-4 mb-6 flex items-center justify-between gap-4
+                ${isGlobal
+                  ? "border-emerald-500/20 bg-emerald-500/[0.04]"
+                  : "border-yellow-500/20 bg-yellow-500/[0.04]"
+                }`}>
+                <div className="flex items-center gap-3 min-w-0">
+                  <span className="text-lg shrink-0">{isGlobal ? "🌍" : "⚡"}</span>
+                  <div className="min-w-0">
+                    <div className="text-[10px] uppercase tracking-[0.25em] text-zinc-500 font-black">Currently playing in</div>
+                    <div className="font-black text-white truncate">{al.name}</div>
+                    <div className="text-[11px] text-zinc-500 mt-0.5">
+                      {al.matchday_mode === "gameday_window" ? "⏰ Gameday Window mode (9:30 PM – 9:30 AM IST)" : "📅 Standard calendar-date mode"}
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  {!isSelectMode && (
+                    <button onClick={() => router.push("/")} className="px-3 py-1.5 rounded-xl bg-zinc-800 border border-white/[0.08] text-xs font-black text-zinc-300 hover:bg-zinc-700 transition-all whitespace-nowrap">
+                      ← Predictor
+                    </button>
+                  )}
+                  <button
+                    onClick={() => router.push("/leagues?select=1")}
+                    className="px-3 py-1.5 rounded-xl bg-zinc-700 border border-white/[0.08] text-xs font-black text-zinc-300 hover:bg-zinc-600 transition-all whitespace-nowrap"
+                  >
+                    {isSelectMode ? "← Back" : "Switch ↻"}
+                  </button>
+                </div>
+              </div>
+            );
+          })()}
 
           {/* HERO */}
           <div className="mb-10">
@@ -371,13 +456,48 @@ export default function LeaguesPage() {
                 FIFA World Cup 2026
               </span>
             </div>
-            <h1 className="text-4xl sm:text-6xl font-black tracking-tight leading-none mb-4">
-              Mini Leagues
-            </h1>
-            <p className="text-zinc-400 text-lg max-w-xl">
-              Compete with your friends in a private group. Create a league, share the code — only your crew sees the standings.
-            </p>
+            {isSelectMode ? (
+              <>
+                <h1 className="text-4xl sm:text-6xl font-black tracking-tight leading-none mb-4">
+                  Choose Your League
+                </h1>
+                <p className="text-zinc-400 text-lg max-w-xl">
+                  Select a league to play in. Your matchday grouping, booster windows, and standings all follow your league's rules.
+                </p>
+              </>
+            ) : (
+              <>
+                <h1 className="text-4xl sm:text-6xl font-black tracking-tight leading-none mb-4">
+                  Mini Leagues
+                </h1>
+                <p className="text-zinc-400 text-lg max-w-xl">
+                  Compete with your friends in a private group. Create a league, share the code — only your crew sees the standings.
+                </p>
+              </>
+            )}
           </div>
+
+          {/* GLOBAL PLAY OPTION (always shown in select mode, or as a quick switch otherwise) */}
+          {isSelectMode && (
+            <div
+              className="relative overflow-hidden rounded-3xl border backdrop-blur-md cursor-pointer mb-6
+                border-emerald-500/25 shadow-[0_0_28px_5px_rgba(34,197,94,0.10),0_0_0_1px_rgba(34,197,94,0.18),inset_0_1px_0_rgba(255,255,255,0.07)]
+                hover:shadow-[0_0_40px_8px_rgba(34,197,94,0.15)] transition-all duration-300"
+              onClick={() => selectAndPlay(null)}
+            >
+              <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-emerald-400/[0.18] to-transparent pointer-events-none" />
+              <div className="px-6 py-5 flex items-center justify-between gap-4">
+                <div>
+                  <div className="text-zinc-500 text-[10px] uppercase tracking-[0.3em] font-black mb-1">No private league</div>
+                  <div className="text-2xl font-black text-white">🌍 Play Globally</div>
+                  <div className="text-zinc-400 text-sm mt-1">Standard calendar-date matchdays · you can still join private leagues anytime</div>
+                </div>
+                <div className="shrink-0 px-5 py-2.5 rounded-2xl bg-emerald-500 text-black font-black text-sm hover:bg-emerald-400 transition-all">
+                  Play →
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* ACTION BUTTONS */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-10">
@@ -551,13 +671,22 @@ export default function LeaguesPage() {
             <div className="rounded-3xl border border-white/[0.07] backdrop-blur-md p-14 text-center
               shadow-[0_0_0_1px_rgba(255,255,255,0.04),inset_0_1px_0_rgba(255,255,255,0.05)]">
               <div className="text-5xl mb-5">🏟️</div>
-              <div className="text-2xl font-black mb-2">No leagues yet</div>
-              <div className="text-zinc-500">Create one or join with a friend's code to get started.</div>
+              <div className="text-2xl font-black mb-2">No private leagues yet</div>
+              <div className="text-zinc-500">
+                {isSelectMode
+                  ? "Create or join a league above — or tap \"Play Globally\" to jump straight in. You can always join more leagues later."
+                  : "Create one or join with a friend's code. You can be in multiple leagues at the same time."}
+              </div>
             </div>
           ) : (
             <div>
-              <div className="text-zinc-500 uppercase tracking-[0.3em] text-xs font-black mb-4">
-                Your Leagues · {leagues.length}
+              <div className="flex items-end justify-between mb-4">
+                <div className="text-zinc-500 uppercase tracking-[0.3em] text-xs font-black">
+                  Your Leagues · {leagues.length}
+                </div>
+                {!isSelectMode && (
+                  <div className="text-[11px] text-zinc-600">You can be in multiple leagues simultaneously</div>
+                )}
               </div>
               <div className="space-y-3">
                 {leagues.map((league) => (
@@ -567,10 +696,15 @@ export default function LeaguesPage() {
                     isOwner={league.created_by === user?.id}
                     currentUserId={user?.id}
                     selected={selectedLeague?.id === league.id}
+                    isSelectMode={isSelectMode}
+                    isActive={activeLeagueId === league.id}
+                    onSelectPlay={() => selectAndPlay(league)}
                     onSelect={() =>
-                      selectedLeague?.id === league.id
-                        ? setSelectedLeague(null)
-                        : fetchLeagueBoard(league)
+                      isSelectMode
+                        ? selectAndPlay(league)
+                        : selectedLeague?.id === league.id
+                          ? setSelectedLeague(null)
+                          : fetchLeagueBoard(league)
                     }
                     onLeave={() => handleLeave(league)}
                   />

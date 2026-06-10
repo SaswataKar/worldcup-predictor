@@ -352,12 +352,14 @@ export default function LoginPage() {
           user
         )
       );
+      // Clear any stale active league so user picks fresh each session
+      Cookies.remove("activeLeague");
 
       toast.success(
         `Welcome back ${user.name} ⚽`
       );
 
-      router.push("/");
+      router.push("/leagues?select=1");
     };
 
   return (

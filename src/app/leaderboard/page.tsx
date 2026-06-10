@@ -96,7 +96,7 @@ export default function LeaderboardPage() {
   return (
     <PageWrapper>
       <main className="min-h-screen text-white p-3 sm:p-6">
-        <div className="max-w-6xl mx-auto">
+        <div className="max-w-7xl mx-auto">
           <Header user={user} />
 
           {/* HERO */}
@@ -118,7 +118,7 @@ export default function LeaderboardPage() {
 
             <div className="flex items-center gap-4 mt-4 flex-wrap">
               <p className="text-zinc-400 text-lg max-w-2xl">
-                Climb the rankings, dominate matchdays and become the ultimate predictor.
+                Climb the rankings, dominate matchdays and become the ultimate predictor. All players — Global and private leagues — compete here.
               </p>
               {lastUpdated && (
                 <span className="text-zinc-600 text-xs">

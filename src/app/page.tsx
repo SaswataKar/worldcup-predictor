@@ -59,11 +59,19 @@ export default function Home() {
           return;
         }
 
+        // Require league selection before entering predictor
+        const activeLeagueCookie = Cookies.get("activeLeague");
+        if (!activeLeagueCookie) {
+          router.push("/leagues?select=1");
+          return;
+        }
+        const activeLeague = JSON.parse(activeLeagueCookie);
+        setUseGamedayWindow(activeLeague.matchday_mode === "gameday_window");
+
         setUser(existingUser);
         await fetchMatches();
         await fetchPredictions(existingUser.id);
         await fetchDailyBoosters(existingUser.id);
-        await fetchLeagueMode(existingUser.id);
       } catch {
         Cookies.remove("user");
         router.push("/login");
@@ -156,18 +164,6 @@ export default function Home() {
 
     setUsedBoosterTypes(used);
     setActiveDayBoosters(byDay);
-  };
-
-  // FETCH LEAGUE MODE — if user belongs to any gameday_window league, use that grouping
-  const fetchLeagueMode = async (userId: number) => {
-    try {
-      const res = await fetch(`/api/leagues/mine?userId=${userId}`);
-      const data = await res.json();
-      if (data.success) {
-        const hasWindow = (data.leagues ?? []).some((l: any) => l.matchday_mode === "gameday_window");
-        setUseGamedayWindow(hasWindow);
-      }
-    } catch {}
   };
 
   // ACTIVATE BOOSTER — one per day; swaps if a different booster is already set

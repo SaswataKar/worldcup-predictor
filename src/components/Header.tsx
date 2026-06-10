@@ -3,11 +3,20 @@
 import Cookies from "js-cookie";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
 import ISTClock from "./ISTClock";
 
 export default function Header({ user }: { user?: any }) {
   const pathname = usePathname();
   const router = useRouter();
+  const [activeLeagueName, setActiveLeagueName] = useState<string | null>(null);
+
+  useEffect(() => {
+    const raw = Cookies.get("activeLeague");
+    if (raw) {
+      try { setActiveLeagueName(JSON.parse(raw).name ?? null); } catch {}
+    }
+  }, [pathname]);
 
   const tabs = [
     { label: "Predictor", href: "/" },
@@ -37,16 +46,31 @@ export default function Header({ user }: { user?: any }) {
             <ISTClock />
           </div>
 
-          {/* RIGHT: logout only */}
-          <button
-            onClick={() => {
-              Cookies.remove("user");
-              router.push("/login");
-            }}
-            className="shrink-0 bg-red-500 hover:bg-red-600 px-4 py-2 rounded-xl text-sm font-bold transition-all duration-200 hover:scale-105 whitespace-nowrap"
-          >
-            Logout
-          </button>
+          {/* RIGHT: active league chip + logout */}
+          <div className="flex items-center gap-2 shrink-0">
+            {activeLeagueName && (
+              <Link
+                href="/leagues?select=1"
+                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-800/80 border border-white/[0.08]
+                  text-xs font-black text-zinc-300 hover:bg-zinc-700 transition-all whitespace-nowrap"
+                title="Switch league"
+              >
+                <span className="text-zinc-500 text-[10px]">⚡</span>
+                {activeLeagueName}
+                <span className="text-zinc-600 text-[10px]">↻</span>
+              </Link>
+            )}
+            <button
+              onClick={() => {
+                Cookies.remove("user");
+                Cookies.remove("activeLeague");
+                router.push("/login");
+              }}
+              className="shrink-0 bg-red-500 hover:bg-red-600 px-4 py-2 rounded-xl text-sm font-bold transition-all duration-200 hover:scale-105 whitespace-nowrap"
+            >
+              Logout
+            </button>
+          </div>
         </div>
 
         {/* ── ROW 2: nav tabs — full width, always visible ── */}

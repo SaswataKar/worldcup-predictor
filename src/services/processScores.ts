@@ -19,17 +19,12 @@ export const processScores = async (matches: any[]) => {
       if (predictionError) { console.error(predictionError); continue; }
       if (!predictions?.length) continue;
 
+      // Compute both possible keys — boosters were stored with whichever key was
+      // active at assignment time, so we accept either to handle mode switches.
       const matchDateStandard = new Date(match.kickoff_time).toISOString().split("T")[0];
       const matchDateWindow = getGamedayKey(match.kickoff_time);
 
       for (const prediction of predictions) {
-        // Determine which matchday key this user's league uses
-        const { data: memberships } = await supabase
-          .from("league_members")
-          .select("leagues(matchday_mode)")
-          .eq("user_id", prediction.user_id);
-        const usesWindow = (memberships ?? []).some((m: any) => m.leagues?.matchday_mode === "gameday_window");
-        const matchDate = usesWindow ? matchDateWindow : matchDateStandard;
         const predictedHome = prediction.predicted_team1_score;
         const predictedAway = prediction.predicted_team2_score;
 
@@ -55,7 +50,8 @@ export const processScores = async (matches: any[]) => {
           .eq("user_id", prediction.user_id);
 
         const dayBoosters = (dayBoostersData || []).filter((b) => {
-          return b.active_date.split("T")[0] === matchDate;
+          const d = b.active_date.split("T")[0];
+          return d === matchDateStandard || d === matchDateWindow;
         });
 
         const boosterTypes = dayBoosters.map((b) => b.booster_type);
