@@ -13,6 +13,7 @@ import HowItWorks from "@/components/HowItWorks";
 import PageWrapper from "@/components/PageWrapper";
 
 import { supabase } from "@/lib/supabase";
+import { toLocalDateKey } from "@/lib/utils";
 import type { Match, Prediction, PredictedScore, User } from "@/types";
 
 const BOOSTER_NAMES: Record<string, string> = {
@@ -272,21 +273,17 @@ export default function Home() {
 
   // ROLLING 3-DAY WINDOW
   const visibleGroupedMatches = useMemo(() => {
-    const toIST = (d: Date) => {
-      const ist = new Date(d.getTime() + 5.5 * 60 * 60 * 1000);
-      return ist.toISOString().split("T")[0];
-    };
     const grouped: Record<string, Match[]> = {};
     matches.forEach((match) => {
       if (!match.kickoff_time) return;
       const kickoff = new Date(match.kickoff_time);
       if (isNaN(kickoff.getTime())) return;
-      const date = toIST(kickoff);
+      const date = toLocalDateKey(kickoff);
       if (!grouped[date]) grouped[date] = [];
       grouped[date].push(match);
     });
 
-    const today = toIST(new Date());
+    const today = toLocalDateKey(new Date());
     const allDays = Object.keys(grouped).sort();
     const futureDays = allDays.filter((d) => d >= today);
     const anchor = futureDays[0] ?? allDays[allDays.length - 1];
@@ -456,11 +453,10 @@ export default function Home() {
           <div className="space-y-12">
             {Object.entries(visibleGroupedMatches).map(([date, dateMatches]) => {
               const dayBoosters = activeDayBoosters[date] || [];
-              const toIST = (d: Date) => new Date(d.getTime() + 5.5 * 60 * 60 * 1000).toISOString().split("T")[0];
-              const isToday = date === toIST(new Date());
+              const isToday = date === toLocalDateKey(new Date());
               const hasTomorrow = (() => {
                 const d = new Date(); d.setDate(d.getDate() + 1);
-                return date === toIST(d);
+                return date === toLocalDateKey(d);
               })();
 
               return (
@@ -482,10 +478,10 @@ export default function Home() {
                       </div>
                       <div>
                         <div className="text-[10px] uppercase tracking-[0.2em] text-zinc-500 font-black leading-none mb-0.5">
-                          {isToday ? "Today" : hasTomorrow ? "Tomorrow" : new Date(date).toLocaleDateString("en-IN", { weekday: "long" })}
+                          {isToday ? "Today" : hasTomorrow ? "Tomorrow" : new Date(date + "T12:00:00").toLocaleDateString(undefined, { weekday: "long" })}
                         </div>
                         <div className="text-base font-black leading-none">
-                          {new Date(date).toLocaleDateString("en-IN", { day: "numeric", month: "long" })}
+                          {new Date(date + "T12:00:00").toLocaleDateString(undefined, { day: "numeric", month: "long" })}
                         </div>
                       </div>
                     </div>

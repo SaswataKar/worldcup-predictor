@@ -49,7 +49,7 @@ const BOOSTERS = [
 ];
 
 const formatDay = (dateStr: string) =>
-  new Date(dateStr).toLocaleDateString("en-IN", {
+  new Date(dateStr + "T12:00:00").toLocaleDateString(undefined, {
     weekday: "long",
     day: "numeric",
     month: "short",

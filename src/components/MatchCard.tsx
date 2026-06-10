@@ -3,6 +3,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import PredictionControls from "./PredictionControls";
 import type { Match, Prediction, PredictedScore, MatchEvent } from "@/types";
+import { toLocalDateKey, userTZ, tzLabel } from "@/lib/utils";
 
 type MatchCardProps = {
   match: Match;
@@ -196,7 +197,7 @@ export default function MatchCard({
     isSuspended;
 
   const matchDate = match.kickoff_time
-    ? new Date(match.kickoff_time).toISOString().split("T")[0]
+    ? toLocalDateKey(new Date(match.kickoff_time))
     : null;
 
   const activeBoosters = matchDate ? (activeDayBoosters[matchDate] || []) : [];
@@ -214,10 +215,10 @@ export default function MatchCard({
     return `${hours}h ${minutes}m`;
   };
 
-  const getISTKickoff = () => {
+  const getLocalKickoff = () => {
     if (!match.kickoff_time) return "TBD";
-    return new Date(match.kickoff_time).toLocaleString("en-IN", {
-      timeZone: "Asia/Kolkata",
+    return new Date(match.kickoff_time).toLocaleString(undefined, {
+      timeZone: userTZ(),
       day: "numeric",
       month: "short",
       hour: "numeric",
@@ -228,8 +229,8 @@ export default function MatchCard({
 
   const getCloseTime = () => {
     if (!match.kickoff_time) return "TBD";
-    return new Date(kickoffTime!.getTime() - 1 * 60 * 1000).toLocaleString("en-IN", {
-      timeZone: "Asia/Kolkata",
+    return new Date(kickoffTime!.getTime() - 1 * 60 * 1000).toLocaleString(undefined, {
+      timeZone: userTZ(),
       day: "numeric",
       month: "short",
       hour: "numeric",
@@ -346,8 +347,8 @@ export default function MatchCard({
             </span>
 
             <div className="text-zinc-400 hidden sm:flex flex-col items-end leading-tight">
-              <span className="text-[11px] text-zinc-600 uppercase tracking-widest">Match-Kickoff</span>
-              <span>{getISTKickoff()}</span>
+              <span className="text-[11px] text-zinc-600 uppercase tracking-widest">Kickoff ({tzLabel()})</span>
+              <span>{getLocalKickoff()}</span>
             </div>
 
             <div className="text-zinc-700 hidden sm:block">·</div>
@@ -431,8 +432,8 @@ export default function MatchCard({
         {/* MOBILE: kickoff + close time row */}
         <div className="flex items-center gap-4 mt-3 sm:hidden text-xs text-zinc-500 font-semibold">
           <div className="flex flex-col leading-tight">
-            <span className="text-[10px] text-zinc-700 uppercase tracking-widest">Match-Kickoff</span>
-            <span>{getISTKickoff()}</span>
+            <span className="text-[10px] text-zinc-700 uppercase tracking-widest">Kickoff ({tzLabel()})</span>
+            <span>{getLocalKickoff()}</span>
           </div>
           <div className="text-zinc-700">·</div>
           <div className="flex flex-col leading-tight">
@@ -458,7 +459,7 @@ export default function MatchCard({
           <div className="grid grid-cols-2 sm:flex sm:items-stretch gap-2 sm:gap-3 mb-5">
             <div className="border border-white/[0.07] rounded-2xl px-3 sm:px-5 py-3 sm:py-4">
               <div className="text-[10px] uppercase tracking-widest text-zinc-500 mb-1">Kickoff</div>
-              <div className="text-xs sm:text-sm font-black">{getISTKickoff()}</div>
+              <div className="text-xs sm:text-sm font-black">{getLocalKickoff()}</div>
             </div>
             <div className="border border-white/[0.07] rounded-2xl px-3 sm:px-5 py-3 sm:py-4">
               <div className="text-[10px] uppercase tracking-widest text-zinc-500 mb-1">Pred. Closes</div>

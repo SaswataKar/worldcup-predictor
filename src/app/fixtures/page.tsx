@@ -7,6 +7,7 @@ import Cookies from "js-cookie";
 import Header from "@/components/Header";
 import PageWrapper from "@/components/PageWrapper";
 import type { Match } from "@/types";
+import { toLocalDateKey, userTZ, tzLabel } from "@/lib/utils";
 
 export default function FixturesPage() {
   const router = useRouter();
@@ -48,7 +49,7 @@ export default function FixturesPage() {
         grouped["TBD"] = [...(grouped["TBD"] || []), match];
         return;
       }
-      const date = kickoff.toISOString().split("T")[0];
+      const date = toLocalDateKey(kickoff);
       grouped[date] = [...(grouped[date] || []), match];
     });
     return grouped;
@@ -56,19 +57,19 @@ export default function FixturesPage() {
 
   const formatDate = (dateString: string) => {
     if (dateString === "TBD") return "🕘 TBD Fixtures";
-    return new Date(dateString).toLocaleDateString("en-IN", {
+    return new Date(dateString + "T12:00:00").toLocaleDateString(undefined, {
       weekday: "long",
       day: "numeric",
       month: "long",
     });
   };
 
-  const getISTKickoff = (kickoffTime: string | null) => {
+  const getLocalKickoff = (kickoffTime: string | null) => {
     if (!kickoffTime) return "TBD";
     const d = new Date(kickoffTime);
     if (isNaN(d.getTime())) return "TBD";
-    return d.toLocaleString("en-IN", {
-      timeZone: "Asia/Kolkata",
+    return d.toLocaleString(undefined, {
+      timeZone: userTZ(),
       day: "numeric",
       month: "short",
       hour: "numeric",
@@ -192,9 +193,9 @@ export default function FixturesPage() {
 
                             <div className="text-zinc-400 hidden sm:flex flex-col items-end leading-tight">
                               <span className="text-[11px] text-zinc-600 uppercase tracking-widest">
-                                Kickoff (IST)
+                                Kickoff ({tzLabel()})
                               </span>
-                              <span>{getISTKickoff(match.kickoff_time)}</span>
+                              <span>{getLocalKickoff(match.kickoff_time)}</span>
                             </div>
 
                             {match.matchday && (
@@ -218,9 +219,9 @@ export default function FixturesPage() {
                         <div className="flex items-center gap-4 mt-3 sm:hidden text-xs text-zinc-500 font-semibold">
                           <div className="flex flex-col leading-tight">
                             <span className="text-[10px] text-zinc-700 uppercase tracking-widest">
-                              Kickoff (IST)
+                              Kickoff ({tzLabel()})
                             </span>
-                            <span>{getISTKickoff(match.kickoff_time)}</span>
+                            <span>{getLocalKickoff(match.kickoff_time)}</span>
                           </div>
                           {match.matchday && (
                             <>
