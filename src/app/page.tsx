@@ -13,6 +13,7 @@ import HowItWorks from "@/components/HowItWorks";
 import PageWrapper from "@/components/PageWrapper";
 
 import { supabase } from "@/lib/supabase";
+import { getGamedayKey } from "@/lib/utils";
 import type { Match, Prediction, PredictedScore, User } from "@/types";
 
 const BOOSTER_NAMES: Record<string, string> = {
@@ -31,6 +32,7 @@ export default function Home() {
   const [expandedMatches, setExpandedMatches] = useState<Record<number, boolean>>({});
   const [usedBoosterTypes, setUsedBoosterTypes] = useState<string[]>([]);
   const [activeDayBoosters, setActiveDayBoosters] = useState<Record<string, string[]>>({});
+  const [useGamedayWindow, setUseGamedayWindow] = useState(false);
 
   const cancelledMatchIds = useRef<Set<number>>(new Set());
 
@@ -61,6 +63,7 @@ export default function Home() {
         await fetchMatches();
         await fetchPredictions(existingUser.id);
         await fetchDailyBoosters(existingUser.id);
+        await fetchLeagueMode(existingUser.id);
       } catch {
         Cookies.remove("user");
         router.push("/login");
@@ -153,6 +156,18 @@ export default function Home() {
 
     setUsedBoosterTypes(used);
     setActiveDayBoosters(byDay);
+  };
+
+  // FETCH LEAGUE MODE — if user belongs to any gameday_window league, use that grouping
+  const fetchLeagueMode = async (userId: number) => {
+    try {
+      const res = await fetch(`/api/leagues/mine?userId=${userId}`);
+      const data = await res.json();
+      if (data.success) {
+        const hasWindow = (data.leagues ?? []).some((l: any) => l.matchday_mode === "gameday_window");
+        setUseGamedayWindow(hasWindow);
+      }
+    } catch {}
   };
 
   // ACTIVATE BOOSTER — one per day; swaps if a different booster is already set
@@ -256,6 +271,12 @@ export default function Home() {
     return now >= openTime && now < closeTime;
   };
 
+  const matchdayKey = (kickoffTime: string) =>
+    useGamedayWindow ? getGamedayKey(kickoffTime) : new Date(kickoffTime).toISOString().split("T")[0];
+
+  const todayKey = () =>
+    useGamedayWindow ? getGamedayKey(new Date().toISOString()) : new Date().toISOString().split("T")[0];
+
   // ROLLING 3-DAY WINDOW
   const visibleGroupedMatches = useMemo(() => {
     const grouped: Record<string, Match[]> = {};
@@ -263,12 +284,12 @@ export default function Home() {
       if (!match.kickoff_time) return;
       const kickoff = new Date(match.kickoff_time);
       if (isNaN(kickoff.getTime())) return;
-      const date = kickoff.toISOString().split("T")[0];
+      const date = matchdayKey(match.kickoff_time);
       if (!grouped[date]) grouped[date] = [];
       grouped[date].push(match);
     });
 
-    const today = new Date().toISOString().split("T")[0];
+    const today = todayKey();
     const allDays = Object.keys(grouped).sort();
     const futureDays = allDays.filter((d) => d >= today);
     const anchor = futureDays[0] ?? allDays[allDays.length - 1];
@@ -438,10 +459,10 @@ export default function Home() {
           <div className="space-y-12">
             {Object.entries(visibleGroupedMatches).map(([date, dateMatches]) => {
               const dayBoosters = activeDayBoosters[date] || [];
-              const isToday = date === new Date().toISOString().split("T")[0];
+              const isToday = date === todayKey();
               const hasTomorrow = (() => {
                 const d = new Date(); d.setDate(d.getDate() + 1);
-                return date === d.toISOString().split("T")[0];
+                return date === (useGamedayWindow ? getGamedayKey(d.toISOString()) : d.toISOString().split("T")[0]);
               })();
 
               return (

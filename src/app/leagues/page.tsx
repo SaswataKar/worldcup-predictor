@@ -15,6 +15,7 @@ type League = {
   created_by: number;
   created_at: string;
   member_count?: number;
+  matchday_mode?: string;
 };
 
 type LeaderEntry = {
@@ -83,6 +84,11 @@ function LeagueCard({
             {isOwner && (
               <span className="px-2 py-0.5 rounded-full bg-yellow-500/15 border border-yellow-500/25 text-yellow-400 text-[10px] font-black">
                 Owner
+              </span>
+            )}
+            {league.matchday_mode === "gameday_window" && (
+              <span className="px-2 py-0.5 rounded-full bg-sky-500/15 border border-sky-500/25 text-sky-400 text-[10px] font-black">
+                Gameday Window
               </span>
             )}
           </div>
@@ -251,6 +257,7 @@ export default function LeaguesPage() {
   // Create form
   const [showCreate, setShowCreate] = useState(false);
   const [createName, setCreateName] = useState("");
+  const [createMode, setCreateMode] = useState<"standard" | "gameday_window">("standard");
   const [creating, setCreating] = useState(false);
 
   // Join form
@@ -300,7 +307,7 @@ export default function LeaguesPage() {
       const res = await fetch("/api/leagues/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: createName.trim(), userId: user.id }),
+        body: JSON.stringify({ name: createName.trim(), userId: user.id, matchday_mode: createMode }),
       });
       const data = await res.json();
       if (!data.success) { toast.error(data.error); return; }
@@ -422,6 +429,24 @@ export default function LeaguesPage() {
                           text-white placeholder-zinc-600 font-semibold bg-transparent
                           focus:outline-none focus:border-yellow-400/40 transition-all"
                       />
+                      {/* Matchday mode toggle */}
+                      <div className="flex items-center justify-between px-1">
+                        <div>
+                          <div className="text-xs font-black text-zinc-300">Gameday Window Mode</div>
+                          <div className="text-[11px] text-zinc-600 mt-0.5">9:30 PM – 9:30 AM IST windows (Terrace Cup style)</div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setCreateMode((m) => m === "standard" ? "gameday_window" : "standard")}
+                          className={`relative w-11 h-6 rounded-full transition-colors duration-200 ${
+                            createMode === "gameday_window" ? "bg-sky-500" : "bg-zinc-700"
+                          }`}
+                        >
+                          <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200 ${
+                            createMode === "gameday_window" ? "translate-x-5" : "translate-x-0.5"
+                          }`} />
+                        </button>
+                      </div>
                       <button
                         onClick={handleCreate}
                         disabled={creating}
