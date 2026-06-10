@@ -409,7 +409,7 @@ function LeaguesPageInner() {
     <PageWrapper>
       <main className="min-h-screen text-white p-3 sm:p-6">
         <div className="max-w-7xl mx-auto">
-          <Header user={user} />
+          <Header user={user} hideNav={isSelectMode} />
 
           {/* Active Mode Banner — always shown */}
           {activeLeagueCookie && (() => {
@@ -558,12 +558,12 @@ function LeaguesPageInner() {
                         <button
                           type="button"
                           onClick={() => setCreateMode((m) => m === "standard" ? "gameday_window" : "standard")}
-                          className={`relative w-11 h-6 rounded-full transition-colors duration-200 ${
+                          className={`relative w-12 h-6 rounded-full transition-colors duration-200 flex-shrink-0 ${
                             createMode === "gameday_window" ? "bg-sky-500" : "bg-zinc-700"
                           }`}
                         >
-                          <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200 ${
-                            createMode === "gameday_window" ? "translate-x-5" : "translate-x-0.5"
+                          <span className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white shadow transition-transform duration-200 ${
+                            createMode === "gameday_window" ? "translate-x-6" : "translate-x-0"
                           }`} />
                         </button>
                       </div>

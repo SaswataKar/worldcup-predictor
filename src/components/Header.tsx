@@ -6,7 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import ISTClock from "./ISTClock";
 
-export default function Header({ user }: { user?: any }) {
+export default function Header({ user, hideNav }: { user?: any; hideNav?: boolean }) {
   const pathname = usePathname();
   const router = useRouter();
   const [activeLeagueName, setActiveLeagueName] = useState<string | null>(null);
@@ -15,6 +15,8 @@ export default function Header({ user }: { user?: any }) {
     const raw = Cookies.get("activeLeague");
     if (raw) {
       try { setActiveLeagueName(JSON.parse(raw).name ?? null); } catch {}
+    } else {
+      setActiveLeagueName(null);
     }
   }, [pathname]);
 
@@ -30,9 +32,9 @@ export default function Header({ user }: { user?: any }) {
     <header className="sticky top-0 z-50 mb-10">
       <div className="backdrop-blur-xl bg-black/60 border border-zinc-800 rounded-2xl shadow-2xl overflow-hidden">
 
-        {/* ── ROW 1: logo + clock | logout ── */}
+        {/* ── ROW 1: logo + clock | league chip + logout ── */}
         <div className="flex items-center justify-between gap-4 px-4 sm:px-6 py-3">
-          {/* LEFT: logo + clock — never shrinks */}
+          {/* LEFT: logo + clock */}
           <div className="flex items-center gap-3 shrink-0">
             <div className="shrink-0">
               <h1 className="text-xl sm:text-2xl font-black tracking-tight whitespace-nowrap flex items-center gap-2">
@@ -46,9 +48,9 @@ export default function Header({ user }: { user?: any }) {
             <ISTClock />
           </div>
 
-          {/* RIGHT: active league chip + logout */}
+          {/* RIGHT: league chip + logout */}
           <div className="flex items-center gap-2 shrink-0">
-            {activeLeagueName && (
+            {!hideNav && activeLeagueName && (
               <Link
                 href="/leagues?select=1"
                 className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-800/80 border border-white/[0.08]
@@ -73,27 +75,29 @@ export default function Header({ user }: { user?: any }) {
           </div>
         </div>
 
-        {/* ── ROW 2: nav tabs — full width, always visible ── */}
-        <div className="border-t border-zinc-800/60 px-2 sm:px-3 py-2">
-          <div className="flex items-center gap-1 overflow-x-auto scrollbar-none">
-            {tabs.map((tab) => {
-              const active = pathname === tab.href;
-              return (
-                <Link
-                  key={tab.href}
-                  href={tab.href}
-                  className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 whitespace-nowrap shrink-0 ${
-                    active
-                      ? "bg-yellow-400 text-black shadow-lg scale-105"
-                      : "text-zinc-300 hover:bg-zinc-800"
-                  }`}
-                >
-                  {tab.label}
-                </Link>
-              );
-            })}
+        {/* ── ROW 2: nav tabs — hidden until league is selected ── */}
+        {!hideNav && (
+          <div className="border-t border-zinc-800/60 px-2 sm:px-3 py-2">
+            <div className="flex items-center gap-1 overflow-x-auto scrollbar-none">
+              {tabs.map((tab) => {
+                const active = pathname === tab.href || (tab.href === "/leagues" && pathname.startsWith("/leagues"));
+                return (
+                  <Link
+                    key={tab.href}
+                    href={tab.href}
+                    className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 whitespace-nowrap shrink-0 ${
+                      active
+                        ? "bg-yellow-400 text-black shadow-lg scale-105"
+                        : "text-zinc-300 hover:bg-zinc-800"
+                    }`}
+                  >
+                    {tab.label}
+                  </Link>
+                );
+              })}
+            </div>
           </div>
-        </div>
+        )}
 
       </div>
     </header>
