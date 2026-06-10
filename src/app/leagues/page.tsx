@@ -457,12 +457,21 @@ function LeaguesPageInner() {
                       ← Predictor
                     </button>
                   )}
-                  <button
-                    onClick={() => router.push("/leagues?select=1")}
-                    className="px-3 py-1.5 rounded-xl bg-zinc-700 border border-white/[0.08] text-xs font-black text-zinc-300 hover:bg-zinc-600 transition-all whitespace-nowrap"
-                  >
-                    {isSelectMode ? "← Back" : "Switch ↻"}
-                  </button>
+                  {isSelectMode ? (
+                    <button
+                      onClick={() => router.push("/")}
+                      className="px-3 py-1.5 rounded-xl bg-zinc-700 border border-white/[0.08] text-xs font-black text-zinc-300 hover:bg-zinc-600 transition-all whitespace-nowrap"
+                    >
+                      ← Back
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => router.push("/leagues?select=1")}
+                      className="px-3 py-1.5 rounded-xl bg-zinc-700 border border-white/[0.08] text-xs font-black text-zinc-300 hover:bg-zinc-600 transition-all whitespace-nowrap"
+                    >
+                      Switch ↻
+                    </button>
+                  )}
                 </div>
               </div>
             );
