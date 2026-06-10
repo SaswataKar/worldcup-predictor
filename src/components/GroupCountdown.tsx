@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import type { Match } from "@/types";
+import { useLocaleCtx } from "@/context/LocaleContext";
+import { getT } from "@/lib/translations";
 
 type Props = { matches: Match[] };
 
@@ -21,6 +23,8 @@ function fmt(ms: number): string {
 
 export default function GroupCountdown({ matches }: Props) {
   const [now, setNow] = useState(() => Date.now());
+  const { locale } = useLocaleCtx();
+  const t = getT(locale);
 
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 1000);
@@ -48,7 +52,7 @@ export default function GroupCountdown({ matches }: Props) {
     return (
       <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-zinc-800/80 border border-zinc-700/60 text-[11px] font-black text-zinc-400 tabular-nums">
         <span className="w-1.5 h-1.5 rounded-full bg-zinc-600 shrink-0" />
-        Opens in {fmt(remaining)}
+        {t("time.opensIn")} {fmt(remaining)}
       </span>
     );
   }
@@ -63,7 +67,7 @@ export default function GroupCountdown({ matches }: Props) {
         : "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
     }`}>
       <span className={`w-1.5 h-1.5 rounded-full shrink-0 animate-pulse ${urgent ? "bg-red-400" : "bg-emerald-400"}`} />
-      {urgent ? "Closes in " : "Predict · "}{fmt(remaining)}
+      {urgent ? `${t("time.closesIn")} ` : `${t("time.predict")} · `}{fmt(remaining)}
     </span>
   );
 }

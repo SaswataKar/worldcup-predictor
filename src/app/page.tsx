@@ -16,6 +16,7 @@ import PageWrapper from "@/components/PageWrapper";
 import { supabase } from "@/lib/supabase";
 import { useLocaleCtx } from "@/context/LocaleContext";
 import { groupMatches, buildGroupLabels, dateFromKey } from "@/lib/matchGroups";
+import { getT } from "@/lib/translations";
 import type { Match, Prediction, PredictedScore, User } from "@/types";
 
 const BOOSTER_NAMES: Record<string, string> = {
@@ -26,6 +27,7 @@ const BOOSTER_NAMES: Record<string, string> = {
 
 export default function Home() {
   const { locale } = useLocaleCtx();
+  const t = getT(locale);
   const router = useRouter();
 
   const [user, setUser] = useState<User | null>(null);
@@ -442,7 +444,7 @@ export default function Home() {
                 {tbdMatches.map((match) => (
                   <div key={match.id} className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6">
                     <div className="text-2xl font-black">{match.team1} vs {match.team2}</div>
-                    <div className="text-zinc-500 mt-2">Kickoff time to be announced</div>
+                    <div className="text-zinc-500 mt-2">{t("match.tbdAnnounced")}</div>
                   </div>
                 ))}
               </div>
@@ -473,7 +475,7 @@ export default function Home() {
                       <div>
                         {(isToday || isTomorrow) && (
                           <div className="text-[10px] uppercase tracking-[0.2em] font-black leading-none mb-0.5 text-yellow-400">
-                            {isToday ? "Today" : "Tomorrow"}
+                            {isToday ? t("time.today") : t("time.tomorrow")}
                           </div>
                         )}
                         <div className={`text-base font-black leading-none ${isToday ? "text-yellow-300" : "text-white"}`}>
@@ -484,7 +486,7 @@ export default function Home() {
 
                     {/* Match count */}
                     <div className="bg-zinc-900 border border-zinc-700/60 rounded-full px-3 py-1 text-xs font-black text-zinc-400">
-                      {dateMatches.length} {dateMatches.length === 1 ? "match" : "matches"}
+                      {dateMatches.length} {dateMatches.length === 1 ? t("match.match") : t("match.matches")}
                     </div>
 
                     {/* Live prediction countdown */}

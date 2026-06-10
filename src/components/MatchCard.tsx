@@ -5,6 +5,7 @@ import PredictionControls from "./PredictionControls";
 import type { Match, Prediction, PredictedScore, MatchEvent } from "@/types";
 import { toLocalDateKey, userTZ, tzLabel } from "@/lib/utils";
 import { useLocaleCtx } from "@/context/LocaleContext";
+import { getT } from "@/lib/translations";
 
 type MatchCardProps = {
   match: Match;
@@ -89,7 +90,7 @@ function minuteLabel(event: MatchEvent) {
   return `${event.minute}${extra}'`;
 }
 
-function EventTimeline({ match }: { match: Match }) {
+function EventTimeline({ match, eventsLabel }: { match: Match; eventsLabel: string }) {
   // Merge all events and sort by minute
   const allEvents: MatchEvent[] = [
     ...(match.goals ?? []),
@@ -102,7 +103,7 @@ function EventTimeline({ match }: { match: Match }) {
   return (
     <div className="mt-8 pt-6 border-t border-zinc-800/60">
       <div className="text-[10px] uppercase tracking-[0.3em] text-zinc-500 font-black mb-4">
-        Match Events
+        {eventsLabel}
       </div>
       <div className="space-y-2">
         {allEvents.map((event, i) => {
@@ -174,6 +175,7 @@ export default function MatchCard({
   activeDayBoosters,
 }: MatchCardProps) {
   const { locale } = useLocaleCtx();
+  const t = getT(locale);
   const expanded = expandedMatches[match.id];
   const prediction = predictions[match.id];
 
@@ -205,20 +207,20 @@ export default function MatchCard({
   const activeBoosters = matchDate ? (activeDayBoosters[matchDate] || []) : [];
 
   const getCountdown = () => {
-    if (!match.kickoff_time) return "TBD";
-    if (isPostponed) return "Postponed";
-    if (isSuspended) return "Suspended";
-    if (isFinished) return "Full Time";
-    if (isLive) return match.status === "PAUSED" ? "Half-time" : "Live";
+    if (!match.kickoff_time) return t("match.tbd");
+    if (isPostponed) return t("status.postponed");
+    if (isSuspended) return t("status.suspended");
+    if (isFinished) return t("status.ft");
+    if (isLive) return match.status === "PAUSED" ? t("status.halftime") : t("status.live");
     const diff = kickoffTime!.getTime() - now.getTime();
-    if (diff <= 0) return "Closed";
+    if (diff <= 0) return t("status.closed");
     const hours = Math.floor(diff / (1000 * 60 * 60));
     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
     return `${hours}h ${minutes}m`;
   };
 
   const getLocalKickoff = () => {
-    if (!match.kickoff_time) return "TBD";
+    if (!match.kickoff_time) return t("match.tbd");
     return new Date(match.kickoff_time).toLocaleString(locale, {
       timeZone: userTZ(),
       day: "numeric",
@@ -230,7 +232,7 @@ export default function MatchCard({
   };
 
   const getCloseTime = () => {
-    if (!match.kickoff_time) return "TBD";
+    if (!match.kickoff_time) return t("match.tbd");
     return new Date(kickoffTime!.getTime() - 1 * 60 * 1000).toLocaleString(locale, {
       timeZone: userTZ(),
       day: "numeric",
@@ -242,18 +244,18 @@ export default function MatchCard({
   };
 
   const statusLabel = isLive
-    ? "Live"
+    ? t("status.live")
     : isFinished
-    ? "FT"
+    ? t("status.ft")
     : isPostponed
-    ? "Postponed"
+    ? t("status.postponed")
     : isSuspended
-    ? "Suspended"
+    ? t("status.suspended")
     : hasStarted
-    ? "Locked"
+    ? t("status.locked")
     : isOpen
-    ? "Open"
-    : "Locked";
+    ? t("status.open")
+    : t("status.locked");
 
   const statusPillClass = isLive
     ? "border-red-500/40 bg-red-500/10 text-red-400"
@@ -349,14 +351,14 @@ export default function MatchCard({
             </span>
 
             <div className="text-zinc-400 hidden sm:flex flex-col items-end leading-tight">
-              <span className="text-[11px] text-zinc-600 uppercase tracking-widest">Kickoff ({tzLabel()})</span>
+              <span className="text-[11px] text-zinc-600 uppercase tracking-widest">{t("match.kickoff")} ({tzLabel()})</span>
               <span>{getLocalKickoff()}</span>
             </div>
 
             <div className="text-zinc-700 hidden sm:block">·</div>
 
             <div className="text-zinc-400 hidden sm:flex flex-col items-end leading-tight">
-              <span className="text-[11px] text-zinc-600 uppercase tracking-widest">Prediction-Closes</span>
+              <span className="text-[11px] text-zinc-600 uppercase tracking-widest">{t("match.predCloses")}</span>
               <span className={locked ? "text-red-400" : "text-zinc-400"}>{getCloseTime()}</span>
             </div>
 
@@ -391,7 +393,7 @@ export default function MatchCard({
                 <div className="text-zinc-700">·</div>
                 <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-red-400">
                   <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse inline-block" />
-                  Live
+                  {t("status.live")}
                 </span>
               </>
             )}
@@ -434,12 +436,12 @@ export default function MatchCard({
         {/* MOBILE: kickoff + close time row */}
         <div className="flex items-center gap-4 mt-3 sm:hidden text-xs text-zinc-500 font-semibold">
           <div className="flex flex-col leading-tight">
-            <span className="text-[10px] text-zinc-700 uppercase tracking-widest">Kickoff ({tzLabel()})</span>
+            <span className="text-[10px] text-zinc-700 uppercase tracking-widest">{t("match.kickoff")} ({tzLabel()})</span>
             <span>{getLocalKickoff()}</span>
           </div>
           <div className="text-zinc-700">·</div>
           <div className="flex flex-col leading-tight">
-            <span className="text-[10px] text-zinc-700 uppercase tracking-widest">Prediction-Closes</span>
+            <span className="text-[10px] text-zinc-700 uppercase tracking-widest">{t("match.predClosesShort")}</span>
             <span className={locked ? "text-red-400" : ""}>{getCloseTime()}</span>
           </div>
         </div>
@@ -460,11 +462,11 @@ export default function MatchCard({
           {/* TIMING STRIP */}
           <div className="grid grid-cols-2 sm:flex sm:items-stretch gap-2 sm:gap-3 mb-5">
             <div className="border border-white/[0.07] rounded-2xl px-3 sm:px-5 py-3 sm:py-4">
-              <div className="text-[10px] uppercase tracking-widest text-zinc-500 mb-1">Kickoff</div>
+              <div className="text-[10px] uppercase tracking-widest text-zinc-500 mb-1">{t("match.kickoff")}</div>
               <div className="text-xs sm:text-sm font-black">{getLocalKickoff()}</div>
             </div>
             <div className="border border-white/[0.07] rounded-2xl px-3 sm:px-5 py-3 sm:py-4">
-              <div className="text-[10px] uppercase tracking-widest text-zinc-500 mb-1">Pred. Closes</div>
+              <div className="text-[10px] uppercase tracking-widest text-zinc-500 mb-1">{t("match.predClosesShort")}</div>
               <div className={`text-xs sm:text-sm font-black ${locked ? "text-red-400" : ""}`}>{getCloseTime()}</div>
             </div>
             <div
@@ -484,9 +486,9 @@ export default function MatchCard({
               <span className="w-2.5 h-2.5 rounded-full bg-red-400 animate-pulse shrink-0" />
               <div>
                 <div className="text-red-300 font-black text-sm">
-                  {match.status === "PAUSED" ? "Half-time break" : "Match in progress"}
+                  {match.status === "PAUSED" ? t("match.halftimeBreak") : t("match.inProgress")}
                 </div>
-                <div className="text-red-400/70 text-xs mt-0.5">Your prediction is locked in — wait for the final whistle.</div>
+                <div className="text-red-400/70 text-xs mt-0.5">{t("match.lockedIn")}</div>
               </div>
             </div>
           )}
@@ -498,8 +500,8 @@ export default function MatchCard({
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 00-8 8h4z"/>
               </svg>
               <div>
-                <div className="text-yellow-300 font-black text-sm">Waiting for scores</div>
-                <div className="text-yellow-400/70 text-xs mt-0.5">Your points will appear as soon as processing completes — leaderboard updates automatically.</div>
+                <div className="text-yellow-300 font-black text-sm">{t("match.waitingScores")}</div>
+                <div className="text-yellow-400/70 text-xs mt-0.5">{t("match.pointsAppear")}</div>
               </div>
             </div>
           )}
@@ -508,8 +510,8 @@ export default function MatchCard({
             <div className="flex items-center gap-3 px-5 py-4 rounded-2xl bg-orange-500/10 border border-orange-500/20 mb-6">
               <span className="text-orange-400 text-lg shrink-0">📅</span>
               <div>
-                <div className="text-orange-300 font-black text-sm">Match postponed</div>
-                <div className="text-orange-400/70 text-xs mt-0.5">This match has been moved to a later date. Predictions are closed.</div>
+                <div className="text-orange-300 font-black text-sm">{t("match.postponedMsg")}</div>
+                <div className="text-orange-400/70 text-xs mt-0.5">{t("match.postponedDetail")}</div>
               </div>
             </div>
           )}
@@ -518,8 +520,8 @@ export default function MatchCard({
             <div className="flex items-center gap-3 px-5 py-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 mb-6">
               <span className="text-amber-400 text-lg shrink-0">⚠️</span>
               <div>
-                <div className="text-amber-300 font-black text-sm">Match suspended</div>
-                <div className="text-amber-400/70 text-xs mt-0.5">This match has been suspended. Check back later for updates.</div>
+                <div className="text-amber-300 font-black text-sm">{t("match.suspendedMsg")}</div>
+                <div className="text-amber-400/70 text-xs mt-0.5">{t("match.suspendedDetail")}</div>
               </div>
             </div>
           )}
@@ -534,7 +536,7 @@ export default function MatchCard({
                 >
                   <span>{BOOSTER_ICONS[b] ?? b}</span>
                   <span className="text-zinc-300">
-                    {b === "2x" ? "Tiki Taka Active" : b === "3x" ? "Hat Trick Active" : "G.O.A.T Active"}
+                    {b === "2x" ? t("booster.tikiActive") : b === "3x" ? t("booster.hatActive") : t("booster.goatActive")}
                   </span>
                 </div>
               ))}
@@ -552,7 +554,7 @@ export default function MatchCard({
           />
 
           {/* MATCH EVENTS TIMELINE — shown for live and finished matches */}
-          {(isLive || isFinished) && <EventTimeline match={match} />}
+          {(isLive || isFinished) && <EventTimeline match={match} eventsLabel={t("match.events")} />}
         </div>
         </motion.div>
       )}

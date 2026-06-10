@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLocaleCtx } from "@/context/LocaleContext";
+import { getT } from "@/lib/translations";
 
 type Props = {
   usedBoosterTypes: string[];
@@ -77,6 +78,7 @@ export default function BoosterInventory({
   onRemove,
 }: Props) {
   const { locale } = useLocaleCtx();
+  const t = getT(locale);
   const [open, setOpen] = useState(false);
   const [loadingKey, setLoadingKey] = useState<string | null>(null);
 
@@ -141,17 +143,17 @@ export default function BoosterInventory({
             <h2 className="text-4xl md:text-5xl font-black">Power Boosters</h2>
             {availableCount > 0 && (
               <span className="px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-black">
-                {availableCount} available
+                {availableCount} {t("booster.available")}
               </span>
             )}
             {pendingBoosters.length > 0 && (
               <span className="px-3 py-1 rounded-full bg-yellow-500/15 border border-yellow-500/30 text-yellow-300 text-xs font-black">
-                {pendingBoosters.length} active
+                {pendingBoosters.length} {t("booster.activated")}
               </span>
             )}
             {consumedBoosters.length > 0 && (
               <span className="px-3 py-1 rounded-full bg-zinc-700/40 border border-zinc-600/40 text-zinc-400 text-xs font-black">
-                {consumedBoosters.length} consumed
+                {consumedBoosters.length} {t("booster.consumed")}
               </span>
             )}
           </div>
@@ -281,7 +283,7 @@ export default function BoosterInventory({
                                 disabled={isLoading}
                                 className="px-5 py-2.5 rounded-2xl text-sm font-black bg-zinc-800/80 text-zinc-300 hover:bg-red-500/20 hover:text-red-300 hover:border-red-500/30 border border-transparent transition-all disabled:opacity-50"
                               >
-                                {isLoading ? "Removing..." : "✕ Cancel"}
+                                {isLoading ? "…" : `✕ ${t("booster.remove")}`}
                               </button>
                             </div>
                           ) : isAssignedFuture ? (
@@ -296,7 +298,7 @@ export default function BoosterInventory({
                                   disabled={isLoading}
                                   className={`w-full px-5 py-2.5 rounded-2xl text-sm font-black border ${booster.border} ${booster.text} bg-white/[0.04] hover:bg-white/[0.08] transition-all disabled:opacity-50`}
                                 >
-                                  {isLoading ? "Moving..." : "Move to Today →"}
+                                  {isLoading ? "…" : `${t("time.today")} →`}
                                 </button>
                               )}
                             </div>
@@ -307,10 +309,10 @@ export default function BoosterInventory({
                               className="w-full px-5 py-2.5 rounded-2xl text-sm font-black bg-zinc-800 text-zinc-300 hover:bg-zinc-700 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                             >
                               {isLoading
-                                ? "Applying..."
+                                ? "…"
                                 : !activeMatchday
-                                ? "No active matchday"
-                                : "Apply to Today →"}
+                                ? t("booster.notAssigned")
+                                : `${t("booster.activate")} →`}
                             </button>
                           )}
                         </div>

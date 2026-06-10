@@ -1,6 +1,8 @@
 "use client";
 
 import type { Match, Prediction, PredictedScore } from "@/types";
+import { useLocaleCtx } from "@/context/LocaleContext";
+import { getT } from "@/lib/translations";
 
 type Props = {
   match: Match;
@@ -30,6 +32,8 @@ export default function PredictionControls({
   submitPrediction,
   cancelPrediction,
 }: Props) {
+  const { locale } = useLocaleCtx();
+  const t = getT(locale);
   const prediction = predictions[match.id];
   const predictionLocked = !!prediction?.match_id;
   const scoreData = predictedScores[match.id] || { home: "", away: "" };
@@ -54,7 +58,7 @@ export default function PredictionControls({
         {/* LABEL */}
         <div className="px-8 pt-7 pb-0">
           <span className="text-[10px] uppercase tracking-[0.35em] text-zinc-600 font-black">
-            Predict the Score
+            {t("pred.yourPred")}
           </span>
         </div>
 
@@ -225,7 +229,7 @@ export default function PredictionControls({
           onClick={() => submitPrediction(match.id)}
           className="w-full py-5 rounded-3xl bg-yellow-400 text-black text-lg font-black hover:bg-yellow-300 active:scale-[0.98] transition-all"
         >
-          Submit Prediction
+          {t("pred.submit")}
         </button>
       )}
 
@@ -235,7 +239,7 @@ export default function PredictionControls({
           onClick={() => cancelPrediction(match.id)}
           className="px-8 py-4 rounded-3xl bg-red-500/10 border border-red-500/25 text-red-400 font-black hover:bg-red-500/20 transition-all"
         >
-          ✕ Cancel Prediction
+          ✕ {t("pred.cancel")}
         </button>
       )}
     </div>
