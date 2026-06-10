@@ -192,17 +192,22 @@ export default function Home() {
       throw error;
     }
 
-    // Update state: return old type to inventory, mark new type as used
+    // Update state: keep used list unchanged (type was already tracked), update day map
     setUsedBoosterTypes((prev) => {
-      const without = existingType ? prev.filter((b) => b !== existingType) : prev;
+      const without = existingDate ? prev.filter((b) => b !== boosterType) : prev;
       return [...without, boosterType];
     });
-    setActiveDayBoosters((prev) => ({
-      ...prev,
-      [date]: [boosterType], // only one per day
-    }));
+    setActiveDayBoosters((prev) => {
+      const next = { ...prev };
+      if (existingDate) {
+        next[existingDate] = (next[existingDate] || []).filter((b) => b !== boosterType);
+        if (!next[existingDate].length) delete next[existingDate];
+      }
+      next[date] = [...(next[date] || []), boosterType];
+      return next;
+    });
 
-    const action = existingType ? "swapped to" : "activated";
+    const action = existingDate ? "moved to today" : "activated";
     toast.success(`${BOOSTER_NAMES[boosterType] ?? boosterType} ${action}!`);
   };
 
