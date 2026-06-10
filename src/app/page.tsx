@@ -14,6 +14,7 @@ import PageWrapper from "@/components/PageWrapper";
 
 import { supabase } from "@/lib/supabase";
 import { toLocalDateKey } from "@/lib/utils";
+import { useLocaleCtx } from "@/context/LocaleContext";
 import type { Match, Prediction, PredictedScore, User } from "@/types";
 
 const BOOSTER_NAMES: Record<string, string> = {
@@ -23,6 +24,7 @@ const BOOSTER_NAMES: Record<string, string> = {
 };
 
 export default function Home() {
+  const locale = useLocaleCtx();
   const router = useRouter();
 
   const [user, setUser] = useState<User | null>(null);
@@ -478,10 +480,10 @@ export default function Home() {
                       </div>
                       <div>
                         <div className="text-[10px] uppercase tracking-[0.2em] text-zinc-500 font-black leading-none mb-0.5">
-                          {isToday ? "Today" : hasTomorrow ? "Tomorrow" : new Date(date + "T12:00:00").toLocaleDateString(undefined, { weekday: "long" })}
+                          {isToday ? "Today" : hasTomorrow ? "Tomorrow" : new Date(date + "T12:00:00").toLocaleDateString(locale, { weekday: "long" })}
                         </div>
                         <div className="text-base font-black leading-none">
-                          {new Date(date + "T12:00:00").toLocaleDateString(undefined, { day: "numeric", month: "long" })}
+                          {new Date(date + "T12:00:00").toLocaleDateString(locale, { day: "numeric", month: "long" })}
                         </div>
                       </div>
                     </div>

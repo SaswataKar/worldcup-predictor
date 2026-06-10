@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import PredictionControls from "./PredictionControls";
 import type { Match, Prediction, PredictedScore, MatchEvent } from "@/types";
 import { toLocalDateKey, userTZ, tzLabel } from "@/lib/utils";
+import { useLocaleCtx } from "@/context/LocaleContext";
 
 type MatchCardProps = {
   match: Match;
@@ -172,6 +173,7 @@ export default function MatchCard({
   cancelPrediction,
   activeDayBoosters,
 }: MatchCardProps) {
+  const locale = useLocaleCtx();
   const expanded = expandedMatches[match.id];
   const prediction = predictions[match.id];
 
@@ -217,7 +219,7 @@ export default function MatchCard({
 
   const getLocalKickoff = () => {
     if (!match.kickoff_time) return "TBD";
-    return new Date(match.kickoff_time).toLocaleString(undefined, {
+    return new Date(match.kickoff_time).toLocaleString(locale, {
       timeZone: userTZ(),
       day: "numeric",
       month: "short",
@@ -229,7 +231,7 @@ export default function MatchCard({
 
   const getCloseTime = () => {
     if (!match.kickoff_time) return "TBD";
-    return new Date(kickoffTime!.getTime() - 1 * 60 * 1000).toLocaleString(undefined, {
+    return new Date(kickoffTime!.getTime() - 1 * 60 * 1000).toLocaleString(locale, {
       timeZone: userTZ(),
       day: "numeric",
       month: "short",

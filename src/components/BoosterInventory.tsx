@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useLocaleCtx } from "@/context/LocaleContext";
 
 type Props = {
   usedBoosterTypes: string[];
@@ -48,8 +49,8 @@ const BOOSTERS = [
   },
 ];
 
-const formatDay = (dateStr: string) =>
-  new Date(dateStr + "T12:00:00").toLocaleDateString(undefined, {
+const formatDay = (dateStr: string, locale: string) =>
+  new Date(dateStr + "T12:00:00").toLocaleDateString(locale, {
     weekday: "long",
     day: "numeric",
     month: "short",
@@ -75,6 +76,7 @@ export default function BoosterInventory({
   onActivate,
   onRemove,
 }: Props) {
+  const locale = useLocaleCtx();
   const [open, setOpen] = useState(false);
   const [loadingKey, setLoadingKey] = useState<string | null>(null);
 
@@ -158,7 +160,7 @@ export default function BoosterInventory({
             {activeMatchday ? (
               <>
                 Active matchday:{" "}
-                <span className="text-white font-bold">{formatDay(activeMatchday)}</span>
+                <span className="text-white font-bold">{formatDay(activeMatchday, locale)}</span>
                 {isMatchdayConsumed && (
                   <span className="ml-2 text-red-400 text-xs font-bold">· Boosters consumed</span>
                 )}
@@ -261,7 +263,7 @@ export default function BoosterInventory({
                                 CONSUMED
                               </span>
                               <span className="text-zinc-500 text-xs font-semibold mt-1">
-                                Used on {formatDay(assignedDay!)}
+                                Used on {formatDay(assignedDay!, locale)}
                               </span>
                             </div>
                           ) : isActiveToday ? (
@@ -271,7 +273,7 @@ export default function BoosterInventory({
                                   ACTIVE
                                 </span>
                                 <span className={`text-xs font-semibold ${booster.text}`}>
-                                  {formatDay(activeMatchday!)}
+                                  {formatDay(activeMatchday!, locale)}
                                 </span>
                               </div>
                               <button
@@ -286,7 +288,7 @@ export default function BoosterInventory({
                             // Assigned to a different future matchday — offer to move here
                             <div className="flex flex-col gap-2">
                               <span className="text-zinc-500 text-xs font-semibold">
-                                Set for {formatDay(assignedDay!)}
+                                Set for {formatDay(assignedDay!, locale)}
                               </span>
                               {activeMatchday && (
                                 <button

@@ -3,13 +3,17 @@
 import Cookies from "js-cookie";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import ISTClock from "./ISTClock";
+import { useLocale, LOCALES } from "@/hooks/useLocale";
 
 export default function Header({ user, hideNav }: { user?: any; hideNav?: boolean }) {
   const pathname = usePathname();
   const router = useRouter();
   const [activeLeagueName, setActiveLeagueName] = useState<string | null>(null);
+  const [langOpen, setLangOpen] = useState(false);
+  const langRef = useRef<HTMLDivElement>(null);
+  const { locale, setLocale } = useLocale();
 
   useEffect(() => {
     const raw = Cookies.get("activeLeague");
@@ -20,6 +24,17 @@ export default function Header({ user, hideNav }: { user?: any; hideNav?: boolea
     }
   }, [pathname]);
 
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (langRef.current && !langRef.current.contains(e.target as Node)) {
+        setLangOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
   const tabs = [
     { label: "Predictor", href: "/" },
     { label: "Fixtures", href: "/fixtures" },
@@ -28,11 +43,13 @@ export default function Header({ user, hideNav }: { user?: any; hideNav?: boolea
     { label: "Leagues", href: "/leagues" },
   ];
 
+  const currentLang = LOCALES.find((l) => l.code === locale) ?? LOCALES[0];
+
   return (
     <header className="sticky top-0 z-50 mb-10">
       <div className="backdrop-blur-xl bg-black/60 border border-zinc-800 rounded-2xl shadow-2xl overflow-hidden">
 
-        {/* ── ROW 1: logo + clock | league chip + logout ── */}
+        {/* ── ROW 1: logo + clock | lang + league chip + logout ── */}
         <div className="flex items-center justify-between gap-4 px-4 sm:px-6 py-3">
           {/* LEFT: logo + clock */}
           <div className="flex items-center gap-3 shrink-0">
@@ -45,11 +62,49 @@ export default function Header({ user, hideNav }: { user?: any; hideNav?: boolea
                 {user?.name ? `Welcome, ${user.name}` : "FIFA World Cup 2026"}
               </p>
             </div>
-            <ISTClock />
+            <ISTClock locale={locale} />
           </div>
 
-          {/* RIGHT: league chip + logout */}
+          {/* RIGHT: lang picker + league chip + logout */}
           <div className="flex items-center gap-2 shrink-0">
+
+            {/* Language picker */}
+            <div ref={langRef} className="relative hidden sm:block">
+              <button
+                onClick={() => setLangOpen((v) => !v)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-800/80 border border-white/[0.08]
+                  text-xs font-black text-zinc-300 hover:bg-zinc-700 transition-all whitespace-nowrap"
+                title="Change language"
+              >
+                <span>{currentLang.flag}</span>
+                <span className="text-zinc-400">{currentLang.label}</span>
+                <span className="text-zinc-600 text-[10px]">{langOpen ? "▲" : "▼"}</span>
+              </button>
+
+              {langOpen && (
+                <div className="absolute right-0 top-full mt-2 w-44 rounded-2xl border border-white/[0.10] bg-zinc-900/95 backdrop-blur-xl shadow-2xl overflow-hidden z-50">
+                  <div className="px-3 py-2 text-[10px] uppercase tracking-[0.2em] text-zinc-600 font-black border-b border-white/[0.06]">
+                    Language
+                  </div>
+                  {LOCALES.map((l) => (
+                    <button
+                      key={l.code}
+                      onClick={() => { setLocale(l.code); setLangOpen(false); }}
+                      className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-sm font-bold transition-colors text-left
+                        ${locale === l.code
+                          ? "bg-yellow-400/10 text-yellow-300"
+                          : "text-zinc-300 hover:bg-white/[0.05]"
+                        }`}
+                    >
+                      <span className="text-base">{l.flag}</span>
+                      <span>{l.label}</span>
+                      {locale === l.code && <span className="ml-auto text-yellow-400 text-xs">✓</span>}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
             {!hideNav && activeLeagueName && (
               <Link
                 href="/leagues?select=1"
@@ -75,7 +130,7 @@ export default function Header({ user, hideNav }: { user?: any; hideNav?: boolea
           </div>
         </div>
 
-        {/* ── ROW 2: nav tabs — hidden until league is selected ── */}
+        {/* ── ROW 2: nav tabs ── */}
         {!hideNav && (
           <div className="border-t border-zinc-800/60 px-2 sm:px-3 py-2">
             <div className="flex items-center gap-1 overflow-x-auto scrollbar-none">

@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { userTZ, tzLabel } from "@/lib/utils";
 
-export default function ISTClock() {
+export default function ISTClock({ locale = "en-US" }: { locale?: string }) {
+  const [mounted, setMounted] = useState(false);
   const [h, setH] = useState("12");
   const [m, setM] = useState("00");
   const [s, setS] = useState("00");
@@ -12,7 +13,7 @@ export default function ISTClock() {
   const [day, setDay] = useState("1");
   const [month, setMonth] = useState("JAN");
   const [blink, setBlink] = useState(true);
-  const [tz, setTz] = useState("IST");
+  const [tz, setTz] = useState("");
 
   useEffect(() => {
     const zone = userTZ();
@@ -28,7 +29,6 @@ export default function ISTClock() {
         second: "2-digit",
         hour12: true,
       });
-      // "12:34:56 AM" format
       const parts = timeStr.split(":");
       setH(parts[0] ?? "12");
       setM(parts[1] ?? "00");
@@ -37,21 +37,20 @@ export default function ISTClock() {
       setAmPm(secAm[1] ?? "AM");
 
       setWeekday(
-        now.toLocaleDateString("en-US", { timeZone: zone, weekday: "short" }).toUpperCase()
+        now.toLocaleDateString(locale, { timeZone: zone, weekday: "short" }).toUpperCase()
       );
-      setDay(
-        now.toLocaleDateString("en-US", { timeZone: zone, day: "numeric" })
-      );
+      setDay(now.toLocaleDateString(locale, { timeZone: zone, day: "numeric" }));
       setMonth(
-        now.toLocaleDateString("en-US", { timeZone: zone, month: "short" }).toUpperCase()
+        now.toLocaleDateString(locale, { timeZone: zone, month: "short" }).toUpperCase()
       );
 
       setBlink((v) => !v);
+      setMounted(true);
     };
     tick();
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
-  }, []);
+  }, [locale]);
 
   const Digit = ({ char }: { char: string }) => (
     <span className="inline-flex items-center justify-center bg-zinc-800 text-white font-black text-lg px-1.5 py-0.5 rounded-md leading-none min-w-[22px] text-center">
@@ -68,6 +67,16 @@ export default function ISTClock() {
     </span>
   );
 
+  // Render a same-size placeholder until the first tick fires — eliminates the flash
+  if (!mounted) {
+    return (
+      <div className="hidden sm:flex items-center gap-2">
+        <div className="rounded-2xl bg-[#0a0a0a] border border-white/[0.10] px-3 py-2 w-[148px] h-[44px]" />
+        <div className="rounded-xl border border-white/[0.10] w-[44px] h-[44px]" />
+      </div>
+    );
+  }
+
   return (
     <div className="hidden sm:flex items-center gap-2">
 
@@ -78,7 +87,6 @@ export default function ISTClock() {
         px-3 py-2"
       >
         <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-yellow-400/[0.25] to-transparent" />
-
         <div className="flex items-center gap-0.5 tabular-nums leading-none">
           <div className="flex gap-px"><Digit char={h[0] ?? "1"} /><Digit char={h[1] ?? "2"} /></div>
           <Colon />

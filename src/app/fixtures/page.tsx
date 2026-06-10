@@ -8,8 +8,10 @@ import Header from "@/components/Header";
 import PageWrapper from "@/components/PageWrapper";
 import type { Match } from "@/types";
 import { toLocalDateKey, userTZ, tzLabel } from "@/lib/utils";
+import { useLocaleCtx } from "@/context/LocaleContext";
 
 export default function FixturesPage() {
+  const locale = useLocaleCtx();
   const router = useRouter();
   const [matches, setMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(true);
@@ -57,7 +59,7 @@ export default function FixturesPage() {
 
   const formatDate = (dateString: string) => {
     if (dateString === "TBD") return "🕘 TBD Fixtures";
-    return new Date(dateString + "T12:00:00").toLocaleDateString(undefined, {
+    return new Date(dateString + "T12:00:00").toLocaleDateString(locale, {
       weekday: "long",
       day: "numeric",
       month: "long",
@@ -68,7 +70,7 @@ export default function FixturesPage() {
     if (!kickoffTime) return "TBD";
     const d = new Date(kickoffTime);
     if (isNaN(d.getTime())) return "TBD";
-    return d.toLocaleString(undefined, {
+    return d.toLocaleString(locale, {
       timeZone: userTZ(),
       day: "numeric",
       month: "short",
