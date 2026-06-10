@@ -15,7 +15,6 @@ type League = {
   created_by: number;
   created_at: string;
   member_count?: number;
-  matchday_mode?: string;
 };
 
 type LeaderEntry = {
@@ -42,6 +41,7 @@ function LeagueCard({
   currentUserId,
   onSelect,
   onLeave,
+  onDisband,
   selected,
   isSelectMode,
   isActive,
@@ -52,6 +52,7 @@ function LeagueCard({
   currentUserId: number;
   onSelect: () => void;
   onLeave: () => void;
+  onDisband: () => void;
   selected: boolean;
   isSelectMode?: boolean;
   isActive?: boolean;
@@ -92,11 +93,6 @@ function LeagueCard({
                 Owner
               </span>
             )}
-            {league.matchday_mode === "gameday_window" && (
-              <span className="px-2 py-0.5 rounded-full bg-sky-500/15 border border-sky-500/25 text-sky-400 text-[10px] font-black">
-                Gameday Window
-              </span>
-            )}
           </div>
         </div>
 
@@ -112,8 +108,17 @@ function LeagueCard({
             <span className="text-zinc-500 text-[10px]">{copied ? "✓" : "⧉"}</span>
           </button>
 
-          {/* Leave (non-owners only) */}
-          {!isOwner && (
+          {/* Leave (non-owners) or Disband (owner) */}
+          {isOwner ? (
+            <button
+              onClick={(e) => { e.stopPropagation(); onDisband(); }}
+              className="px-3 h-8 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400
+                hover:bg-red-500/20 transition-all text-[10px] font-black whitespace-nowrap"
+              title="Disband league"
+            >
+              Disband
+            </button>
+          ) : (
             <button
               onClick={(e) => { e.stopPropagation(); onLeave(); }}
               className="w-8 h-8 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400
@@ -133,9 +138,7 @@ function LeagueCard({
               ✓ Currently Active
             </span>
           ) : (
-            <span className="text-[11px] text-zinc-600 font-semibold">
-              {league.matchday_mode === "gameday_window" ? "⚡ Gameday Window rules" : "📅 Standard calendar rules"}
-            </span>
+            <span className="text-[11px] text-zinc-600 font-semibold">📅 Private league</span>
           )}
           <button
             onClick={(e) => { e.stopPropagation(); onSelectPlay?.(); }}
@@ -293,7 +296,6 @@ function LeaguesPageInner() {
   // Create form
   const [showCreate, setShowCreate] = useState(false);
   const [createName, setCreateName] = useState("");
-  const [createMode, setCreateMode] = useState<"standard" | "gameday_window">("standard");
   const [creating, setCreating] = useState(false);
 
   // Join form
@@ -307,8 +309,8 @@ function LeaguesPageInner() {
 
   const selectAndPlay = (league: League | null) => {
     const payload = league
-      ? { id: league.id, name: league.name, matchday_mode: league.matchday_mode ?? "standard" }
-      : { id: null, name: "Global", matchday_mode: "standard" };
+      ? { id: league.id, name: league.name }
+      : { id: null, name: "Global" };
     Cookies.set("activeLeague", JSON.stringify(payload));
     router.push("/");
   };
@@ -355,7 +357,7 @@ function LeaguesPageInner() {
       const res = await fetch("/api/leagues/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: createName.trim(), userId: user.id, matchday_mode: createMode }),
+        body: JSON.stringify({ name: createName.trim(), userId: user.id }),
       });
       const data = await res.json();
       if (!data.success) { toast.error(data.error); return; }
@@ -405,6 +407,24 @@ function LeaguesPageInner() {
     }
   };
 
+  const handleDisband = async (league: League) => {
+    if (!confirm(`Disband "${league.name}"? This will remove all members and delete the league permanently.`)) return;
+    try {
+      const res = await fetch(`/api/leagues/${league.code}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: user.id, disband: true }),
+      });
+      const data = await res.json();
+      if (!data.success) { toast.error(data.error); return; }
+      toast.success(`${league.name} disbanded`);
+      if (selectedLeague?.id === league.id) setSelectedLeague(null);
+      fetchMyLeagues(user.id);
+    } catch {
+      toast.error("Failed to disband league");
+    }
+  };
+
   return (
     <PageWrapper>
       <main className="min-h-screen text-white p-3 sm:p-6">
@@ -427,7 +447,7 @@ function LeaguesPageInner() {
                     <div className="text-[10px] uppercase tracking-[0.25em] text-zinc-500 font-black">Currently playing in</div>
                     <div className="font-black text-white truncate">{al.name}</div>
                     <div className="text-[11px] text-zinc-500 mt-0.5">
-                      {al.matchday_mode === "gameday_window" ? "⏰ Gameday Window mode (9:30 PM – 9:30 AM IST)" : "📅 Standard calendar-date mode"}
+                      📅 Standard calendar-date matchdays
                     </div>
                   </div>
                 </div>
@@ -549,24 +569,6 @@ function LeaguesPageInner() {
                           text-white placeholder-zinc-600 font-semibold bg-transparent
                           focus:outline-none focus:border-yellow-400/40 transition-all"
                       />
-                      {/* Matchday mode toggle */}
-                      <div className="flex items-center justify-between px-1">
-                        <div>
-                          <div className="text-xs font-black text-zinc-300">Gameday Window Mode</div>
-                          <div className="text-[11px] text-zinc-600 mt-0.5">9:30 PM – 9:30 AM IST windows (Terrace Cup style)</div>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => setCreateMode((m) => m === "standard" ? "gameday_window" : "standard")}
-                          className={`relative w-12 h-6 rounded-full transition-colors duration-200 flex-shrink-0 ${
-                            createMode === "gameday_window" ? "bg-sky-500" : "bg-zinc-700"
-                          }`}
-                        >
-                          <span className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white shadow transition-transform duration-200 ${
-                            createMode === "gameday_window" ? "translate-x-6" : "translate-x-0"
-                          }`} />
-                        </button>
-                      </div>
                       <button
                         onClick={handleCreate}
                         disabled={creating}
@@ -707,6 +709,7 @@ function LeaguesPageInner() {
                           : fetchLeagueBoard(league)
                     }
                     onLeave={() => handleLeave(league)}
+                    onDisband={() => handleDisband(league)}
                   />
                 ))}
               </div>

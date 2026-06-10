@@ -13,7 +13,6 @@ import HowItWorks from "@/components/HowItWorks";
 import PageWrapper from "@/components/PageWrapper";
 
 import { supabase } from "@/lib/supabase";
-import { getGamedayKey } from "@/lib/utils";
 import type { Match, Prediction, PredictedScore, User } from "@/types";
 
 const BOOSTER_NAMES: Record<string, string> = {
@@ -32,15 +31,6 @@ export default function Home() {
   const [expandedMatches, setExpandedMatches] = useState<Record<number, boolean>>({});
   const [usedBoosterTypes, setUsedBoosterTypes] = useState<string[]>([]);
   const [activeDayBoosters, setActiveDayBoosters] = useState<Record<string, string[]>>({});
-
-  // Read matchday mode synchronously from cookie so it's correct on first render
-  const [useGamedayWindow] = useState<boolean>(() => {
-    try {
-      const raw = Cookies.get("activeLeague");
-      if (!raw) return false;
-      return JSON.parse(raw).matchday_mode === "gameday_window";
-    } catch { return false; }
-  });
 
   const cancelledMatchIds = useRef<Set<number>>(new Set());
 
@@ -163,7 +153,7 @@ export default function Home() {
     const used = data.map((item) => item.booster_type);
     const byDay: Record<string, string[]> = {};
     data.forEach((item) => {
-      const date = new Date(item.active_date).toISOString().split("T")[0];
+      const date = item.active_date.split("T")[0];
       byDay[date] = [...(byDay[date] || []), item.booster_type];
     });
 
@@ -171,20 +161,23 @@ export default function Home() {
     setActiveDayBoosters(byDay);
   };
 
-  // ACTIVATE BOOSTER — one per day; swaps if a different booster is already set
+  // ACTIVATE BOOSTER — one per type per tournament; moves if already assigned to another date
   const activateBooster = async (boosterType: string, date: string) => {
     if (!user) return;
 
-    const existingType = (activeDayBoosters[date] || [])[0] ?? null;
-    if (existingType === boosterType) return; // already active, no-op
+    // Already on this date — no-op
+    const existingDate = Object.entries(activeDayBoosters).find(([, types]) =>
+      types.includes(boosterType)
+    )?.[0] ?? null;
+    if (existingDate === date) return;
 
-    // If swapping, remove the old one first
-    if (existingType) {
+    // If already assigned somewhere else, remove old entry first
+    if (existingDate) {
       const { error: delError } = await supabase
         .from("daily_boosters")
         .delete()
         .eq("user_id", user.id)
-        .eq("booster_type", existingType);
+        .eq("booster_type", boosterType);
       if (delError) { toast.error(delError.message); throw delError; }
     }
 
@@ -272,12 +265,6 @@ export default function Home() {
     return now >= openTime && now < closeTime;
   };
 
-  const matchdayKey = (kickoffTime: string) =>
-    useGamedayWindow ? getGamedayKey(kickoffTime) : new Date(kickoffTime).toISOString().split("T")[0];
-
-  const todayKey = () =>
-    useGamedayWindow ? getGamedayKey(new Date().toISOString()) : new Date().toISOString().split("T")[0];
-
   // ROLLING 3-DAY WINDOW
   const visibleGroupedMatches = useMemo(() => {
     const grouped: Record<string, Match[]> = {};
@@ -285,12 +272,12 @@ export default function Home() {
       if (!match.kickoff_time) return;
       const kickoff = new Date(match.kickoff_time);
       if (isNaN(kickoff.getTime())) return;
-      const date = matchdayKey(match.kickoff_time);
+      const date = kickoff.toISOString().split("T")[0];
       if (!grouped[date]) grouped[date] = [];
       grouped[date].push(match);
     });
 
-    const today = todayKey();
+    const today = new Date().toISOString().split("T")[0];
     const allDays = Object.keys(grouped).sort();
     const futureDays = allDays.filter((d) => d >= today);
     const anchor = futureDays[0] ?? allDays[allDays.length - 1];
@@ -302,7 +289,7 @@ export default function Home() {
     const result: Record<string, Match[]> = {};
     windowDays.forEach((day) => { result[day] = grouped[day]; });
     return result;
-  }, [matches, useGamedayWindow]);
+  }, [matches]);
 
   // The matchday currently open for predictions (has at least one predictable match)
   const activeMatchday = useMemo(() => {
@@ -460,10 +447,10 @@ export default function Home() {
           <div className="space-y-12">
             {Object.entries(visibleGroupedMatches).map(([date, dateMatches]) => {
               const dayBoosters = activeDayBoosters[date] || [];
-              const isToday = date === todayKey();
+              const isToday = date === new Date().toISOString().split("T")[0];
               const hasTomorrow = (() => {
                 const d = new Date(); d.setDate(d.getDate() + 1);
-                return date === (useGamedayWindow ? getGamedayKey(d.toISOString()) : d.toISOString().split("T")[0]);
+                return date === d.toISOString().split("T")[0];
               })();
 
               return (

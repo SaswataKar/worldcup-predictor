@@ -1,5 +1,4 @@
 import { supabase } from "@/lib/supabase";
-import { getGamedayKey } from "@/lib/utils";
 
 export const processScores = async (matches: any[]) => {
   try {
@@ -19,10 +18,7 @@ export const processScores = async (matches: any[]) => {
       if (predictionError) { console.error(predictionError); continue; }
       if (!predictions?.length) continue;
 
-      // Compute both possible keys — boosters were stored with whichever key was
-      // active at assignment time, so we accept either to handle mode switches.
-      const matchDateStandard = new Date(match.kickoff_time).toISOString().split("T")[0];
-      const matchDateWindow = getGamedayKey(match.kickoff_time);
+      const matchDate = new Date(match.kickoff_time).toISOString().split("T")[0];
 
       for (const prediction of predictions) {
         const predictedHome = prediction.predicted_team1_score;
@@ -49,10 +45,9 @@ export const processScores = async (matches: any[]) => {
           .select("booster_type, active_date")
           .eq("user_id", prediction.user_id);
 
-        const dayBoosters = (dayBoostersData || []).filter((b) => {
-          const d = b.active_date.split("T")[0];
-          return d === matchDateStandard || d === matchDateWindow;
-        });
+        const dayBoosters = (dayBoostersData || []).filter((b) =>
+          b.active_date.split("T")[0] === matchDate
+        );
 
         const boosterTypes = dayBoosters.map((b) => b.booster_type);
 

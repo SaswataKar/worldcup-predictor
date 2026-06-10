@@ -17,12 +17,11 @@ function generateCode(len = 6) {
 
 export async function POST(req: Request) {
   try {
-    const { name, userId, matchday_mode } = await req.json();
+    const { name, userId } = await req.json();
 
     if (!name?.trim() || !userId) {
       return NextResponse.json({ success: false, error: "Name and userId required" }, { status: 400 });
     }
-    const mode = matchday_mode === "gameday_window" ? "gameday_window" : "standard";
 
     // Generate a unique code (retry up to 5 times on collision)
     let code = "";
@@ -40,7 +39,7 @@ export async function POST(req: Request) {
     // Create league
     const { data: league, error: leagueErr } = await supabase
       .from("leagues")
-      .insert({ name: name.trim(), code, created_by: userId, matchday_mode: mode })
+      .insert({ name: name.trim(), code, created_by: userId })
       .select()
       .single();
 

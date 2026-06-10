@@ -74,11 +74,11 @@ export async function GET(req: Request, { params }: { params: Promise<{ code: st
   }
 }
 
-// Leave league
+// Leave league (non-owner) or disband (owner with { disband: true })
 export async function DELETE(req: Request, { params }: { params: Promise<{ code: string }> }) {
   try {
     const { code } = await params;
-    const { userId } = await req.json();
+    const { userId, disband } = await req.json();
 
     const { data: league } = await supabase
       .from("leagues")
@@ -88,7 +88,18 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ code:
 
     if (!league) return NextResponse.json({ success: false, error: "League not found" }, { status: 404 });
 
-    // Creator cannot leave — they must disband
+    if (disband) {
+      // Only owner can disband
+      if (league.created_by !== userId) {
+        return NextResponse.json({ success: false, error: "Only the owner can disband this league" }, { status: 403 });
+      }
+      // Remove all members then delete the league
+      await supabase.from("league_members").delete().eq("league_id", league.id);
+      await supabase.from("leagues").delete().eq("id", league.id);
+      return NextResponse.json({ success: true, disbanded: true });
+    }
+
+    // Non-owner leave
     if (league.created_by === userId) {
       return NextResponse.json({ success: false, error: "As creator, use Disband to remove the league entirely" }, { status: 403 });
     }
