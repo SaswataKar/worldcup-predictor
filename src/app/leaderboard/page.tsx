@@ -8,6 +8,8 @@ import Header from "@/components/Header";
 import PageWrapper from "@/components/PageWrapper";
 
 import { supabase } from "@/lib/supabase";
+import { useLocaleCtx } from "@/context/LocaleContext";
+import { getT } from "@/lib/translations";
 
 type LeaderEntry = {
   id: number;
@@ -51,6 +53,8 @@ const DEFAULT_ROW = {
 
 export default function LeaderboardPage() {
   const router = useRouter();
+  const { locale } = useLocaleCtx();
+  const t = getT(locale);
   const [leaders, setLeaders] = useState<LeaderEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
@@ -105,16 +109,16 @@ export default function LeaderboardPage() {
               <div className="inline-flex items-center gap-3 bg-yellow-500/10 border border-yellow-500/20 px-5 py-3 rounded-2xl">
                 <div className="w-3 h-3 rounded-full bg-yellow-400 animate-pulse" />
                 <span className="text-yellow-300 font-bold uppercase tracking-[0.25em] text-sm">
-                  Global Rankings
+                  {t("lb.globalRankings")}
                 </span>
               </div>
               <div className="inline-flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 px-4 py-3 rounded-2xl">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse inline-block" />
-                <span className="text-emerald-400 text-xs font-bold">Live · updates every 30s</span>
+                <span className="text-emerald-400 text-xs font-bold">{t("lb.liveUpdates")}</span>
               </div>
             </div>
 
-            <h1 className="text-4xl sm:text-6xl font-black tracking-tight leading-none">Leaderboard</h1>
+            <h1 className="text-4xl sm:text-6xl font-black tracking-tight leading-none">{t("lb.title")}</h1>
 
             <div className="flex items-center gap-4 mt-4 flex-wrap">
               <p className="text-zinc-400 text-lg max-w-2xl">
@@ -122,7 +126,7 @@ export default function LeaderboardPage() {
               </p>
               {lastUpdated && (
                 <span className="text-zinc-600 text-xs">
-                  Last refreshed{" "}
+                  {t("lb.lastRefreshed")}{" "}
                   {lastUpdated.toLocaleTimeString("en-IN", {
                     hour: "2-digit",
                     minute: "2-digit",
@@ -136,7 +140,7 @@ export default function LeaderboardPage() {
           {/* LOADING */}
           {loading && (
             <div className="text-center py-32">
-              <div className="text-3xl font-black animate-pulse">⚽ Loading Rankings...</div>
+              <div className="text-3xl font-black animate-pulse">{t("lb.loading")}</div>
             </div>
           )}
 
@@ -199,9 +203,9 @@ export default function LeaderboardPage() {
                         </div>
                         {hasPoints && (
                           <div className="flex items-center gap-4 text-zinc-500 text-sm mt-1">
-                            <span>🎯 {leader.exact_predictions} exact</span>
+                            <span>🎯 {leader.exact_predictions} {t("lb.exact")}</span>
                             <span className="text-zinc-700">·</span>
-                            <span>✅ {leader.correct_results} correct</span>
+                            <span>✅ {leader.correct_results} {t("lb.correct")}</span>
                           </div>
                         )}
                       </div>
@@ -211,7 +215,7 @@ export default function LeaderboardPage() {
                     {hasPoints && (
                       <div className="text-right">
                         <div className="text-[11px] text-zinc-600 uppercase tracking-widest mb-1">
-                          Total Points
+                          {t("lb.totalPoints")}
                         </div>
                         <div
                           className={`text-3xl sm:text-5xl font-black tabular-nums ${
@@ -233,8 +237,8 @@ export default function LeaderboardPage() {
                 <div className="rounded-3xl border border-white/[0.07] backdrop-blur-md p-16 text-center
                   shadow-[0_0_0_1px_rgba(255,255,255,0.04),inset_0_1px_0_rgba(255,255,255,0.05)]">
                   <div className="text-6xl mb-6">🏆</div>
-                  <div className="text-3xl font-black mb-3">No rankings yet</div>
-                  <div className="text-zinc-500">Start predicting to appear here.</div>
+                  <div className="text-3xl font-black mb-3">{t("lb.noRankings")}</div>
+                  <div className="text-zinc-500">{t("lb.noRankingsDetail")}</div>
                 </div>
               )}
             </div>

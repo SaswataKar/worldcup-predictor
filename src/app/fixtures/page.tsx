@@ -9,10 +9,12 @@ import PageWrapper from "@/components/PageWrapper";
 import type { Match } from "@/types";
 import { userTZ, tzLabel } from "@/lib/utils";
 import { useLocaleCtx } from "@/context/LocaleContext";
+import { getT } from "@/lib/translations";
 import { groupMatches, buildGroupLabels } from "@/lib/matchGroups";
 
 export default function FixturesPage() {
   const { locale } = useLocaleCtx();
+  const t = getT(locale);
   const router = useRouter();
   const [matches, setMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(true);
@@ -52,7 +54,7 @@ export default function FixturesPage() {
   }, [matches]);
 
   const formatGroupLabel = (key: string) => {
-    if (key === "TBD__TBD") return "🕘 TBD Fixtures";
+    if (key === "TBD__TBD") return t("page.tbdFixtures");
     return groupLabels[key] ?? key;
   };
 
@@ -75,7 +77,7 @@ export default function FixturesPage() {
     const kickoff = new Date(kickoffTime);
     if (isNaN(kickoff.getTime())) return "TBD";
     const diff = kickoff.getTime() - Date.now();
-    if (diff <= 0) return status === "FINISHED" ? "Full Time" : "Live / Closed";
+    if (diff <= 0) return status === "FINISHED" ? t("status.ft") : t("fix.liveClosed");
     const hours = Math.floor(diff / (1000 * 60 * 60));
     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
     return `${hours}h ${minutes}m`;
@@ -83,10 +85,10 @@ export default function FixturesPage() {
 
   const statusPill = (status: string) => {
     if (status === "LIVE" || status === "IN_PLAY")
-      return { label: "Live", cls: "border-red-500/40 bg-red-500/10 text-red-400" };
+      return { label: t("status.live"), cls: "border-red-500/40 bg-red-500/10 text-red-400" };
     if (status === "FINISHED")
-      return { label: "FT", cls: "border-zinc-700 bg-zinc-800/50 text-zinc-500" };
-    return { label: "Upcoming", cls: "border-emerald-500/40 bg-emerald-500/10 text-emerald-400" };
+      return { label: t("status.ft"), cls: "border-zinc-700 bg-zinc-800/50 text-zinc-500" };
+    return { label: t("fix.upcoming"), cls: "border-emerald-500/40 bg-emerald-500/10 text-emerald-400" };
   };
 
   return (
@@ -100,13 +102,13 @@ export default function FixturesPage() {
             <div className="text-zinc-500 uppercase tracking-[0.3em] text-sm font-black mb-3">
               FIFA WORLD CUP 2026
             </div>
-            <h1 className="text-4xl sm:text-6xl font-black leading-none">Tournament Fixtures</h1>
+            <h1 className="text-4xl sm:text-6xl font-black leading-none">{t("fix.title")}</h1>
           </div>
 
           {/* LOADING */}
           {loading && (
             <div className="text-center py-32">
-              <div className="text-3xl font-black animate-pulse">⚽ Loading Fixtures...</div>
+              <div className="text-3xl font-black animate-pulse">{t("fix.loading")}</div>
             </div>
           )}
 
@@ -114,7 +116,7 @@ export default function FixturesPage() {
           {!loading && matches.length === 0 && (
             <div className="bg-white/[0.04] backdrop-blur-md border border-zinc-700/30 rounded-3xl p-16 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
               <div className="text-6xl mb-6">🏟️</div>
-              <div className="text-3xl font-black mb-3">No Fixtures Available</div>
+              <div className="text-3xl font-black mb-3">{t("fix.empty")}</div>
               <div className="text-zinc-500">Sync the football API first.</div>
             </div>
           )}
@@ -188,7 +190,7 @@ export default function FixturesPage() {
 
                             <div className="text-zinc-400 hidden sm:flex flex-col items-end leading-tight">
                               <span className="text-[11px] text-zinc-600 uppercase tracking-widest">
-                                Kickoff ({tzLabel()})
+                                {t("match.kickoff")} ({tzLabel()})
                               </span>
                               <span>{getLocalKickoff(match.kickoff_time)}</span>
                             </div>
@@ -214,7 +216,7 @@ export default function FixturesPage() {
                         <div className="flex items-center gap-4 mt-3 sm:hidden text-xs text-zinc-500 font-semibold">
                           <div className="flex flex-col leading-tight">
                             <span className="text-[10px] text-zinc-700 uppercase tracking-widest">
-                              Kickoff ({tzLabel()})
+                              {t("match.kickoff")} ({tzLabel()})
                             </span>
                             <span>{getLocalKickoff(match.kickoff_time)}</span>
                           </div>

@@ -7,6 +7,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import Header from "@/components/Header";
 import PageWrapper from "@/components/PageWrapper";
 import toast from "react-hot-toast";
+import { useLocaleCtx } from "@/context/LocaleContext";
+import { getT, type TranslationKey } from "@/lib/translations";
 
 type League = {
   id: string;
@@ -36,27 +38,13 @@ const DEFAULT_ROW = "border-white/[0.07] shadow-[0_0_0_1px_rgba(255,255,255,0.04
 
 // ── League Card ───────────────────────────────────────────────────────────────
 function LeagueCard({
-  league,
-  isOwner,
-  currentUserId,
-  onSelect,
-  onLeave,
-  onDisband,
-  selected,
-  isSelectMode,
-  isActive,
-  onSelectPlay,
+  league, isOwner, currentUserId, onSelect, onLeave, onDisband,
+  selected, isSelectMode, isActive, onSelectPlay, t,
 }: {
-  league: League;
-  isOwner: boolean;
-  currentUserId: number;
-  onSelect: () => void;
-  onLeave: () => void;
-  onDisband: () => void;
-  selected: boolean;
-  isSelectMode?: boolean;
-  isActive?: boolean;
-  onSelectPlay?: () => void;
+  league: League; isOwner: boolean; currentUserId: number;
+  onSelect: () => void; onLeave: () => void; onDisband: () => void;
+  selected: boolean; isSelectMode?: boolean; isActive?: boolean;
+  onSelectPlay?: () => void; t: (k: TranslationKey) => string;
 }) {
   const [copied, setCopied] = useState(false);
 
@@ -86,11 +74,11 @@ function LeagueCard({
           <div className="font-black text-lg truncate">{league.name}</div>
           <div className="flex items-center gap-2 mt-1 flex-wrap">
             <span className="text-zinc-500 text-xs">
-              {league.member_count ?? "?"} {(league.member_count ?? 0) === 1 ? "member" : "members"}
+              {league.member_count ?? "?"} {(league.member_count ?? 0) === 1 ? t("league.member") : t("league.members")}
             </span>
             {isOwner && (
               <span className="px-2 py-0.5 rounded-full bg-yellow-500/15 border border-yellow-500/25 text-yellow-400 text-[10px] font-black">
-                Owner
+                {t("league.owner")}
               </span>
             )}
           </div>
@@ -116,7 +104,7 @@ function LeagueCard({
                 hover:bg-red-500/20 transition-all text-[10px] font-black whitespace-nowrap"
               title="Disband league"
             >
-              Disband
+              {t("league.disband")}
             </button>
           ) : (
             <button
@@ -135,7 +123,7 @@ function LeagueCard({
         <div className="mt-4 flex items-center justify-between gap-3">
           {isActive ? (
             <span className="px-3 py-1.5 rounded-xl bg-emerald-500/15 border border-emerald-500/25 text-emerald-400 text-xs font-black">
-              ✓ Currently Active
+              {t("league.active")}
             </span>
           ) : (
             <span className="text-[11px] text-zinc-600 font-semibold">📅 Private league</span>
@@ -144,12 +132,12 @@ function LeagueCard({
             onClick={(e) => { e.stopPropagation(); onSelectPlay?.(); }}
             className="px-4 py-2 rounded-2xl bg-yellow-400 text-black font-black text-xs hover:bg-yellow-300 transition-all shrink-0"
           >
-            {isActive ? "Continue →" : "Play Here →"}
+            {isActive ? `${t("league.active")} →` : `${t("league.joinBtn")}`}
           </button>
         </div>
       ) : (
         <div className="mt-3 text-[11px] text-zinc-600 font-semibold">
-          Tap to view standings →
+          {t("league.tapStandings")}
         </div>
       )}
     </motion.div>
@@ -158,17 +146,10 @@ function LeagueCard({
 
 // ── Mini Leaderboard ──────────────────────────────────────────────────────────
 function MiniLeaderboard({
-  league,
-  leaderboard,
-  memberCount,
-  currentUsername,
-  onClose,
+  league, leaderboard, memberCount, currentUsername, onClose, t,
 }: {
-  league: League;
-  leaderboard: LeaderEntry[];
-  memberCount: number;
-  currentUsername: string;
-  onClose: () => void;
+  league: League; leaderboard: LeaderEntry[]; memberCount: number;
+  currentUsername: string; onClose: () => void; t: (k: TranslationKey) => string;
 }) {
   const [copied, setCopied] = useState(false);
 
@@ -194,7 +175,7 @@ function MiniLeaderboard({
         <div>
           <div className="text-zinc-500 text-[10px] uppercase tracking-[0.3em] font-black mb-1">Mini League</div>
           <h2 className="text-2xl font-black">{league.name}</h2>
-          <div className="text-zinc-500 text-sm mt-1">{memberCount} {memberCount === 1 ? "member" : "members"}</div>
+          <div className="text-zinc-500 text-sm mt-1">{memberCount} {memberCount === 1 ? t("league.member") : t("league.members")}</div>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -203,7 +184,7 @@ function MiniLeaderboard({
               text-sm font-black tracking-wider text-zinc-200 hover:bg-zinc-700 transition-all"
           >
             <span className="font-mono text-yellow-300">{league.code}</span>
-            <span className="text-zinc-500 text-xs">{copied ? "Copied ✓" : "Copy"}</span>
+            <span className="text-zinc-500 text-xs">{copied ? t("league.copied") : "⧉"}</span>
           </button>
           <button
             onClick={onClose}
@@ -218,7 +199,7 @@ function MiniLeaderboard({
       {/* Leaderboard rows */}
       <div className="px-6 py-5 space-y-2">
         {leaderboard.length === 0 && (
-          <div className="text-center py-10 text-zinc-600 font-bold">No predictions yet.</div>
+          <div className="text-center py-10 text-zinc-600 font-bold">{t("league.noPredictions")}</div>
         )}
         {leaderboard.map((entry, index) => {
           const hasPoints = entry.total_points > 0;
@@ -283,6 +264,8 @@ export default function LeaguesPage() {
 
 function LeaguesPageInner() {
   const router = useRouter();
+  const { locale } = useLocaleCtx();
+  const t = getT(locale);
   const searchParams = useSearchParams();
   const isSelectMode = searchParams.get("select") === "1";
   const [user, setUser] = useState<any>(null);
@@ -444,7 +427,7 @@ function LeaguesPageInner() {
                 <div className="flex items-center gap-3 min-w-0">
                   <span className="text-lg shrink-0">{isGlobal ? "🌍" : "⚡"}</span>
                   <div className="min-w-0">
-                    <div className="text-[10px] uppercase tracking-[0.25em] text-zinc-500 font-black">Currently playing in</div>
+                    <div className="text-[10px] uppercase tracking-[0.25em] text-zinc-500 font-black">{t("league.currentlyIn")}</div>
                     <div className="font-black text-white truncate">{al.name}</div>
                     <div className="text-[11px] text-zinc-500 mt-0.5">
                       📅 Standard calendar-date matchdays
@@ -488,20 +471,16 @@ function LeaguesPageInner() {
             {isSelectMode ? (
               <>
                 <h1 className="text-4xl sm:text-6xl font-black tracking-tight leading-none mb-4">
-                  Choose Your League
+                  {t("league.chooseTitle")}
                 </h1>
-                <p className="text-zinc-400 text-lg max-w-xl">
-                  Select a league to play in. Your matchday grouping, booster windows, and standings all follow your league's rules.
-                </p>
+                <p className="text-zinc-400 text-lg max-w-xl">{t("league.chooseDesc")}</p>
               </>
             ) : (
               <>
                 <h1 className="text-4xl sm:text-6xl font-black tracking-tight leading-none mb-4">
-                  Mini Leagues
+                  {t("league.title")}
                 </h1>
-                <p className="text-zinc-400 text-lg max-w-xl">
-                  Compete with your friends in a private group. Create a league, share the code — only your crew sees the standings.
-                </p>
+                <p className="text-zinc-400 text-lg max-w-xl">{t("league.desc")}</p>
               </>
             )}
           </div>
@@ -518,7 +497,7 @@ function LeaguesPageInner() {
               <div className="px-6 py-5 flex items-center justify-between gap-4">
                 <div>
                   <div className="text-zinc-500 text-[10px] uppercase tracking-[0.3em] font-black mb-1">No private league</div>
-                  <div className="text-2xl font-black text-white">🌍 Play Globally</div>
+                  <div className="text-2xl font-black text-white">{t("league.playGlobally")}</div>
                   <div className="text-zinc-400 text-sm mt-1">Standard calendar-date matchdays · you can still join private leagues anytime</div>
                 </div>
                 <div className="shrink-0 px-5 py-2.5 rounded-2xl bg-emerald-500 text-black font-black text-sm hover:bg-emerald-400 transition-all">
@@ -543,9 +522,9 @@ function LeaguesPageInner() {
                 className="w-full px-6 py-5 text-left flex items-center justify-between group"
               >
                 <div>
-                  <div className="text-zinc-500 text-[10px] uppercase tracking-[0.3em] font-black mb-1">Start fresh</div>
+                  <div className="text-zinc-500 text-[10px] uppercase tracking-[0.3em] font-black mb-1">{t("league.startFresh")}</div>
                   <div className="text-xl font-black text-zinc-200 group-hover:text-white transition-colors">
-                    🏟️ Create a League
+                    {t("league.createTitle")}
                   </div>
                 </div>
                 <motion.span
@@ -583,7 +562,7 @@ function LeaguesPageInner() {
                         disabled={creating}
                         className="w-full py-3 rounded-2xl bg-yellow-400 text-black font-black hover:bg-yellow-300 transition-all disabled:opacity-50"
                       >
-                        {creating ? "Creating…" : "Create League →"}
+                        {creating ? t("league.creating") : t("league.createBtn")}
                       </button>
                     </div>
                   </motion.div>
@@ -604,9 +583,9 @@ function LeaguesPageInner() {
                 className="w-full px-6 py-5 text-left flex items-center justify-between group"
               >
                 <div>
-                  <div className="text-zinc-500 text-[10px] uppercase tracking-[0.3em] font-black mb-1">Have a code?</div>
+                  <div className="text-zinc-500 text-[10px] uppercase tracking-[0.3em] font-black mb-1">{t("league.haveCode")}</div>
                   <div className="text-xl font-black text-zinc-200 group-hover:text-white transition-colors">
-                    🔑 Join a League
+                    {t("league.joinTitle")}
                   </div>
                 </div>
                 <motion.span
@@ -644,7 +623,7 @@ function LeaguesPageInner() {
                         disabled={joining}
                         className="w-full py-3 rounded-2xl bg-emerald-500 text-black font-black hover:bg-emerald-400 transition-all disabled:opacity-50"
                       >
-                        {joining ? "Joining…" : "Join League →"}
+                        {joining ? t("league.joining") : t("league.joinBtn")}
                       </button>
                     </div>
                   </motion.div>
@@ -668,6 +647,7 @@ function LeaguesPageInner() {
                   memberCount={memberCount}
                   currentUsername={user?.name ?? ""}
                   onClose={() => setSelectedLeague(null)}
+                  t={t}
                 />
               )
             )}
@@ -682,18 +662,16 @@ function LeaguesPageInner() {
             <div className="rounded-3xl border border-white/[0.07] backdrop-blur-md p-14 text-center
               shadow-[0_0_0_1px_rgba(255,255,255,0.04),inset_0_1px_0_rgba(255,255,255,0.05)]">
               <div className="text-5xl mb-5">🏟️</div>
-              <div className="text-2xl font-black mb-2">No private leagues yet</div>
+              <div className="text-2xl font-black mb-2">{t("league.noLeagues")}</div>
               <div className="text-zinc-500">
-                {isSelectMode
-                  ? "Create or join a league above — or tap \"Play Globally\" to jump straight in. You can always join more leagues later."
-                  : "Create one or join with a friend's code. You can be in multiple leagues at the same time."}
+                {isSelectMode ? t("league.noLeaguesSelect") : t("league.desc")}
               </div>
             </div>
           ) : (
             <div>
               <div className="flex items-end justify-between mb-4">
                 <div className="text-zinc-500 uppercase tracking-[0.3em] text-xs font-black">
-                  Your Leagues · {leagues.length}
+                  {t("league.yourLeagues")} · {leagues.length}
                 </div>
                 {!isSelectMode && (
                   <div className="text-[11px] text-zinc-600">You can be in multiple leagues simultaneously</div>
@@ -719,6 +697,7 @@ function LeaguesPageInner() {
                     }
                     onLeave={() => handleLeave(league)}
                     onDisband={() => handleDisband(league)}
+                    t={t}
                   />
                 ))}
               </div>

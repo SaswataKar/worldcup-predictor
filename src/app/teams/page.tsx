@@ -6,6 +6,8 @@ import Cookies from "js-cookie";
 import { motion, AnimatePresence } from "framer-motion";
 import Header from "@/components/Header";
 import PageWrapper from "@/components/PageWrapper";
+import { useLocaleCtx } from "@/context/LocaleContext";
+import { getT } from "@/lib/translations";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -250,6 +252,8 @@ function TeamDetail({ team, onClose }: { team: Team; onClose: () => void }) {
 
 export default function TeamsPage() {
   const router = useRouter();
+  const { locale } = useLocaleCtx();
+  const t = getT(locale);
   const [user, setUser] = useState<any>(null);
   const [teams, setTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState(true);
@@ -315,10 +319,8 @@ export default function TeamsPage() {
                 FIFA World Cup 2026
               </span>
             </div>
-            <h1 className="text-4xl sm:text-6xl font-black tracking-tight leading-none mb-4">Teams</h1>
-            <p className="text-zinc-400 text-lg max-w-2xl">
-              All {teams.length || 48} participating nations — squads, coaches and player details.
-            </p>
+            <h1 className="text-4xl sm:text-6xl font-black tracking-tight leading-none mb-4">{t("teams.title")}</h1>
+            <p className="text-zinc-400 text-lg max-w-2xl">{t("teams.subtitle")}</p>
           </div>
 
           {/* SEARCH */}
@@ -329,7 +331,7 @@ export default function TeamsPage() {
               </span>
               <input
                 type="text"
-                placeholder="Search teams…"
+                placeholder={t("teams.search")}
                 value={search}
                 onChange={(e) => {
                   setSearch(e.target.value);
