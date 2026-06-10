@@ -7,8 +7,9 @@ import Cookies from "js-cookie";
 import Header from "@/components/Header";
 import PageWrapper from "@/components/PageWrapper";
 import type { Match } from "@/types";
-import { toLocalDateKey, userTZ, tzLabel } from "@/lib/utils";
+import { userTZ, tzLabel } from "@/lib/utils";
 import { useLocaleCtx } from "@/context/LocaleContext";
+import { groupMatches, buildGroupLabels } from "@/lib/matchGroups";
 
 export default function FixturesPage() {
   const locale = useLocaleCtx();
@@ -39,31 +40,20 @@ export default function FixturesPage() {
     }
   };
 
-  const groupedMatches = useMemo(() => {
-    const grouped: Record<string, Match[]> = {};
-    matches.forEach((match) => {
-      if (!match.kickoff_time) {
-        grouped["TBD"] = [...(grouped["TBD"] || []), match];
-        return;
-      }
-      const kickoff = new Date(match.kickoff_time);
-      if (isNaN(kickoff.getTime())) {
-        grouped["TBD"] = [...(grouped["TBD"] || []), match];
-        return;
-      }
-      const date = toLocalDateKey(kickoff);
-      grouped[date] = [...(grouped[date] || []), match];
-    });
-    return grouped;
+  const { groupedMatches, sortedGroupKeys, groupLabels } = useMemo(() => {
+    const timedMatches = matches.filter((m) => m.kickoff_time && !isNaN(new Date(m.kickoff_time).getTime()));
+    const tbdMatches = matches.filter((m) => !m.kickoff_time || isNaN(new Date(m.kickoff_time).getTime()));
+    const { grouped, sortedKeys } = groupMatches(timedMatches);
+    if (tbdMatches.length) {
+      grouped["TBD__TBD"] = tbdMatches;
+      sortedKeys.push("TBD__TBD");
+    }
+    return { groupedMatches: grouped, sortedGroupKeys: sortedKeys, groupLabels: buildGroupLabels(sortedKeys) };
   }, [matches]);
 
-  const formatDate = (dateString: string) => {
-    if (dateString === "TBD") return "🕘 TBD Fixtures";
-    return new Date(dateString + "T12:00:00").toLocaleDateString(locale, {
-      weekday: "long",
-      day: "numeric",
-      month: "long",
-    });
+  const formatGroupLabel = (key: string) => {
+    if (key === "TBD__TBD") return "🕘 TBD Fixtures";
+    return groupLabels[key] ?? key;
   };
 
   const getLocalKickoff = (kickoffTime: string | null) => {
@@ -131,10 +121,13 @@ export default function FixturesPage() {
 
           {/* GROUPED FIXTURES */}
           <div className="space-y-16">
-            {Object.entries(groupedMatches).map(([date, dateMatches]) => (
-              <div key={date}>
-                {/* DATE HEADER */}
-                <div className="text-2xl sm:text-4xl font-black mb-5 sm:mb-8">{formatDate(date)}</div>
+            {sortedGroupKeys.map((groupKey) => {
+              const dateMatches = groupedMatches[groupKey];
+              if (!dateMatches?.length) return null;
+              return (
+              <div key={groupKey}>
+                {/* ROUND HEADER */}
+                <div className="text-2xl sm:text-4xl font-black mb-5 sm:mb-8">{formatGroupLabel(groupKey)}</div>
 
                 <div className="space-y-4">
                   {dateMatches.map((match) => {
@@ -237,7 +230,8 @@ export default function FixturesPage() {
                   })}
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </main>

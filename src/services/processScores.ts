@@ -18,7 +18,10 @@ export const processScores = async (matches: any[]) => {
       if (predictionError) { console.error(predictionError); continue; }
       if (!predictions?.length) continue;
 
-      const matchDate = new Date(match.kickoff_time).toISOString().split("T")[0];
+      // ET date — matches how boosters are stored (FIFA schedule is in Eastern Time)
+      const matchDate = new Date(match.kickoff_time).toLocaleDateString("en-CA", {
+        timeZone: "America/New_York",
+      });
 
       for (const prediction of predictions) {
         const predictedHome = prediction.predicted_team1_score;

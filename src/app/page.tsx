@@ -13,8 +13,8 @@ import HowItWorks from "@/components/HowItWorks";
 import PageWrapper from "@/components/PageWrapper";
 
 import { supabase } from "@/lib/supabase";
-import { toLocalDateKey } from "@/lib/utils";
 import { useLocaleCtx } from "@/context/LocaleContext";
+import { groupMatches, buildGroupLabels, dateFromKey } from "@/lib/matchGroups";
 import type { Match, Prediction, PredictedScore, User } from "@/types";
 
 const BOOSTER_NAMES: Record<string, string> = {
@@ -224,8 +224,11 @@ export default function Home() {
 
     if (!assignedDate) return;
 
-    // Guard: booster is consumed once ANY match on that day has reached its close time
-    const dayMatches = visibleGroupedMatches[assignedDate] || [];
+    // Guard: booster is consumed once ANY match in that group has reached its close time
+    const groupKey = Object.keys(visibleGroupedMatches).find(
+      (k) => dateFromKey(k) === assignedDate
+    );
+    const dayMatches = groupKey ? visibleGroupedMatches[groupKey] : [];
     const now = new Date();
     const isConsumed = dayMatches.some((m) => {
       if (!m.kickoff_time) return false;
@@ -273,33 +276,27 @@ export default function Home() {
     return now >= openTime && now < closeTime;
   };
 
-  // ROLLING 3-DAY WINDOW
-  const visibleGroupedMatches = useMemo(() => {
-    const grouped: Record<string, Match[]> = {};
-    matches.forEach((match) => {
-      if (!match.kickoff_time) return;
-      const kickoff = new Date(match.kickoff_time);
-      if (isNaN(kickoff.getTime())) return;
-      const date = toLocalDateKey(kickoff);
-      if (!grouped[date]) grouped[date] = [];
-      grouped[date].push(match);
-    });
+  // ROLLING WINDOW — grouped by round+day, timezone-neutral
+  const { visibleGroupedMatches, groupLabels } = useMemo(() => {
+    const { grouped, sortedKeys } = groupMatches(
+      matches.filter((m) => m.kickoff_time && !isNaN(new Date(m.kickoff_time).getTime()))
+    );
+    const labels = buildGroupLabels(sortedKeys);
 
-    const today = toLocalDateKey(new Date());
-    const allDays = Object.keys(grouped).sort();
-    const futureDays = allDays.filter((d) => d >= today);
-    const anchor = futureDays[0] ?? allDays[allDays.length - 1];
-    if (!anchor) return {};
+    const now = Date.now();
+    // Anchor = first group that has a future match (kickoff not yet passed)
+    const anchorIdx = sortedKeys.findIndex((key) =>
+      grouped[key].some((m) => new Date(m.kickoff_time!).getTime() > now)
+    );
+    const idx = anchorIdx === -1 ? Math.max(0, sortedKeys.length - 1) : anchorIdx;
+    const windowKeys = sortedKeys.slice(idx, idx + 3);
 
-    const anchorIndex = allDays.indexOf(anchor);
-    const windowDays = allDays.slice(anchorIndex, anchorIndex + 3);
-
-    const result: Record<string, Match[]> = {};
-    windowDays.forEach((day) => { result[day] = grouped[day]; });
-    return result;
+    const visible: Record<string, Match[]> = {};
+    windowKeys.forEach((key) => { visible[key] = grouped[key]; });
+    return { visibleGroupedMatches: visible, groupLabels: labels };
   }, [matches]);
 
-  // The matchday currently open for predictions (has at least one predictable match)
+  // Group key of the currently active/upcoming round-day (has at least one predictable match)
   const activeMatchday = useMemo(() => {
     return (
       Object.entries(visibleGroupedMatches).find(([, dayMatches]) =>
@@ -308,8 +305,10 @@ export default function Home() {
     );
   }, [visibleGroupedMatches]);
 
-  // True once the first match of the active matchday reaches its close window —
-  // any applied booster is now permanently consumed and cannot be cancelled
+  // UTC date of the active group (used for booster storage/lookup)
+  const activeMatchdayDate = activeMatchday ? dateFromKey(activeMatchday) : null;
+
+  // True once any match in the active group has reached its prediction-close window
   const isActiveMatchdayConsumed = useMemo(() => {
     if (!activeMatchday) return false;
     const dayMatches = visibleGroupedMatches[activeMatchday] || [];
@@ -430,9 +429,9 @@ export default function Home() {
           <BoosterInventory
             usedBoosterTypes={usedBoosterTypes}
             activeDayBoosters={activeDayBoosters}
-            activeMatchday={activeMatchday}
+            activeMatchday={activeMatchdayDate}
             isMatchdayConsumed={isActiveMatchdayConsumed}
-            onActivate={activateBooster}
+            onActivate={(boosterType, _groupKey) => activateBooster(boosterType, activeMatchdayDate ?? _groupKey)}
             onRemove={removeBooster}
           />
 
@@ -451,39 +450,35 @@ export default function Home() {
             </div>
           )}
 
-          {/* ROLLING 3-DAY WINDOW */}
+          {/* MATCH GROUPS */}
           <div className="space-y-12">
-            {Object.entries(visibleGroupedMatches).map(([date, dateMatches]) => {
-              const dayBoosters = activeDayBoosters[date] || [];
-              const isToday = date === toLocalDateKey(new Date());
-              const hasTomorrow = (() => {
-                const d = new Date(); d.setDate(d.getDate() + 1);
-                return date === toLocalDateKey(d);
-              })();
+            {Object.entries(visibleGroupedMatches).map(([groupKey, dateMatches]) => {
+              const utcDate = dateFromKey(groupKey);
+              const dayBoosters = activeDayBoosters[utcDate] || [];
+              const label = groupLabels[groupKey] ?? groupKey;
+              // "Today" / "Tomorrow" check against the UTC date of the group
+              const todayUTC = new Date().toISOString().split("T")[0];
+              const tomorrowUTC = (() => { const d = new Date(); d.setUTCDate(d.getUTCDate() + 1); return d.toISOString().split("T")[0]; })();
+              const isToday = utcDate === todayUTC;
+              const isTomorrow = utcDate === tomorrowUTC;
 
               return (
-              <div key={date}>
-                {/* DATE SECTION HEADER */}
+              <div key={groupKey}>
+                {/* SECTION HEADER */}
                 <div className="relative mb-6">
-                  {/* Full-width divider line */}
                   <div className="absolute inset-x-0 top-1/2 h-px bg-zinc-800" />
 
                   <div className="relative flex items-center gap-3 flex-wrap">
-                    {/* Date chip — sits on the line */}
-                    <div className="flex items-center gap-3 bg-zinc-950 pr-4 rounded-full border border-zinc-700/60 pl-1 py-1">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-black shrink-0 ${
-                        isToday ? "bg-yellow-400 text-black" :
-                        hasTomorrow ? "bg-zinc-700 text-white" :
-                        "bg-zinc-800 text-zinc-400"
-                      }`}>
-                        {new Date(date).getDate()}
-                      </div>
+                    {/* Round label chip */}
+                    <div className="flex items-center gap-3 bg-zinc-950 pr-4 rounded-full border border-zinc-700/60 pl-3 py-1.5">
                       <div>
-                        <div className="text-[10px] uppercase tracking-[0.2em] text-zinc-500 font-black leading-none mb-0.5">
-                          {isToday ? "Today" : hasTomorrow ? "Tomorrow" : new Date(date + "T12:00:00").toLocaleDateString(locale, { weekday: "long" })}
-                        </div>
-                        <div className="text-base font-black leading-none">
-                          {new Date(date + "T12:00:00").toLocaleDateString(locale, { day: "numeric", month: "long" })}
+                        {(isToday || isTomorrow) && (
+                          <div className="text-[10px] uppercase tracking-[0.2em] font-black leading-none mb-0.5 text-yellow-400">
+                            {isToday ? "Today" : "Tomorrow"}
+                          </div>
+                        )}
+                        <div className={`text-base font-black leading-none ${isToday ? "text-yellow-300" : "text-white"}`}>
+                          {label}
                         </div>
                       </div>
                     </div>
