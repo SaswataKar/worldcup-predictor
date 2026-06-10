@@ -75,7 +75,7 @@ export default function Header({ user, hideNav }: { user?: any; hideNav?: boolea
 
   return (
     <header className="sticky top-0 z-50 mb-10">
-      <div className="backdrop-blur-xl bg-black/60 border border-zinc-800 rounded-2xl shadow-2xl overflow-hidden">
+      <div className="backdrop-blur-xl bg-black/60 border border-zinc-800 rounded-2xl shadow-2xl">
 
         {/* ── ROW 1: logo + clock | lang + league chip + logout ── */}
         <div className="flex items-center justify-between gap-4 px-4 sm:px-6 py-3">
