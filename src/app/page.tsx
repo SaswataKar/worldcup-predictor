@@ -272,17 +272,21 @@ export default function Home() {
 
   // ROLLING 3-DAY WINDOW
   const visibleGroupedMatches = useMemo(() => {
+    const toIST = (d: Date) => {
+      const ist = new Date(d.getTime() + 5.5 * 60 * 60 * 1000);
+      return ist.toISOString().split("T")[0];
+    };
     const grouped: Record<string, Match[]> = {};
     matches.forEach((match) => {
       if (!match.kickoff_time) return;
       const kickoff = new Date(match.kickoff_time);
       if (isNaN(kickoff.getTime())) return;
-      const date = kickoff.toISOString().split("T")[0];
+      const date = toIST(kickoff);
       if (!grouped[date]) grouped[date] = [];
       grouped[date].push(match);
     });
 
-    const today = new Date().toISOString().split("T")[0];
+    const today = toIST(new Date());
     const allDays = Object.keys(grouped).sort();
     const futureDays = allDays.filter((d) => d >= today);
     const anchor = futureDays[0] ?? allDays[allDays.length - 1];
@@ -452,10 +456,11 @@ export default function Home() {
           <div className="space-y-12">
             {Object.entries(visibleGroupedMatches).map(([date, dateMatches]) => {
               const dayBoosters = activeDayBoosters[date] || [];
-              const isToday = date === new Date().toISOString().split("T")[0];
+              const toIST = (d: Date) => new Date(d.getTime() + 5.5 * 60 * 60 * 1000).toISOString().split("T")[0];
+              const isToday = date === toIST(new Date());
               const hasTomorrow = (() => {
                 const d = new Date(); d.setDate(d.getDate() + 1);
-                return date === d.toISOString().split("T")[0];
+                return date === toIST(d);
               })();
 
               return (
