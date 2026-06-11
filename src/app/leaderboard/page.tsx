@@ -85,10 +85,10 @@ export default function LeaderboardPage() {
 
     if (res.ok && data) {
       // Split: scorers sorted by points desc, zero-pointers sorted alphabetically
-      const scorers = data.filter((e) => e.total_points > 0);
+      const scorers = data.filter((e: LeaderEntry) => e.total_points > 0);
       const zeros = data
-        .filter((e) => e.total_points === 0)
-        .sort((a, b) => a.username.localeCompare(b.username));
+        .filter((e: LeaderEntry) => e.total_points === 0)
+        .sort((a: LeaderEntry, b: LeaderEntry) => a.username.localeCompare(b.username));
       setLeaders([...scorers, ...zeros]);
       setLastUpdated(new Date());
     }
