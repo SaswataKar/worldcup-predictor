@@ -20,9 +20,22 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
   const url = new URL(event.request.url);
+
+  // Never intercept API calls
   if (url.pathname.startsWith("/api/")) return;
+
+  // Cache-first only for app icons and manifest (these never change between deploys)
+  if (url.pathname.startsWith("/icons/") || url.pathname === "/manifest.json") {
+    event.respondWith(
+      caches.match(event.request).then((cached) => cached || fetch(event.request))
+    );
+    return;
+  }
+
+  // Everything else (HTML pages, Next.js JS/CSS chunks) — network-first
+  // This ensures users always get fresh code after a Vercel deploy
   event.respondWith(
-    caches.match(event.request).then((cached) => cached || fetch(event.request))
+    fetch(event.request).catch(() => caches.match(event.request))
   );
 });
 
