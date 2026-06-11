@@ -147,9 +147,9 @@ export default function Home() {
     const { boosters: data } = await res.json();
     if (!data) return;
 
-    const used = data.map((item) => item.booster_type);
+    const used = data.map((item: { booster_type: string; active_date: string }) => item.booster_type);
     const byDay: Record<string, string[]> = {};
-    data.forEach((item) => {
+    data.forEach((item: { booster_type: string; active_date: string }) => {
       const date = item.active_date.split("T")[0];
       byDay[date] = [...(byDay[date] || []), item.booster_type];
     });
