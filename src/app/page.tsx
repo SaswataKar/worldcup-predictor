@@ -112,7 +112,7 @@ export default function Home() {
     const serverMapped: Record<number, Prediction> = {};
     const serverScoreMap: Record<number, PredictedScore> = {};
 
-    data.forEach((prediction) => {
+    data.forEach((prediction: Prediction) => {
       if (cancelledMatchIds.current.has(prediction.match_id)) return;
       serverMapped[prediction.match_id] = prediction;
       serverScoreMap[prediction.match_id] = {
