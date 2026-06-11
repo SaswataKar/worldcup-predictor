@@ -72,116 +72,56 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // FETCH EXISTING MATCHES ONCE
-    const {
-      data:
-        existingMatches,
-      error:
-        existingError,
-    } = await supabase
+    // FETCH EXISTING MATCHES ONCE — need processed + live status to avoid clobbering ESPN data
+    const { data: existingMatches, error: existingError } = await supabase
       .from("matches")
-      .select(
-        "api_match_id, processed"
-      );
+      .select("api_match_id, processed, status");
 
-    if (
-      existingError
-    ) {
-      console.error(
-        existingError
-      );
-
-      return NextResponse.json(
-        {
-          success: false,
-
-          error:
-            existingError.message,
-        },
-        {
-          status: 500,
-        }
-      );
+    if (existingError) {
+      console.error(existingError);
+      return NextResponse.json({ success: false, error: existingError.message }, { status: 500 });
     }
 
-    // CREATE LOOKUP MAP
-    const processedMap =
-      new Map();
+    // Lookup maps
+    const processedMap = new Map<string, boolean>();
+    const statusMap = new Map<string, string>();
+    existingMatches?.forEach((m) => {
+      processedMap.set(m.api_match_id, m.processed);
+      statusMap.set(m.api_match_id, m.status);
+    });
 
-    existingMatches?.forEach(
-      (match) => {
-        processedMap.set(
-          match.api_match_id,
-          match.processed
-        );
-      }
-    );
+    const LIVE_STATUSES = new Set(["IN_PLAY", "LIVE", "PAUSED", "FINISHED"]);
 
     // BUILD BULK PAYLOAD
-    const payload =
-      apiData.matches.map(
-        (match: any) => ({
-          api_match_id:
-            String(match.id),
+    const payload = apiData.matches.map((match: any) => {
+      const apiId = String(match.id);
+      const currentStatus = statusMap.get(apiId) ?? "";
+      const isLiveOrDone = LIVE_STATUSES.has(currentStatus);
 
-          team1:
-            match.homeTeam
-              ?.name ||
-            "TBD",
+      const base = {
+        api_match_id: apiId,
+        team1: match.homeTeam?.name || "TBD",
+        team2: match.awayTeam?.name || "TBD",
+        team1_crest: match.homeTeam?.crest || null,
+        team2_crest: match.awayTeam?.crest || null,
+        kickoff_time: match.utcDate || null,
+        matchday: match.stage || "Group Stage",
+        processed: processedMap.get(apiId) || false,
+      };
 
-          team2:
-            match.awayTeam
-              ?.name ||
-            "TBD",
+      // Don't let football-data.org overwrite live/finished data set by ESPN sync-live
+      if (isLiveOrDone) return base;
 
-          team1_crest:
-            match.homeTeam
-              ?.crest ||
-            null,
-
-          team2_crest:
-            match.awayTeam
-              ?.crest ||
-            null,
-
-          kickoff_time:
-            match.utcDate ||
-            null,
-
-          status:
-            match.status ||
-            "SCHEDULED",
-
-          team1_score:
-            match.score
-              ?.fullTime
-              ?.home ??
-            null,
-
-          team2_score:
-            match.score
-              ?.fullTime
-              ?.away ??
-            null,
-
-          matchday:
-            match.stage ||
-            "Group Stage",
-
-          // MATCH EVENTS — stored as-is from the API
-          goals: match.goals ?? [],
-          bookings: match.bookings ?? [],
-          substitutions: match.substitutions ?? [],
-
-          // PRESERVE PROCESSED STATE
-          processed:
-            processedMap.get(
-              String(
-                match.id
-              )
-            ) || false,
-        })
-      );
+      return {
+        ...base,
+        status: match.status || "SCHEDULED",
+        team1_score: match.score?.fullTime?.home ?? null,
+        team2_score: match.score?.fullTime?.away ?? null,
+        goals: match.goals ?? [],
+        bookings: match.bookings ?? [],
+        substitutions: match.substitutions ?? [],
+      };
+    });
 
     // SINGLE BULK UPSERT
     const { error } =
