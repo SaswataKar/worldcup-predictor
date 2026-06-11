@@ -295,23 +295,10 @@ export default function MatchCard({
 
   return (
     <div
-      className={`relative overflow-hidden rounded-3xl border-l-4 ${cardAccent} ${cardGlow}
+      className={`overflow-hidden rounded-3xl border-l-4 ${cardAccent} ${cardGlow}
         backdrop-blur-md border border-white/[0.07]
         transition-all duration-300`}
     >
-      {/* LIVE / STARTED HEARTBEAT INDICATOR */}
-      {isLive && (
-        <span className="absolute top-3 right-3 z-10 flex h-3 w-3">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
-          <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500" />
-        </span>
-      )}
-      {!isLive && !isFinished && hasStarted && (
-        <span className="absolute top-3 right-3 z-10 flex h-3 w-3">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75" />
-          <span className="relative inline-flex rounded-full h-3 w-3 bg-orange-500" />
-        </span>
-      )}
       <div>
 
       {/* COLLAPSED ROW */}
@@ -350,8 +337,13 @@ export default function MatchCard({
 
           {/* META */}
           <div className="flex items-center gap-3 flex-wrap text-xs font-semibold">
+            {isLive && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-red-500/60 bg-red-500/15 text-red-400 text-[11px] font-black tracking-widest animate-pulse shadow-[0_0_10px_2px_rgba(239,68,68,0.25)]">
+                <span className="w-1.5 h-1.5 rounded-full bg-red-400 inline-block shrink-0" />
+                LIVE
+              </span>
+            )}
             <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-black tracking-wide ${statusPillClass}`}>
-              {isLive && <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse inline-block shrink-0" />}
               {statusLabel}
             </span>
 
