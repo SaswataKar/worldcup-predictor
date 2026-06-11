@@ -33,48 +33,40 @@ export default function PushNotificationPrompt() {
   useEffect(() => {
     if (typeof window === "undefined" || !("serviceWorker" in navigator)) return;
 
-    // Register SW always
     navigator.serviceWorker.register("/sw.js").catch(console.error);
 
-    const alreadyInstalled = isInStandaloneMode();
+    const standalone = isInStandaloneMode();
     const installDismissed = localStorage.getItem("install-dismissed");
     const notifyDismissed = localStorage.getItem("push-dismissed");
 
-    // If already installed as PWA, skip straight to notification prompt
-    if (alreadyInstalled) {
-      if (!notifyDismissed && Notification.permission !== "granted" && Notification.permission !== "denied") {
-        setTimeout(() => setStep("notify"), 1500);
-      } else if (Notification.permission === "granted") {
+    if (standalone) {
+      // Running as installed PWA — only show notification prompt here
+      if (Notification.permission === "granted") {
         subscribeIfNeeded();
+      } else if (Notification.permission === "denied") {
+        // Always re-show settings instructions inside the app, even if dismissed before
+        setTimeout(() => setStep("notify"), 1500);
+      } else if (!notifyDismissed) {
+        setTimeout(() => setStep("notify"), 1500);
       }
       return;
     }
 
-    // iOS — no install API, show manual instructions
+    // Running in browser — only show install prompts, never notification prompt
     if (isIos()) {
-      if (!installDismissed) {
-        setTimeout(() => setStep("install-ios"), 2000);
-      }
+      if (!installDismissed) setTimeout(() => setStep("install-ios"), 2000);
       return;
     }
 
-    // Android / Desktop Chrome — listen for beforeinstallprompt
     const handler = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e);
-      if (!installDismissed) {
-        setTimeout(() => setStep("install-android"), 1500);
-      }
+      if (!installDismissed) setTimeout(() => setStep("install-android"), 1500);
     };
     window.addEventListener("beforeinstallprompt", handler);
-
-    // If app was just installed
     window.addEventListener("appinstalled", () => {
       setStep(null);
       localStorage.removeItem("install-dismissed");
-      if (!notifyDismissed && Notification.permission !== "granted") {
-        setTimeout(() => setStep("notify"), 1000);
-      }
     });
 
     return () => window.removeEventListener("beforeinstallprompt", handler);
@@ -246,32 +238,51 @@ export default function PushNotificationPrompt() {
               </div>
             </div>
 
-            {notifStatus === "done" && (
-              <div className="text-emerald-400 text-sm font-bold text-center">✓ Notifications enabled!</div>
-            )}
-            {notifStatus === "denied" && (
-              <div className="text-red-400 text-sm font-bold text-center">Blocked in browser settings — enable manually to receive alerts.</div>
-            )}
-            {notifStatus === "loading" && (
-              <div className="text-zinc-400 text-sm text-center font-semibold animate-pulse">Requesting permission…</div>
-            )}
-            {notifStatus === "idle" && (
-              <div className="flex gap-3">
-                <button
-                  onClick={handleAllowNotifications}
-                  className="flex-1 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-black font-black text-sm py-3
-                    transition-all duration-200 shadow-[0_0_20px_4px_rgba(34,197,94,0.25)]"
-                >
-                  Enable
-                </button>
+            {/* Previously blocked — guide to settings */}
+            {Notification.permission === "denied" ? (
+              <>
+                <div className="rounded-2xl border border-amber-500/20 bg-amber-500/5 px-4 py-3 space-y-2 text-sm text-zinc-300">
+                  <div className="text-amber-400 font-black text-xs uppercase tracking-widest mb-2">Notifications were blocked</div>
+                  <div className="flex items-start gap-2"><span>1.</span><span>Open your phone <span className="font-black text-white">Settings</span></span></div>
+                  <div className="flex items-start gap-2"><span>2.</span><span>Go to <span className="font-black text-white">Apps</span> → find this app (WC Predictor)</span></div>
+                  <div className="flex items-start gap-2"><span>3.</span><span>Tap <span className="font-black text-white">Notifications</span> and turn it on</span></div>
+                  <div className="flex items-start gap-2"><span>4.</span><span>Come back and reopen the app</span></div>
+                </div>
                 <button
                   onClick={dismissNotify}
-                  className="flex-1 rounded-2xl border border-white/[0.10] text-zinc-400 hover:text-white
+                  className="w-full rounded-2xl border border-white/[0.10] text-zinc-400 hover:text-white
                     font-bold text-sm py-3 transition-all duration-200 hover:border-white/[0.20]"
                 >
-                  Not now
+                  Dismiss
                 </button>
-              </div>
+              </>
+            ) : (
+              <>
+                {notifStatus === "done" && (
+                  <div className="text-emerald-400 text-sm font-bold text-center">✓ Notifications enabled!</div>
+                )}
+                {notifStatus === "loading" && (
+                  <div className="text-zinc-400 text-sm text-center font-semibold animate-pulse">Requesting permission…</div>
+                )}
+                {notifStatus === "idle" && (
+                  <div className="flex gap-3">
+                    <button
+                      onClick={handleAllowNotifications}
+                      className="flex-1 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-black font-black text-sm py-3
+                        transition-all duration-200 shadow-[0_0_20px_4px_rgba(34,197,94,0.25)]"
+                    >
+                      Enable
+                    </button>
+                    <button
+                      onClick={dismissNotify}
+                      className="flex-1 rounded-2xl border border-white/[0.10] text-zinc-400 hover:text-white
+                        font-bold text-sm py-3 transition-all duration-200 hover:border-white/[0.20]"
+                    >
+                      Not now
+                    </button>
+                  </div>
+                )}
+              </>
             )}
           </>
         )}
