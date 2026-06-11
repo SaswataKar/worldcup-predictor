@@ -320,9 +320,9 @@ export default function MatchCard({
             </div>
 
             <div className="flex items-center justify-center shrink-0 min-w-[44px] sm:min-w-[56px]">
-              {isFinished || isLive ? (
+              {(isFinished || isLive || match.team1_score != null) ? (
                 <span className={`text-base sm:text-xl font-black tabular-nums ${isLive ? "text-red-300" : ""}`}>
-                  {match.team1_score}–{match.team2_score}
+                  {match.team1_score ?? "?"}–{match.team2_score ?? "?"}
                 </span>
               ) : (
                 <span className="text-zinc-600 font-black text-xs sm:text-sm">VS</span>
@@ -545,8 +545,10 @@ export default function MatchCard({
             cancelPrediction={cancelPrediction}
           />
 
-          {/* MATCH EVENTS TIMELINE — shown for live and finished matches */}
-          {(isLive || isFinished) && <EventTimeline match={match} eventsLabel={t("match.events")} />}
+          {/* MATCH EVENTS TIMELINE — shown whenever there are events */}
+          {((match.goals?.length ?? 0) > 0 || (match.bookings?.length ?? 0) > 0 || (match.substitutions?.length ?? 0) > 0) && (
+            <EventTimeline match={match} eventsLabel={t("match.events")} />
+          )}
         </div>
         </motion.div>
       )}
