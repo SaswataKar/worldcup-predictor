@@ -346,12 +346,7 @@ export default function LoginPage() {
       }
 
       // LOGIN SUCCESS
-      Cookies.set(
-        "user",
-        JSON.stringify(
-          user
-        )
-      );
+      Cookies.set("user", JSON.stringify(user), { expires: 30 });
       // Clear any stale active league so user picks fresh each session
       Cookies.remove("activeLeague");
 
