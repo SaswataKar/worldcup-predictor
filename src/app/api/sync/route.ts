@@ -82,12 +82,13 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: false, error: existingError.message }, { status: 500 });
     }
 
-    // Lookup maps
+    // Lookup maps — force string keys to avoid number/string type mismatch
     const processedMap = new Map<string, boolean>();
     const statusMap = new Map<string, string>();
     existingMatches?.forEach((m) => {
-      processedMap.set(m.api_match_id, m.processed);
-      statusMap.set(m.api_match_id, m.status);
+      const key = String(m.api_match_id);
+      processedMap.set(key, m.processed);
+      statusMap.set(key, m.status);
     });
 
     const LIVE_STATUSES = new Set(["IN_PLAY", "LIVE", "PAUSED", "FINISHED"]);
