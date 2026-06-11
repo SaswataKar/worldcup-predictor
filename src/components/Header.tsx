@@ -5,19 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 
-// Persists across page navigations — beforeinstallprompt fires only once per session
-let _installPrompt: any = null;
-if (typeof window !== "undefined") {
-  window.addEventListener("beforeinstallprompt", (e) => {
-    e.preventDefault();
-    _installPrompt = e;
-    (window as any).__installPrompt = e;
-  });
-  window.addEventListener("appinstalled", () => {
-    _installPrompt = null;
-    (window as any).__installPrompt = null;
-  });
-}
+import { onInstallPromptChange, triggerInstall } from "@/lib/installPrompt";
 import ISTClock from "./ISTClock";
 import { LOCALES } from "@/hooks/useLocale";
 import { useLocaleCtx } from "@/context/LocaleContext";
@@ -47,18 +35,11 @@ export default function Header({ user, hideNav }: { user?: any; hideNav?: boolea
       setIsInstalled(true);
       return;
     }
-    // Pick up prompt captured at module level (survives navigation)
-    if (_installPrompt) setInstallPrompt(_installPrompt);
-
-    // Also listen in case it fires after this component mounts
-    const onPrompt = (e: Event) => { _installPrompt = e; setInstallPrompt(e); };
-    const onInstalled = () => { _installPrompt = null; setInstallPrompt(null); setIsInstalled(true); };
-    window.addEventListener("beforeinstallprompt", onPrompt);
-    window.addEventListener("appinstalled", onInstalled);
-    return () => {
-      window.removeEventListener("beforeinstallprompt", onPrompt);
-      window.removeEventListener("appinstalled", onInstalled);
-    };
+    const unsub = onInstallPromptChange((p) => {
+      setInstallPrompt(p);
+      if (!p) setIsInstalled(true);
+    });
+    return unsub;
   }, []);
 
   useEffect(() => {
@@ -195,14 +176,9 @@ export default function Header({ user, hideNav }: { user?: any; hideNav?: boolea
                 <span className="text-zinc-600 text-[10px]">↻</span>
               </Link>
             )}
-            {/* Install button — only when installable and not already installed */}
             {mounted && !isInstalled && installPrompt && (
               <button
-                onClick={async () => {
-                  installPrompt.prompt();
-                  const { outcome } = await installPrompt.userChoice;
-                  if (outcome === "accepted") setInstallPrompt(null);
-                }}
+                onClick={() => triggerInstall()}
                 className="shrink-0 bg-yellow-500 hover:bg-yellow-400 text-black px-3 py-2 rounded-xl text-xs font-black transition-all duration-200 hover:scale-105 whitespace-nowrap"
                 title="Install app"
               >

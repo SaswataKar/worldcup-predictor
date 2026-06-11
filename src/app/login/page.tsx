@@ -13,84 +13,6 @@ import { useRouter } from "next/navigation";
 
 import toast from "react-hot-toast";
 
-function InstallBanner() {
-  const [prompt, setPrompt] = useState<any>(null);
-  const [isIos, setIsIos] = useState(false);
-  const [dismissed, setDismissed] = useState(false);
-  const [installed, setInstalled] = useState(false);
-
-  useEffect(() => {
-    // Already running as installed PWA — hide banner
-    if (
-      window.matchMedia("(display-mode: standalone)").matches ||
-      (window.navigator as any).standalone
-    ) {
-      setInstalled(true);
-      return;
-    }
-    if (localStorage.getItem("install-dismissed")) { setDismissed(true); return; }
-
-    const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
-    if (ios) { setIsIos(true); return; }
-
-    // Android/desktop — pick up prompt (may already be stored at module level in Header)
-    const handler = (e: Event) => { e.preventDefault(); setPrompt(e); };
-    window.addEventListener("beforeinstallprompt", handler);
-    window.addEventListener("appinstalled", () => setInstalled(true));
-
-    // Also check if already captured
-    const win = window as any;
-    if (win.__installPrompt) setPrompt(win.__installPrompt);
-
-    return () => window.removeEventListener("beforeinstallprompt", handler);
-  }, []);
-
-  if (installed || dismissed) return null;
-  if (!prompt && !isIos) return null;
-
-  return (
-    <div className="w-full max-w-[420px] mb-4">
-      <div className="rounded-3xl border border-yellow-500/25 bg-yellow-500/5 px-5 py-4
-        shadow-[0_0_24px_4px_rgba(234,179,8,0.10),0_0_0_1px_rgba(234,179,8,0.18)]">
-        <div className="flex items-center gap-3 mb-3">
-          <span className="text-2xl">📲</span>
-          <div>
-            <div className="font-black text-sm text-yellow-300">Install the App</div>
-            <div className="text-zinc-400 text-xs">Quick access from your home screen + match notifications</div>
-          </div>
-        </div>
-
-        {isIos ? (
-          <div className="space-y-1.5 text-xs text-zinc-300 mb-3">
-            <div>1. Tap <span className="font-black text-white">Share ⬆</span> at the bottom of Safari</div>
-            <div>2. Tap <span className="font-black text-white">Add to Home Screen</span></div>
-            <div>3. Tap <span className="font-black text-white">Add</span></div>
-          </div>
-        ) : (
-          <button
-            onClick={async () => {
-              prompt.prompt();
-              const { outcome } = await prompt.userChoice;
-              if (outcome === "accepted") setInstalled(true);
-              else { localStorage.setItem("install-dismissed", "1"); setDismissed(true); }
-            }}
-            className="w-full rounded-2xl bg-yellow-500 hover:bg-yellow-400 text-black font-black text-sm py-2.5
-              transition-all duration-200 shadow-[0_0_16px_3px_rgba(234,179,8,0.25)] mb-2"
-          >
-            Install App
-          </button>
-        )}
-
-        <button
-          onClick={() => { localStorage.setItem("install-dismissed", "1"); setDismissed(true); }}
-          className="w-full text-zinc-600 hover:text-zinc-400 text-xs font-semibold transition-colors"
-        >
-          {isIos ? "Got it" : "Not now"}
-        </button>
-      </div>
-    </div>
-  );
-}
 
 export default function LoginPage() {
   const router =
@@ -438,7 +360,6 @@ export default function LoginPage() {
 
   return (
     <main className="min-h-screen bg-black text-white flex flex-col items-center justify-center p-6">
-      <InstallBanner />
       <div
         className="
           w-full
