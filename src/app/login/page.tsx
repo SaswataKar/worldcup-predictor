@@ -13,6 +13,91 @@ import { useRouter } from "next/navigation";
 
 import toast from "react-hot-toast";
 
+function InstallBanner() {
+  const [visible, setVisible] = useState(false);
+  const [isIos, setIsIos] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+
+  useEffect(() => {
+    // Hide if already running as installed PWA
+    if (
+      window.matchMedia("(display-mode: standalone)").matches ||
+      (window.navigator as any).standalone
+    ) return;
+
+    if (localStorage.getItem("install-dismissed")) return;
+
+    setIsIos(/iphone|ipad|ipod/i.test(navigator.userAgent));
+    setVisible(true);
+
+    // Capture prompt if Chrome offers it
+    const handler = (e: any) => { e.preventDefault(); setDeferredPrompt(e); };
+    window.addEventListener("beforeinstallprompt", handler);
+    window.addEventListener("appinstalled", () => setVisible(false));
+    return () => window.removeEventListener("beforeinstallprompt", handler);
+  }, []);
+
+  if (!visible) return null;
+
+  async function handleInstall() {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === "accepted") setVisible(false);
+      setDeferredPrompt(null);
+    }
+  }
+
+  return (
+    <div className="w-full max-w-[420px] mb-5">
+      <div className="relative rounded-3xl border border-yellow-500/30 bg-yellow-500/5 px-5 py-4
+        shadow-[0_0_24px_4px_rgba(234,179,8,0.12),inset_0_1px_0_rgba(255,255,255,0.06)]">
+        <button
+          onClick={() => { localStorage.setItem("install-dismissed", "1"); setVisible(false); }}
+          className="absolute top-3 right-4 text-zinc-600 hover:text-zinc-400 text-lg leading-none"
+        >✕</button>
+
+        <div className="flex items-center gap-3 mb-3 pr-6">
+          <img src="/icons/icon-192.png" className="w-10 h-10 rounded-2xl border border-white/[0.08] shrink-0" alt="" />
+          <div>
+            <div className="font-black text-sm text-yellow-300">Install WC Predictor</div>
+            <div className="text-zinc-500 text-xs">Home screen icon + match notifications</div>
+          </div>
+        </div>
+
+        {/* Android — prompt available */}
+        {!isIos && deferredPrompt && (
+          <button
+            onClick={handleInstall}
+            className="w-full rounded-2xl bg-yellow-500 hover:bg-yellow-400 text-black font-black text-sm py-2.5
+              transition-all shadow-[0_0_16px_3px_rgba(234,179,8,0.3)]"
+          >
+            Install App
+          </button>
+        )}
+
+        {/* Android — manual fallback (always shown alongside or when no prompt) */}
+        {!isIos && !deferredPrompt && (
+          <div className="space-y-1.5 text-xs text-zinc-300">
+            <div>1. Tap <span className="font-black text-white">⋮</span> (Chrome menu, top right)</div>
+            <div>2. Tap <span className="font-black text-white">Add to Home Screen</span></div>
+            <div>3. Tap <span className="font-black text-white">Add</span></div>
+          </div>
+        )}
+
+        {/* iOS */}
+        {isIos && (
+          <div className="space-y-1.5 text-xs text-zinc-300">
+            <div>1. Tap <span className="font-black text-white">Share ⬆</span> at the bottom of Safari</div>
+            <div>2. Tap <span className="font-black text-white">Add to Home Screen</span></div>
+            <div>3. Tap <span className="font-black text-white">Add</span></div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 
 export default function LoginPage() {
   const router =
@@ -360,6 +445,7 @@ export default function LoginPage() {
 
   return (
     <main className="min-h-screen bg-black text-white flex flex-col items-center justify-center p-6">
+      <InstallBanner />
       <div
         className="
           w-full
