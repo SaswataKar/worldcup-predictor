@@ -4,6 +4,20 @@ import Cookies from "js-cookie";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
+
+// Persists across page navigations — beforeinstallprompt fires only once per session
+let _installPrompt: any = null;
+if (typeof window !== "undefined") {
+  window.addEventListener("beforeinstallprompt", (e) => {
+    e.preventDefault();
+    _installPrompt = e;
+    (window as any).__installPrompt = e;
+  });
+  window.addEventListener("appinstalled", () => {
+    _installPrompt = null;
+    (window as any).__installPrompt = null;
+  });
+}
 import ISTClock from "./ISTClock";
 import { LOCALES } from "@/hooks/useLocale";
 import { useLocaleCtx } from "@/context/LocaleContext";
@@ -26,15 +40,25 @@ export default function Header({ user, hideNav }: { user?: any; hideNav?: boolea
 
   useEffect(() => {
     setMounted(true);
-    // Already installed as PWA
-    if (window.matchMedia("(display-mode: standalone)").matches || (window.navigator as any).standalone) {
+    if (
+      window.matchMedia("(display-mode: standalone)").matches ||
+      (window.navigator as any).standalone
+    ) {
       setIsInstalled(true);
       return;
     }
-    const handler = (e: Event) => { e.preventDefault(); setInstallPrompt(e); };
-    window.addEventListener("beforeinstallprompt", handler);
-    window.addEventListener("appinstalled", () => { setInstallPrompt(null); setIsInstalled(true); });
-    return () => window.removeEventListener("beforeinstallprompt", handler);
+    // Pick up prompt captured at module level (survives navigation)
+    if (_installPrompt) setInstallPrompt(_installPrompt);
+
+    // Also listen in case it fires after this component mounts
+    const onPrompt = (e: Event) => { _installPrompt = e; setInstallPrompt(e); };
+    const onInstalled = () => { _installPrompt = null; setInstallPrompt(null); setIsInstalled(true); };
+    window.addEventListener("beforeinstallprompt", onPrompt);
+    window.addEventListener("appinstalled", onInstalled);
+    return () => {
+      window.removeEventListener("beforeinstallprompt", onPrompt);
+      window.removeEventListener("appinstalled", onInstalled);
+    };
   }, []);
 
   useEffect(() => {
