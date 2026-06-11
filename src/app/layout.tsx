@@ -44,6 +44,15 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/icons/icon-192.png" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        {/* Register SW immediately — must happen before Chrome checks PWA installability */}
+        <script dangerouslySetInnerHTML={{ __html: `
+          if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+              navigator.serviceWorker.register('/sw.js', { scope: '/' })
+                .catch(function(e) { console.error('SW registration failed:', e); });
+            });
+          }
+        `}} />
       </head>
       <body className="min-h-full flex flex-col">
             <Toaster

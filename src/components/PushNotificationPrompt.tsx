@@ -25,8 +25,6 @@ export default function PushNotificationPrompt() {
   useEffect(() => {
     if (typeof window === "undefined" || !("serviceWorker" in navigator)) return;
 
-    navigator.serviceWorker.register("/sw.js").catch(console.error);
-
     // Only show inside the installed app, never in the browser
     if (!isInStandaloneMode()) return;
 
