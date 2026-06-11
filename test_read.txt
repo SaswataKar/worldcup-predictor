@@ -20,7 +20,7 @@ type MatchCardProps = {
   activeDayBoosters: Record<string, string[]>;
 };
 
-const BOOSTER_ICONS: Record<string, string> = { "2x": "⚽", "3x": "🔥", draw: "🐐" };
+const BOOSTER_ICONS: Record<string, string> = { "2x": "âš½", "3x": "ðŸ”¥", draw: "ðŸ" };
 
 // Subtle football pitch SVG rendered inside each card
 function PitchBackground() {
@@ -68,36 +68,37 @@ function PitchBackground() {
   );
 }
 
-// ─── Event Timeline (ESPN format) ────────────────────────────────────────────
+// â”€â”€â”€ Event Timeline â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-function parseMinute(m: string): number {
-  const clean = m.replace("'", "");
-  const parts = clean.split("+").map(Number);
-  return (parts[0] || 0) + (parts[1] || 0);
+function eventIcon(type: string, detail?: string) {
+  if (type === "GOAL") {
+    if (detail === "Own Goal") return "âš½ðŸ”´";
+    if (detail === "Penalty") return "âš½ðŸŽ¯";
+    return "âš½";
+  }
+  if (type === "CARD") {
+    if (detail === "Red Card" || detail === "RED_CARD") return "ðŸŸ¥";
+    if (detail === "Yellow-Red Card" || detail === "YELLOW_RED_CARD") return "ðŸŸ¨ðŸŸ¥";
+    return "ðŸŸ¨";
+  }
+  if (type === "SUBSTITUTION") return "ðŸ”„";
+  return "â€¢";
 }
 
-type UnifiedEvent =
-  | { kind: "goal"; minute: string; team: "home" | "away"; scorer: string; assist: string | null; ownGoal: boolean; penalty: boolean }
-  | { kind: "booking"; minute: string; team: "home" | "away"; player: string; cardType: "Yellow" | "Red" }
-  | { kind: "sub"; minute: string; team: "home" | "away"; playerOut: string; playerIn: string };
-
-function buildEvents(match: Match): UnifiedEvent[] {
-  const goals = (match.goals ?? []) as ESPNGoal[];
-  const bookings = (match.bookings ?? []) as ESPNBooking[];
-  const subs = (match.substitutions ?? []) as ESPNSubstitution[];
-
-  const all: UnifiedEvent[] = [
-    ...goals.map((g) => ({ kind: "goal" as const, minute: g.minute, team: g.team, scorer: g.scorer, assist: g.assist, ownGoal: g.ownGoal, penalty: g.penalty })),
-    ...bookings.map((b) => ({ kind: "booking" as const, minute: b.minute, team: b.team, player: b.player, cardType: b.type })),
-    ...subs.map((s) => ({ kind: "sub" as const, minute: s.minute, team: s.team, playerOut: s.playerOut, playerIn: s.playerIn })),
-  ];
-
-  return all.sort((a, b) => parseMinute(a.minute) - parseMinute(b.minute));
+function minuteLabel(event: MatchEvent) {
+  const extra = event.extraTime ? `+${event.extraTime}` : "";
+  return `${event.minute}${extra}'`;
 }
 
 function EventTimeline({ match, eventsLabel }: { match: Match; eventsLabel: string }) {
-  const events = buildEvents(match);
-  if (!events.length) return null;
+  // Merge all events and sort by minute
+  const allEvents: MatchEvent[] = [
+    ...(match.goals ?? []),
+    ...(match.bookings ?? []),
+    ...(match.substitutions ?? []),
+  ].sort((a, b) => a.minute - b.minute || 0);
+
+  if (!allEvents.length) return null;
 
   return (
     <div className="mt-8 pt-6 border-t border-zinc-800/60">
@@ -105,47 +106,53 @@ function EventTimeline({ match, eventsLabel }: { match: Match; eventsLabel: stri
         {eventsLabel}
       </div>
       <div className="space-y-2">
-        {events.map((ev, i) => {
-          const isHome = ev.team === "home";
-          let icon = "";
-          let mainText = "";
-          let subText: string | null = null;
-
-          if (ev.kind === "goal") {
-            icon = ev.ownGoal ? "⚽🔴" : ev.penalty ? "⚽🎯" : "⚽";
-            mainText = ev.scorer;
-            if (ev.ownGoal) subText = "Own Goal";
-            else if (ev.penalty) subText = "Penalty";
-            else if (ev.assist) subText = `Assist: ${ev.assist}`;
-          } else if (ev.kind === "booking") {
-            icon = ev.cardType === "Red" ? "🟥" : "🟨";
-            mainText = ev.player;
-            subText = ev.cardType === "Red" ? "Red Card" : "Yellow Card";
-          } else {
-            icon = "🔄";
-          }
-
+        {allEvents.map((event, i) => {
+          const isHome = event.team?.name === match.team1;
           return (
-            <div key={i} className={`flex items-center gap-2 ${isHome ? "flex-row" : "flex-row-reverse"}`}>
-              <div className="shrink-0 w-10 text-center">
-                <span className="text-[11px] font-black text-zinc-500 tabular-nums">{ev.minute}</span>
+            <div
+              key={i}
+              className={`flex items-center gap-3 ${isHome ? "flex-row" : "flex-row-reverse"}`}
+            >
+              {/* Minute badge */}
+              <div className="shrink-0 w-12 text-center">
+                <span className="text-[11px] font-black text-zinc-500 tabular-nums">
+                  {minuteLabel(event)}
+                </span>
               </div>
-              <div className={`flex items-center gap-2 px-3 py-2 rounded-2xl bg-zinc-900 border border-zinc-800 min-w-0 max-w-[220px] ${isHome ? "" : "flex-row-reverse"}`}>
-                <span className="shrink-0 text-sm leading-none">{icon}</span>
+
+              {/* Event pill */}
+              <div
+                className={`flex items-center gap-2 px-3 py-2 rounded-2xl bg-zinc-900 border border-zinc-800 text-sm min-w-0 ${
+                  isHome ? "" : "flex-row-reverse"
+                }`}
+              >
+                <span className="shrink-0 text-base leading-none">
+                  {eventIcon(event.type, event.detail)}
+                </span>
                 <div className={`min-w-0 ${isHome ? "text-left" : "text-right"}`}>
-                  {ev.kind === "sub" ? (
+                  {event.type === "SUBSTITUTION" ? (
                     <div className="leading-tight">
-                      <span className="text-emerald-400 font-bold text-xs truncate block">&#8593; {ev.playerIn}</span>
-                      <span className="text-red-400 font-bold text-xs truncate block">&#8595; {ev.playerOut}</span>
+                      <span className="text-emerald-400 font-bold text-xs truncate block">
+                        â†‘ {event.assist?.name ?? "â€“"}
+                      </span>
+                      <span className="text-red-400 font-bold text-xs truncate block">
+                        â†“ {event.player?.name ?? "â€“"}
+                      </span>
                     </div>
                   ) : (
                     <div className="leading-tight">
-                      <span className="font-bold text-xs truncate block">{mainText}</span>
-                      {subText && <span className="text-zinc-500 text-[10px]">{subText}</span>}
+                      <span className="font-bold text-xs truncate block">
+                        {event.player?.name ?? "â€“"}
+                      </span>
+                      {event.detail && (
+                        <span className="text-zinc-600 text-[10px]">{event.detail}</span>
+                      )}
                     </div>
                   )}
                 </div>
               </div>
+
+              {/* Spacer to push home events left, away events right */}
               <div className="flex-1" />
             </div>
           );
@@ -154,6 +161,7 @@ function EventTimeline({ match, eventsLabel }: { match: Match; eventsLabel: stri
     </div>
   );
 }
+
 export default function MatchCard({
   match,
   canPredict,
@@ -272,7 +280,7 @@ export default function MatchCard({
     ? "border-l-emerald-500/70"
     : "border-l-zinc-600/40";
 
-  // Gradient glow — brighter when expanded, based on match status
+  // Gradient glow â€” brighter when expanded, based on match status
   const cardGlow = isLive
     ? expanded
       ? "shadow-[0_0_40px_10px_rgba(239,68,68,0.30),0_0_0_1px_rgba(239,68,68,0.40),inset_0_1px_0_rgba(255,255,255,0.09)]"
@@ -322,7 +330,7 @@ export default function MatchCard({
             <div className="flex items-center justify-center shrink-0 min-w-[44px] sm:min-w-[56px]">
               {isFinished || isLive ? (
                 <span className={`text-base sm:text-xl font-black tabular-nums ${isLive ? "text-red-300" : ""}`}>
-                  {match.team1_score}–{match.team2_score}
+                  {match.team1_score}â€“{match.team2_score}
                 </span>
               ) : (
                 <span className="text-zinc-600 font-black text-xs sm:text-sm">VS</span>
@@ -347,34 +355,34 @@ export default function MatchCard({
               <span>{getLocalKickoff()}</span>
             </div>
 
-            <div className="text-zinc-700 hidden sm:block">·</div>
+            <div className="text-zinc-700 hidden sm:block">Â·</div>
 
             <div className="text-zinc-400 hidden sm:flex flex-col items-end leading-tight">
               <span className="text-[11px] text-zinc-600 uppercase tracking-widest">{t("match.predCloses")}</span>
               <span className={locked ? "text-red-400" : "text-zinc-400"}>{getCloseTime()}</span>
             </div>
 
-            <div className="text-zinc-700">·</div>
+            <div className="text-zinc-700">Â·</div>
 
             <span className={`tabular-nums ${locked ? "text-red-400" : "text-zinc-500"}`}>
-              ⏳ {getCountdown()}
+              â³ {getCountdown()}
             </span>
 
             {prediction && (
               <>
-                <div className="text-zinc-700">·</div>
-                {/* Predicted score badge — stands out from surrounding meta */}
+                <div className="text-zinc-700">Â·</div>
+                {/* Predicted score badge â€” stands out from surrounding meta */}
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-zinc-800 border border-zinc-700 text-white font-black text-xs tabular-nums">
-                  🎯 {prediction.predicted_team1_score}–{prediction.predicted_team2_score}
+                  ðŸŽ¯ {prediction.predicted_team1_score}â€“{prediction.predicted_team2_score}
                 </span>
               </>
             )}
 
             {prediction?.processed && (
               <>
-                <div className="text-zinc-700">·</div>
+                <div className="text-zinc-700">Â·</div>
                 <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-yellow-400/10 border border-yellow-400/30 text-yellow-300 font-black text-xs">
-                  +{prediction.awarded_points} 🏆
+                  +{prediction.awarded_points} ðŸ†
                 </span>
               </>
             )}
@@ -382,7 +390,7 @@ export default function MatchCard({
             {/* Live / waiting-for-scores indicators in collapsed row */}
             {prediction && !prediction.processed && isLive && (
               <>
-                <div className="text-zinc-700">·</div>
+                <div className="text-zinc-700">Â·</div>
                 <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-red-400">
                   <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse inline-block" />
                   {t("status.live")}
@@ -392,7 +400,7 @@ export default function MatchCard({
 
             {prediction && !prediction.processed && isFinished && (
               <>
-                <div className="text-zinc-700">·</div>
+                <div className="text-zinc-700">Â·</div>
                 <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-yellow-400">
                   <svg className="w-3 h-3 animate-spin" viewBox="0 0 24 24" fill="none">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
@@ -406,7 +414,7 @@ export default function MatchCard({
             {/* ACTIVE DAY BOOSTERS */}
             {activeBoosters.length > 0 && (
               <>
-                <div className="text-zinc-700">·</div>
+                <div className="text-zinc-700">Â·</div>
                 <span className="flex gap-1">
                   {activeBoosters.map((b) => (
                     <span key={b} className="text-lg leading-none">{BOOSTER_ICONS[b] ?? b}</span>
@@ -420,7 +428,7 @@ export default function MatchCard({
               transition={{ duration: 0.22, ease: [0.25, 0.1, 0.25, 1] }}
               className="text-zinc-500 text-lg leading-none ml-1"
             >
-              ⌄
+              âŒ„
             </motion.span>
           </div>
         </div>
@@ -431,7 +439,7 @@ export default function MatchCard({
             <span className="text-[10px] text-zinc-700 uppercase tracking-widest">{t("match.kickoff")} ({tzLabel()})</span>
             <span>{getLocalKickoff()}</span>
           </div>
-          <div className="text-zinc-700">·</div>
+          <div className="text-zinc-700">Â·</div>
           <div className="flex flex-col leading-tight">
             <span className="text-[10px] text-zinc-700 uppercase tracking-widest">{t("match.predClosesShort")}</span>
             <span className={locked ? "text-red-400" : ""}>{getCloseTime()}</span>
@@ -468,7 +476,7 @@ export default function MatchCard({
                   : "bg-emerald-500/10 border-emerald-500/30 text-emerald-300"
               }`}
             >
-              ⏳ {getCountdown()}
+              â³ {getCountdown()}
             </div>
           </div>
 
@@ -500,7 +508,7 @@ export default function MatchCard({
 
           {isPostponed && (
             <div className="flex items-center gap-3 px-5 py-4 rounded-2xl bg-orange-500/10 border border-orange-500/20 mb-6">
-              <span className="text-orange-400 text-lg shrink-0">📅</span>
+              <span className="text-orange-400 text-lg shrink-0">ðŸ“…</span>
               <div>
                 <div className="text-orange-300 font-black text-sm">{t("match.postponedMsg")}</div>
                 <div className="text-orange-400/70 text-xs mt-0.5">{t("match.postponedDetail")}</div>
@@ -510,7 +518,7 @@ export default function MatchCard({
 
           {isSuspended && (
             <div className="flex items-center gap-3 px-5 py-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 mb-6">
-              <span className="text-amber-400 text-lg shrink-0">⚠️</span>
+              <span className="text-amber-400 text-lg shrink-0">âš ï¸</span>
               <div>
                 <div className="text-amber-300 font-black text-sm">{t("match.suspendedMsg")}</div>
                 <div className="text-amber-400/70 text-xs mt-0.5">{t("match.suspendedDetail")}</div>
@@ -545,7 +553,7 @@ export default function MatchCard({
             cancelPrediction={cancelPrediction}
           />
 
-          {/* MATCH EVENTS TIMELINE — shown for live and finished matches */}
+          {/* MATCH EVENTS TIMELINE â€” shown for live and finished matches */}
           {(isLive || isFinished) && <EventTimeline match={match} eventsLabel={t("match.events")} />}
         </div>
         </motion.div>
@@ -555,3 +563,4 @@ export default function MatchCard({
     </div>
   );
 }
+
