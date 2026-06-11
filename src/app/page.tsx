@@ -177,6 +177,13 @@ export default function Home() {
     )?.[0] ?? null;
     if (existingDate === date) return;
 
+    // Block if this matchday already has a different booster assigned
+    const dayAlreadyHasBooster = (activeDayBoosters[date] || []).some((t) => t !== boosterType);
+    if (dayAlreadyHasBooster) {
+      toast.error("Only one booster can be active per matchday.");
+      return;
+    }
+
     // If already assigned somewhere else, remove old entry first
     if (existingDate) {
       const { error: delError } = await supabase
