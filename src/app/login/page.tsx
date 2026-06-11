@@ -5,8 +5,6 @@ import {
   useState,
 } from "react";
 
-import { supabase } from "@/lib/supabase";
-
 import Cookies from "js-cookie";
 
 import { useRouter } from "next/navigation";
@@ -151,21 +149,9 @@ export default function LoginPage() {
               storedUser
             );
 
-          const {
-            data,
-          } = await supabase
-            .from("users")
-            .select("*")
-            .eq(
-              "id",
-              parsedUser.id
-            )
-            .single();
-
-          if (!data) {
-            Cookies.remove(
-              "user"
-            );
+          const res = await fetch(`/api/auth/verify?userId=${parsedUser.id}`);
+          if (!res.ok) {
+            Cookies.remove("user");
           }
         } catch {
           Cookies.remove(
@@ -232,208 +218,56 @@ export default function LoginPage() {
           return;
         }
 
-        // CHECK EXISTING USER
-        const {
-          data:
-            existingUser,
-        } = await supabase
-          .from("users")
-          .select("*")
-          .eq(
-            "phone",
-            phone
-          )
-          .single();
-
-        if (
-          existingUser
-        ) {
-          toast.error(
-            "Account already exists"
-          );
-
+        const signupRes = await fetch("/api/auth/signup", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ phone: phone.trim(), password, name: cleanName }),
+        });
+        const signupData = await signupRes.json();
+        if (!signupRes.ok) {
+          toast.error(signupData.error ?? "Failed to create account");
           return;
         }
 
-        // CREATE USER
-        const {
-          data: newUsers,
-          error,
-        } = await supabase
-          .from("users")
-          .insert([
-            {
-              name:
-                cleanName,
-
-              phone:
-                phone.trim(),
-
-              password,
-            },
-          ])
-          .select();
-
-        if (error) {
-          toast.error(
-            error.message
-          );
-
-          return;
-        }
-
-        const newUser =
-          newUsers?.[0];
-
-        // CREATE LEADERBOARD ENTRY
-        if (newUser) {
-          const {
-            error:
-              leaderboardError,
-          } = await supabase
-            .from(
-              "leaderboard"
-            )
-            .insert([
-              {
-                user_id:
-                  newUser.id,
-
-                username:
-                  newUser.name,
-
-                total_points: 0,
-
-                exact_predictions: 0,
-
-                correct_results: 0,
-              },
-            ]);
-
-          if (
-            leaderboardError
-          ) {
-            console.error(
-              leaderboardError
-            );
-          }
-        }
-
-        toast.success(
-          "Account created successfully ⚽"
-        );
-
-        setIsSignup(
-          false
-        );
-
+        toast.success("Account created successfully ⚽");
+        setIsSignup(false);
         setName("");
-
         setPhone("");
-
         setPassword("");
-
         return;
       }
 
       // FORGOT PASSWORD
-      if (
-        showForgotPassword
-      ) {
-        const {
-          data: user,
-        } = await supabase
-          .from("users")
-          .select("*")
-          .eq(
-            "phone",
-            phone
-          )
-          .single();
-
-        if (!user) {
-          toast.error(
-            "No account found"
-          );
-
+      if (showForgotPassword) {
+        const resetRes = await fetch("/api/auth/reset-password", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ phone: phone.trim(), password }),
+        });
+        const resetData = await resetRes.json();
+        if (!resetRes.ok) {
+          toast.error(resetData.error ?? "Failed to reset password");
           return;
         }
 
-        if (
-          password.length < 4
-        ) {
-          toast.error(
-            "Password must be at least 4 characters"
-          );
-
-          return;
-        }
-
-        const {
-          error,
-        } = await supabase
-          .from("users")
-          .update({
-            password,
-          })
-          .eq(
-            "phone",
-            phone
-          );
-
-        if (error) {
-          toast.error(
-            error.message
-          );
-
-          return;
-        }
-
-        toast.success(
-          "Password updated successfully 🔐"
-        );
-
-        setShowForgotPassword(
-          false
-        );
-
+        toast.success("Password updated successfully 🔐");
+        setShowForgotPassword(false);
         setPassword("");
-
         return;
       }
 
       // LOGIN
-      const {
-        data: user,
-      } = await supabase
-        .from("users")
-        .select("*")
-        .eq(
-          "phone",
-          phone
-        )
-        .single();
-
-      // USER NOT FOUND
-      if (!user) {
-        toast.error(
-          "No account found. Please sign up."
-        );
-
+      const loginRes = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: phone.trim(), password }),
+      });
+      const loginData = await loginRes.json();
+      if (!loginRes.ok) {
+        toast.error(loginData.error ?? "Login failed");
         return;
       }
-
-      // WRONG PASSWORD
-      if (
-        user.password !==
-        password
-      ) {
-        toast.error(
-          "Incorrect password"
-        );
-
-        return;
-      }
+      const { user } = loginData;
 
       // LOGIN SUCCESS
       Cookies.set("user", JSON.stringify(user), { expires: 30 });

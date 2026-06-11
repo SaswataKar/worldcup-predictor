@@ -7,7 +7,6 @@ import Cookies from "js-cookie";
 import Header from "@/components/Header";
 import PageWrapper from "@/components/PageWrapper";
 
-import { supabase } from "@/lib/supabase";
 import { useLocaleCtx } from "@/context/LocaleContext";
 import { getT } from "@/lib/translations";
 
@@ -80,12 +79,11 @@ export default function LeaderboardPage() {
       await fetch("/api/sync-leaderboard", { cache: "no-store" });
     }
 
-    const { data, error } = await supabase
-      .from("leaderboard")
-      .select("*")
-      .order("total_points", { ascending: false });
+    const res = await fetch("/api/leaderboard", { cache: "no-store" });
+    const json = await res.json();
+    const data = json.leaderboard;
 
-    if (!error && data) {
+    if (res.ok && data) {
       // Split: scorers sorted by points desc, zero-pointers sorted alphabetically
       const scorers = data.filter((e) => e.total_points > 0);
       const zeros = data

@@ -13,7 +13,6 @@ import GroupCountdown from "@/components/GroupCountdown";
 import HowItWorks from "@/components/HowItWorks";
 import PageWrapper from "@/components/PageWrapper";
 
-import { supabase } from "@/lib/supabase";
 import { useLocaleCtx } from "@/context/LocaleContext";
 import { groupMatches, buildGroupLabels, dateFromKey } from "@/lib/matchGroups";
 import { getT } from "@/lib/translations";
@@ -50,18 +49,14 @@ export default function Home() {
       }
       try {
         const parsedUser = JSON.parse(storedUser);
-        const { data: existingUser } = await supabase
-          .from("users")
-          .select("*")
-          .eq("id", parsedUser.id)
-          .single();
-
-        if (!existingUser) {
+        const verifyRes = await fetch(`/api/auth/verify?userId=${parsedUser.id}`);
+        if (!verifyRes.ok) {
           Cookies.remove("user");
           toast.error("Session expired. Please login again.");
           router.push("/login");
           return;
         }
+        const { user: existingUser } = await verifyRes.json();
 
         // Require league selection before entering predictor
         const activeLeagueCookie = Cookies.get("activeLeague");
@@ -109,12 +104,10 @@ export default function Home() {
 
   // FETCH PREDICTIONS
   const fetchPredictions = async (userId: number) => {
-    const { data, error } = await supabase
-      .from("predictions")
-      .select("*")
-      .eq("user_id", userId);
-
-    if (error || !data) return;
+    const res = await fetch(`/api/predictions?userId=${userId}`);
+    if (!res.ok) return;
+    const { predictions: data } = await res.json();
+    if (!data) return;
 
     const serverMapped: Record<number, Prediction> = {};
     const serverScoreMap: Record<number, PredictedScore> = {};
@@ -149,12 +142,10 @@ export default function Home() {
 
   // FETCH DAILY BOOSTERS
   const fetchDailyBoosters = async (userId: number) => {
-    const { data, error } = await supabase
-      .from("daily_boosters")
-      .select("*")
-      .eq("user_id", userId);
-
-    if (error || !data) return;
+    const res = await fetch(`/api/boosters?userId=${userId}`);
+    if (!res.ok) return;
+    const { boosters: data } = await res.json();
+    if (!data) return;
 
     const used = data.map((item) => item.booster_type);
     const byDay: Record<string, string[]> = {};
@@ -184,25 +175,15 @@ export default function Home() {
       return;
     }
 
-    // If already assigned somewhere else, remove old entry first
-    if (existingDate) {
-      const { error: delError } = await supabase
-        .from("daily_boosters")
-        .delete()
-        .eq("user_id", user.id)
-        .eq("booster_type", boosterType);
-      if (delError) { toast.error(delError.message); throw delError; }
-    }
-
-    const { error } = await supabase.from("daily_boosters").insert({
-      user_id: user.id,
-      booster_type: boosterType,
-      active_date: date,
+    const res = await fetch("/api/boosters", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId: user.id, boosterType, date }),
     });
-
-    if (error) {
-      toast.error(error.message);
-      throw error;
+    if (!res.ok) {
+      const { error } = await res.json();
+      toast.error(error ?? "Failed to activate booster");
+      throw new Error(error);
     }
 
     // Update state: keep used list unchanged (type was already tracked), update day map
@@ -251,14 +232,14 @@ export default function Home() {
       return;
     }
 
-    const { error } = await supabase
-      .from("daily_boosters")
-      .delete()
-      .eq("user_id", user.id)
-      .eq("booster_type", boosterType);
-
-    if (error) {
-      toast.error(error.message);
+    const res = await fetch("/api/boosters", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId: user.id, boosterType }),
+    });
+    if (!res.ok) {
+      const { error } = await res.json();
+      toast.error(error ?? "Failed to remove booster");
       return;
     }
 
@@ -368,12 +349,19 @@ export default function Home() {
       updated_at: new Date().toISOString(),
     };
 
-    const { error } = await supabase
-      .from("predictions")
-      .upsert(payload, { onConflict: "user_id,match_id" });
-
-    if (error) {
-      toast.error(error.message);
+    const res = await fetch("/api/predictions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        userId: user.id,
+        matchId,
+        homeScore: payload.predicted_team1_score,
+        awayScore: payload.predicted_team2_score,
+      }),
+    });
+    if (!res.ok) {
+      const { error } = await res.json();
+      toast.error(error ?? "Failed to submit prediction");
       return;
     }
 
@@ -401,13 +389,13 @@ export default function Home() {
       return updated;
     });
 
-    const { error } = await supabase
-      .from("predictions")
-      .delete()
-      .eq("match_id", matchId)
-      .eq("user_id", user.id);
-
-    if (error) {
+    const res = await fetch("/api/predictions", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId: user.id, matchId }),
+    });
+    if (!res.ok) {
+      const { error } = await res.json();
       cancelledMatchIds.current.delete(matchId);
       setPredictions((prev) => ({ ...prev, [matchId]: prediction }));
       setPredictedScores((prev) => ({
@@ -417,7 +405,7 @@ export default function Home() {
           away: prediction.predicted_team2_score,
         },
       }));
-      toast.error(error.message);
+      toast.error(error ?? "Failed to cancel prediction");
       return;
     }
 

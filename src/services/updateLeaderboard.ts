@@ -1,4 +1,4 @@
-import { supabase } from "@/lib/supabase";
+import { supabaseServer as supabase } from "@/lib/supabaseServer";
 
 export const updateLeaderboard = async () => {
   const { data: users } = await supabase.from("users").select("*");
