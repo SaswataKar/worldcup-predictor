@@ -295,10 +295,23 @@ export default function MatchCard({
 
   return (
     <div
-      className={`overflow-hidden rounded-3xl border-l-4 ${cardAccent} ${cardGlow}
+      className={`relative overflow-hidden rounded-3xl border-l-4 ${cardAccent} ${cardGlow}
         backdrop-blur-md border border-white/[0.07]
         transition-all duration-300`}
     >
+      {/* LIVE / STARTED HEARTBEAT INDICATOR */}
+      {isLive && (
+        <span className="absolute top-3 right-3 z-10 flex h-3 w-3">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+          <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500" />
+        </span>
+      )}
+      {!isLive && !isFinished && hasStarted && (
+        <span className="absolute top-3 right-3 z-10 flex h-3 w-3">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75" />
+          <span className="relative inline-flex rounded-full h-3 w-3 bg-orange-500" />
+        </span>
+      )}
       <div>
 
       {/* COLLAPSED ROW */}
