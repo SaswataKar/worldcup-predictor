@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabaseServer";
+import bcrypt from "bcryptjs";
 
 export async function POST(req: NextRequest) {
   const { phone, password } = await req.json();
@@ -22,9 +23,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "No account found" }, { status: 404 });
   }
 
+  const hashedPassword = await bcrypt.hash(password, 10);
+
   const { error } = await supabaseServer
     .from("users")
-    .update({ password })
+    .update({ password: hashedPassword })
     .eq("phone", phone.trim());
 
   if (error) {

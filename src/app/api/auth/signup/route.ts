@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabaseServer";
+import bcrypt from "bcryptjs";
 
 export async function POST(req: NextRequest) {
   const { phone, password, name } = await req.json();
@@ -28,9 +29,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Account already exists" }, { status: 409 });
   }
 
+  const hashedPassword = await bcrypt.hash(password, 10);
+
   const { data: newUsers, error } = await supabaseServer
     .from("users")
-    .insert([{ name: cleanName, phone: phone.trim(), password }])
+    .insert([{ name: cleanName, phone: phone.trim(), password: hashedPassword }])
     .select();
 
   if (error || !newUsers?.[0]) {
