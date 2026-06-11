@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
   }
 
   const now = new Date();
-  const windowStart = new Date(now.getTime() - 125 * 60 * 1000); // 125 min ago
+  const windowStart = new Date(now.getTime() - 150 * 60 * 1000); // 150 min ago (covers 90min + extra time + buffer)
   const windowEnd = new Date(now.getTime() + 10 * 60 * 1000);   // 10 min ahead
 
   // Only run during live match windows — no API calls on non-match periods
