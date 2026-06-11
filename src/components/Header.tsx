@@ -21,7 +21,21 @@ export default function Header({ user, hideNav }: { user?: any; hideNav?: boolea
 
   // Don't render language label until locale is hydrated — prevents "English" flash
   const [mounted, setMounted] = useState(false);
-  useEffect(() => { setMounted(true); }, []);
+  const [installPrompt, setInstallPrompt] = useState<any>(null);
+  const [isInstalled, setIsInstalled] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    // Already installed as PWA
+    if (window.matchMedia("(display-mode: standalone)").matches || (window.navigator as any).standalone) {
+      setIsInstalled(true);
+      return;
+    }
+    const handler = (e: Event) => { e.preventDefault(); setInstallPrompt(e); };
+    window.addEventListener("beforeinstallprompt", handler);
+    window.addEventListener("appinstalled", () => { setInstallPrompt(null); setIsInstalled(true); });
+    return () => window.removeEventListener("beforeinstallprompt", handler);
+  }, []);
 
   useEffect(() => {
     const raw = Cookies.get("activeLeague");
@@ -156,6 +170,20 @@ export default function Header({ user, hideNav }: { user?: any; hideNav?: boolea
                 {activeLeagueName}
                 <span className="text-zinc-600 text-[10px]">↻</span>
               </Link>
+            )}
+            {/* Install button — only when installable and not already installed */}
+            {mounted && !isInstalled && installPrompt && (
+              <button
+                onClick={async () => {
+                  installPrompt.prompt();
+                  const { outcome } = await installPrompt.userChoice;
+                  if (outcome === "accepted") setInstallPrompt(null);
+                }}
+                className="shrink-0 bg-yellow-500 hover:bg-yellow-400 text-black px-3 py-2 rounded-xl text-xs font-black transition-all duration-200 hover:scale-105 whitespace-nowrap"
+                title="Install app"
+              >
+                📲 Install
+              </button>
             )}
             <button
               onClick={() => {
