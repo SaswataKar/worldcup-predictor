@@ -13,18 +13,25 @@ function normalize(name: string): string {
   return (ESPN_NAME_MAP[name] ?? name).toLowerCase().trim();
 }
 
-function mapStatus(espnStatus: string): string {
+function mapStatus(espnStatusName: string, espnState: string): string {
+  // Primary: use state ("pre" / "in" / "post") — more reliable across ESPN API versions
+  if (espnState === "in") return "IN_PLAY";
+  if (espnState === "post") return "FINISHED";
+  if (espnState === "pre") return "TIMED";
+
+  // Fallback: full status name
   const MAP: Record<string, string> = {
     STATUS_SCHEDULED: "TIMED",
     STATUS_IN_PROGRESS: "IN_PLAY",
     STATUS_HALFTIME: "IN_PLAY",
     STATUS_FINAL: "FINISHED",
     STATUS_FULL_TIME: "FINISHED",
+    STATUS_END_PERIOD: "IN_PLAY",
     STATUS_POSTPONED: "POSTPONED",
     STATUS_SUSPENDED: "SUSPENDED",
     STATUS_CANCELLED: "CANCELLED",
   };
-  return MAP[espnStatus] ?? "TIMED";
+  return MAP[espnStatusName] ?? "TIMED";
 }
 
 export async function GET(req: NextRequest) {
@@ -74,6 +81,7 @@ export async function GET(req: NextRequest) {
       const espnHome = homeComp?.team?.displayName ?? "";
       const espnAway = awayComp?.team?.displayName ?? "";
       const espnStatus = event.status?.type?.name ?? "";
+      const espnState = event.status?.type?.state ?? "";
 
       // Match to our DB by team names (order-independent)
       const dbMatch = liveMatches.find((m) => {
@@ -144,7 +152,7 @@ export async function GET(req: NextRequest) {
       await supabaseServer
         .from("matches")
         .update({
-          status: mapStatus(espnStatus),
+          status: mapStatus(espnStatus, espnState),
           team1_score: dbHomeIsESPNHome ? homeScore : awayScore,
           team2_score: dbHomeIsESPNHome ? awayScore : homeScore,
           goals,
