@@ -93,36 +93,28 @@ export async function GET(req: NextRequest) {
 
     const LIVE_STATUSES = new Set(["IN_PLAY", "LIVE", "PAUSED", "FINISHED"]);
 
-    // BUILD BULK PAYLOAD
-    const payload = apiData.matches.map((match: any) => {
-      const apiId = String(match.id);
-      const currentStatus = statusMap.get(apiId) ?? "";
-      const isLiveOrDone = LIVE_STATUSES.has(currentStatus);
-
-      const base = {
-        api_match_id: apiId,
+    // BUILD BULK PAYLOAD — skip live/finished matches entirely to avoid nulling ESPN data
+    const payload = apiData.matches
+      .filter((match: any) => {
+        const currentStatus = statusMap.get(String(match.id)) ?? "";
+        return !LIVE_STATUSES.has(currentStatus);
+      })
+      .map((match: any) => ({
+        api_match_id: String(match.id),
         team1: match.homeTeam?.name || "TBD",
         team2: match.awayTeam?.name || "TBD",
         team1_crest: match.homeTeam?.crest || null,
         team2_crest: match.awayTeam?.crest || null,
         kickoff_time: match.utcDate || null,
         matchday: match.stage || "Group Stage",
-        processed: processedMap.get(apiId) || false,
-      };
-
-      // Don't let football-data.org overwrite live/finished data set by ESPN sync-live
-      if (isLiveOrDone) return base;
-
-      return {
-        ...base,
+        processed: processedMap.get(String(match.id)) || false,
         status: match.status || "SCHEDULED",
         team1_score: match.score?.fullTime?.home ?? null,
         team2_score: match.score?.fullTime?.away ?? null,
         goals: match.goals ?? [],
         bookings: match.bookings ?? [],
         substitutions: match.substitutions ?? [],
-      };
-    });
+      }));
 
     // SINGLE BULK UPSERT
     const { error } =
