@@ -15,13 +15,34 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "WC 2026 Predictor",
-  description: "Predict FIFA World Cup 2026 match scores and compete with friends.",
+  title: "FIFA WC 2026 Pro Predictor",
+  description: "Predict match scores, earn points, and dominate your league. The ultimate FIFA World Cup 2026 prediction game.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
     title: "WC Predictor",
+  },
+  openGraph: {
+    title: "FIFA WC 2026 Pro Predictor",
+    description: "Predict match scores, earn points, and dominate your league. Join now — it's free!",
+    url: "https://worldcup-predictor-tawny.vercel.app",
+    siteName: "WC 2026 Predictor",
+    images: [
+      {
+        url: "https://worldcup-predictor-tawny.vercel.app/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "FIFA WC 2026 Pro Predictor",
+      },
+    ],
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "FIFA WC 2026 Pro Predictor",
+    description: "Predict match scores, earn points, and dominate your league.",
+    images: ["https://worldcup-predictor-tawny.vercel.app/og-image.png"],
   },
   other: {
     "mobile-web-app-capable": "yes",
