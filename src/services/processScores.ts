@@ -9,6 +9,9 @@ export const processScores = async (matches: any[]) => {
       const homeScore = match.team1_score;
       const awayScore = match.team2_score;
 
+      // Skip if scores are missing — prevents null===null counting as exact
+      if (homeScore === null || homeScore === undefined || awayScore === null || awayScore === undefined) continue;
+
       const { data: predictions, error: predictionError } = await supabase
         .from("predictions")
         .select("*")
