@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabaseServer";
 import bcrypt from "bcryptjs";
+import { hashPhone } from "@/lib/hashPhone";
 
 export async function POST(req: NextRequest) {
   const { phone, password, name } = await req.json();
@@ -19,13 +20,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Password must be at least 4 characters" }, { status: 400 });
   }
 
-  const { data: existing } = await supabaseServer
-    .from("users")
-    .select("id")
-    .eq("phone", phone.trim())
-    .single();
+  const phoneHash = hashPhone(phone);
 
-  if (existing) {
+  // Check both hashed and legacy plain phone to prevent duplicates during migration
+  const { data: existingHashed } = await supabaseServer.from("users").select("id").eq("phone", phoneHash).single();
+  const { data: existingPlain } = await supabaseServer.from("users").select("id").eq("phone", phone.trim()).single();
+
+  if (existingHashed || existingPlain) {
     return NextResponse.json({ error: "Account already exists" }, { status: 409 });
   }
 
@@ -33,7 +34,7 @@ export async function POST(req: NextRequest) {
 
   const { data: newUsers, error } = await supabaseServer
     .from("users")
-    .insert([{ name: cleanName, phone: phone.trim(), password: hashedPassword }])
+    .insert([{ name: cleanName, phone: phoneHash, password: hashedPassword }])
     .select();
 
   if (error || !newUsers?.[0]) {

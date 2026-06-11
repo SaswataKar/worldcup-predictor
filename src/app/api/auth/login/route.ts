@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabaseServer";
 import bcrypt from "bcryptjs";
+import { hashPhone } from "@/lib/hashPhone";
 
 export async function POST(req: NextRequest) {
   const { phone, password } = await req.json();
@@ -9,32 +10,51 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Missing fields" }, { status: 400 });
   }
 
-  const { data: user, error } = await supabaseServer
+  const phoneHash = hashPhone(phone);
+
+  // Try hashed phone first, fall back to plain text (legacy migration)
+  let { data: user } = await supabaseServer
     .from("users")
     .select("*")
-    .eq("phone", phone.trim())
+    .eq("phone", phoneHash)
     .single();
 
-  if (error || !user) {
+  let isLegacyPhone = false;
+  if (!user) {
+    const { data: legacyUser } = await supabaseServer
+      .from("users")
+      .select("*")
+      .eq("phone", phone.trim())
+      .single();
+    if (legacyUser) {
+      user = legacyUser;
+      isLegacyPhone = true;
+    }
+  }
+
+  if (!user) {
     return NextResponse.json({ error: "No account found. Please sign up." }, { status: 404 });
   }
 
-  const isHashed = user.password.startsWith("$2");
+  const isPasswordHashed = user.password.startsWith("$2");
   let valid = false;
 
-  if (isHashed) {
+  if (isPasswordHashed) {
     valid = await bcrypt.compare(password, user.password);
   } else {
-    // Legacy plain text — compare then silently upgrade
     valid = user.password === password;
-    if (valid) {
-      const hashed = await bcrypt.hash(password, 10);
-      await supabaseServer.from("users").update({ password: hashed }).eq("id", user.id);
-    }
   }
 
   if (!valid) {
     return NextResponse.json({ error: "Incorrect password" }, { status: 401 });
+  }
+
+  // Silently upgrade legacy plain-text phone and/or password to hashed versions
+  const updates: Record<string, string> = {};
+  if (isLegacyPhone) updates.phone = phoneHash;
+  if (!isPasswordHashed) updates.password = await bcrypt.hash(password, 10);
+  if (Object.keys(updates).length > 0) {
+    await supabaseServer.from("users").update(updates).eq("id", user.id);
   }
 
   return NextResponse.json({ user });
