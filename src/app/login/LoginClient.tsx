@@ -168,10 +168,13 @@ export default function LoginClient() {
     async () => {
       // BASIC VALIDATION
       if (!phone.trim()) {
-        toast.error(
-          "Enter phone number"
-        );
+        toast.error("Enter phone number");
+        return;
+      }
 
+      const digitsOnly = phone.replace(/\D/g, "");
+      if (digitsOnly.length < 10 || digitsOnly.length > 15) {
+        toast.error("Enter a valid phone number (10–15 digits)");
         return;
       }
 
@@ -365,14 +368,15 @@ export default function LoginClient() {
               focus:border-yellow-500
               transition-all
             "
-            placeholder="Phone Number"
+            placeholder="Phone Number (digits only)"
             value={phone}
-            onChange={(e) =>
-              setPhone(
-                e.target
-                  .value
-              )
-            }
+            onChange={(e) => {
+              // Strip everything except digits and leading +
+              const raw = e.target.value.replace(/[^\d+]/g, "");
+              setPhone(raw);
+            }}
+            inputMode="tel"
+            maxLength={16}
           />
 
           {/* PASSWORD */}

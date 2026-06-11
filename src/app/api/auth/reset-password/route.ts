@@ -10,6 +10,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Missing fields" }, { status: 400 });
   }
 
+  const digits = phone.replace(/\D/g, "");
+  if (digits.length < 10 || digits.length > 15) {
+    return NextResponse.json({ error: "Enter a valid phone number (10–15 digits)" }, { status: 400 });
+  }
+
   if (password.length < 4) {
     return NextResponse.json({ error: "Password must be at least 4 characters" }, { status: 400 });
   }
