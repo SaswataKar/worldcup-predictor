@@ -292,8 +292,8 @@ function LeaguesPageInner() {
 
   const selectAndPlay = (league: League | null) => {
     const payload = league
-      ? { id: league.id, name: league.name }
-      : { id: null, name: "Global" };
+      ? { id: league.id, name: league.name, code: league.code }
+      : { id: null, name: "Global", code: null };
     Cookies.set("activeLeague", JSON.stringify(payload));
     router.push("/");
   };

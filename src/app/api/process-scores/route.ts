@@ -1,10 +1,13 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
 import { supabaseServer as supabase } from "@/lib/supabaseServer";
 
 import { processScores } from "@/services/processScores";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  if (req.headers.get("x-cron-secret") !== process.env.CRON_SECRET) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
   try {
     // Only fetch FINISHED matches that haven't been fully processed yet
     const {

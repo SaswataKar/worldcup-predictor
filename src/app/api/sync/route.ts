@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
 import { createClient } from "@supabase/supabase-js";
 
@@ -10,7 +10,10 @@ const supabase =
       .SUPABASE_SERVICE_ROLE_KEY!
   );
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  if (req.headers.get("x-cron-secret") !== process.env.CRON_SECRET) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
   try {
     // FETCH WORLD CUP MATCHES
     const response =

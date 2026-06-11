@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
 const supabase = createClient(
@@ -9,7 +9,10 @@ const supabase = createClient(
 // Force-refresh the teams cache from football-data.org.
 // Call this manually when squads change (injury replacements, etc.)
 // e.g. GET /api/sync-teams
-export async function GET() {
+export async function GET(req: NextRequest) {
+  if (req.headers.get("x-cron-secret") !== process.env.CRON_SECRET) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
   try {
     const response = await fetch(
       "https://api.football-data.org/v4/competitions/WC/teams",
