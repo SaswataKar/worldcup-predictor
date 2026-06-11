@@ -33,7 +33,11 @@ function InstallBanner() {
     // Capture prompt if Chrome offers it
     const handler = (e: any) => { e.preventDefault(); setDeferredPrompt(e); };
     window.addEventListener("beforeinstallprompt", handler);
-    window.addEventListener("appinstalled", () => setVisible(false));
+    window.addEventListener("appinstalled", () => {
+      setVisible(false);
+      // Try to switch to the installed PWA
+      setTimeout(() => { window.location.href = "/"; }, 800);
+    });
     return () => window.removeEventListener("beforeinstallprompt", handler);
   }, []);
 
