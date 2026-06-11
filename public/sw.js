@@ -1,4 +1,4 @@
-const CACHE_NAME = "wc-predictor-v1";
+const CACHE_NAME = "wc-predictor-v2";
 const STATIC_ASSETS = ["/", "/manifest.json", "/icons/icon-192.png", "/icons/icon-512.png"];
 
 self.addEventListener("install", (event) => {

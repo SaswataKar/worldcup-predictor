@@ -35,6 +35,10 @@ export default function InstallOverlay() {
     window.addEventListener("appinstalled", () => {
       setPrompt(null);
       setJustInstalled(true);
+      // Try to redirect into the installed PWA — Chrome may intercept and open it
+      setTimeout(() => {
+        window.location.href = window.location.origin + "/";
+      }, 800);
     });
 
     return unsub;
@@ -58,32 +62,35 @@ export default function InstallOverlay() {
   // ── Just installed screen ──────────────────────────────────────────────────
   if (justInstalled) {
     return (
-      <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black/95 backdrop-blur-xl px-8">
-        <div className="text-center max-w-sm">
-          <div className="text-6xl mb-6">🎉</div>
-          <h2 className="text-3xl font-black mb-3">App Installed!</h2>
-          <p className="text-zinc-400 mb-8 leading-relaxed">
-            Find the <span className="text-white font-black">WC Predictor</span> icon on your home screen and open it to enable notifications.
+      <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black backdrop-blur-xl px-8">
+        <div className="text-center max-w-sm w-full">
+          <div className="text-6xl mb-5">🎉</div>
+          <h2 className="text-3xl font-black mb-2">App Installed!</h2>
+          <p className="text-zinc-400 mb-6 text-sm leading-relaxed">
+            The app icon has been added to your home screen.
           </p>
-          <div className="rounded-2xl border border-yellow-500/25 bg-yellow-500/5 px-5 py-4 text-sm text-zinc-300 text-left space-y-2 mb-6">
-            <div className="flex items-center gap-2">
-              <span className="text-yellow-400">1.</span>
-              <span>Press the <span className="font-black text-white">Home</span> button</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-yellow-400">2.</span>
-              <span>Find the <span className="font-black text-white">WC Predictor</span> icon</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-yellow-400">3.</span>
-              <span>Tap it to open — notifications prompt will appear</span>
-            </div>
+
+          {/* Primary CTA — try to open in PWA */}
+          <a
+            href="/"
+            className="block w-full rounded-2xl bg-yellow-500 hover:bg-yellow-400 text-black font-black text-base py-4 mb-4
+              shadow-[0_0_30px_6px_rgba(234,179,8,0.3)] transition-all"
+          >
+            Open App →
+          </a>
+
+          <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] px-5 py-4 text-sm text-zinc-400 text-left space-y-2 mb-4">
+            <div className="text-zinc-500 text-xs uppercase tracking-widest font-black mb-2">Can't find the icon?</div>
+            <div>• Swipe up to open your <span className="text-white font-bold">App Drawer</span></div>
+            <div>• Search for <span className="text-white font-bold">WC Predictor</span></div>
+            <div>• Long press the icon → <span className="text-white font-bold">Add to Home Screen</span></div>
           </div>
+
           <button
             onClick={() => setJustInstalled(false)}
-            className="w-full rounded-2xl border border-white/[0.12] text-zinc-400 font-bold py-3 text-sm hover:text-white transition-all"
+            className="w-full text-zinc-600 hover:text-zinc-400 text-xs font-semibold transition-colors py-2"
           >
-            Continue in browser
+            Continue in browser instead
           </button>
         </div>
       </div>
