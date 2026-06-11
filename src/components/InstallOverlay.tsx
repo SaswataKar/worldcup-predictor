@@ -93,25 +93,23 @@ export default function InstallOverlay() {
   // ── iOS instructions ───────────────────────────────────────────────────────
   if (showIos) {
     return (
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-[min(92vw,420px)]">
-        <div className="relative rounded-3xl border border-sky-500/20 backdrop-blur-xl px-6 py-5 flex flex-col gap-4"
-          style={{ background: "rgba(9,9,11,0.95)" }}>
+      <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-[min(92vw,420px)]">
+        <div className="relative rounded-3xl border border-sky-500/20 backdrop-blur-xl px-5 py-4 flex flex-col gap-3"
+          style={{ background: "rgba(9,9,11,0.97)" }}>
           <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/[0.10] to-transparent rounded-t-3xl" />
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-xl shrink-0">📲</div>
-            <div>
+            <div className="w-10 h-10 rounded-2xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-lg shrink-0">📲</div>
+            <div className="flex-1">
               <div className="font-black text-sm">Add to Home Screen</div>
               <div className="text-zinc-500 text-xs">Quick access + match notifications</div>
             </div>
+            <button onClick={dismiss} className="text-zinc-600 hover:text-zinc-400 text-lg leading-none px-1">✕</button>
           </div>
-          <div className="space-y-2 text-sm text-zinc-300 bg-white/[0.03] rounded-2xl px-4 py-3 border border-white/[0.06]">
+          <div className="space-y-1.5 text-xs text-zinc-300 bg-white/[0.03] rounded-2xl px-4 py-3 border border-white/[0.06]">
             <div>1. Tap <span className="font-black text-white">Share ⬆</span> at the bottom of Safari</div>
             <div>2. Tap <span className="font-black text-white">Add to Home Screen</span></div>
             <div>3. Tap <span className="font-black text-white">Add</span></div>
           </div>
-          <button onClick={dismiss} className="w-full text-zinc-600 hover:text-zinc-400 text-xs font-semibold transition-colors">
-            Got it
-          </button>
         </div>
       </div>
     );
@@ -121,32 +119,25 @@ export default function InstallOverlay() {
   if (!prompt) return null;
 
   return (
-    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-[min(92vw,420px)]">
-      <div className="relative rounded-3xl border border-yellow-500/25 backdrop-blur-xl px-6 py-5 flex flex-col gap-4"
-        style={{ background: "rgba(9,9,11,0.95)" }}>
-        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-yellow-300/[0.12] to-transparent rounded-t-3xl" />
+    <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-[min(92vw,420px)]">
+      <div className="relative rounded-3xl border border-yellow-500/30 backdrop-blur-xl px-5 py-4 flex flex-col gap-3"
+        style={{ background: "rgba(9,9,11,0.97)" }}>
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-yellow-300/[0.15] to-transparent rounded-t-3xl" />
         <div className="flex items-center gap-3">
-          <img src="/icons/icon-192.png" className="w-12 h-12 rounded-2xl border border-white/[0.08]" alt="" />
-          <div>
+          <img src="/icons/icon-192.png" className="w-10 h-10 rounded-2xl border border-white/[0.08] shrink-0" alt="" />
+          <div className="flex-1">
             <div className="font-black text-sm">Install WC Predictor</div>
             <div className="text-zinc-500 text-xs">Home screen icon + match notifications</div>
           </div>
+          <button onClick={dismiss} className="text-zinc-600 hover:text-zinc-400 text-lg leading-none px-1">✕</button>
         </div>
-        <div className="flex gap-3">
-          <button
-            onClick={handleInstall}
-            className="flex-1 rounded-2xl bg-yellow-500 hover:bg-yellow-400 text-black font-black text-sm py-3
-              transition-all shadow-[0_0_20px_4px_rgba(234,179,8,0.3)]"
-          >
-            Install
-          </button>
-          <button
-            onClick={dismiss}
-            className="flex-1 rounded-2xl border border-white/[0.10] text-zinc-400 hover:text-white font-bold text-sm py-3 transition-all"
-          >
-            Not now
-          </button>
-        </div>
+        <button
+          onClick={handleInstall}
+          className="w-full rounded-2xl bg-yellow-500 hover:bg-yellow-400 text-black font-black text-sm py-2.5
+            transition-all shadow-[0_0_20px_4px_rgba(234,179,8,0.3)]"
+        >
+          Install App
+        </button>
       </div>
     </div>
   );
