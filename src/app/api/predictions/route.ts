@@ -22,10 +22,23 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Missing fields" }, { status: 400 });
   }
 
+  let selectedResult = "draw";
+  if (homeScore > awayScore) selectedResult = "team1";
+  if (awayScore > homeScore) selectedResult = "team2";
+
   const { error } = await supabaseServer
     .from("predictions")
     .upsert(
-      [{ user_id: userId, match_id: matchId, home_score: homeScore, away_score: awayScore }],
+      [{
+        user_id: userId,
+        match_id: matchId,
+        predicted_team1_score: Number(homeScore),
+        predicted_team2_score: Number(awayScore),
+        predicted_result: selectedResult,
+        prediction_type: "standard",
+        booster_used: "none",
+        updated_at: new Date().toISOString(),
+      }],
       { onConflict: "user_id,match_id" }
     );
 

@@ -355,8 +355,8 @@ export default function Home() {
       body: JSON.stringify({
         userId: user.id,
         matchId,
-        homeScore: payload.predicted_team1_score,
-        awayScore: payload.predicted_team2_score,
+        homeScore: Number(homeScore),
+        awayScore: Number(awayScore),
       }),
     });
     if (!res.ok) {
