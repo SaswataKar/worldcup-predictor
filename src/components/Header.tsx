@@ -64,6 +64,7 @@ export default function Header({ user, hideNav }: { user?: any; hideNav?: boolea
 
   const tabs = [
     { label: t("nav.predictor"), href: "/" },
+    { label: "📺 Feed", href: "/feed" },
     { label: t("nav.fixtures"), href: "/fixtures" },
     { label: t("nav.teams"), href: "/teams" },
     { label: t("nav.leaderboard"), href: "/leaderboard" },
