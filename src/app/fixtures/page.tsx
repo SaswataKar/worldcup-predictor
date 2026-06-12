@@ -229,6 +229,44 @@ export default function FixturesPage() {
                     </motion.span>
                   </button>
 
+                  {/* DATE PILLS — outside motion.div so overflow:hidden doesn't clip horizontal scroll */}
+                  {isOpen && dayKeys.length > 3 && (
+                    <div className="relative border-t border-white/[0.06]">
+                      <div className="overflow-x-auto scrollbar-none">
+                        <div className="flex gap-2 px-4 sm:px-6 py-4" style={{ width: "max-content", minWidth: "100%" }}>
+                          {dayKeys.map((key) => {
+                            const rawLabel = key === "TBD__TBD" ? "TBD" : stageData.dayLabels[key] ?? key;
+                            const short = rawLabel.includes(" · ") ? rawLabel.split(" · ").slice(1).join(" · ") : rawLabel;
+                            const dateStr = key.split("__")[1];
+                            const pillDate = dateStr && dateStr !== "TBD"
+                              ? new Date(dateStr).toLocaleDateString(locale, { month: "short", day: "numeric", timeZone: "UTC" })
+                              : short;
+                            const hasLive = (stageData.grouped[key] ?? []).some((m) => m.status === "IN_PLAY" || m.status === "LIVE");
+                            const isSelected = selectedDay[stage] === key;
+                            return (
+                              <button
+                                key={key}
+                                onClick={() => setSelectedDay((prev) => ({ ...prev, [stage]: key }))}
+                                className={`shrink-0 px-4 py-2 rounded-xl text-xs font-black transition-all whitespace-nowrap relative ${
+                                  isSelected
+                                    ? "bg-yellow-400 text-black shadow-[0_0_10px_2px_rgba(234,179,8,0.3)]"
+                                    : "bg-zinc-900 border border-zinc-700/60 text-zinc-400 hover:text-white hover:border-zinc-500"
+                                }`}
+                              >
+                                {pillDate}
+                                {hasLive && (
+                                  <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                      {/* fade hint — right edge */}
+                      <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-10 bg-gradient-to-l from-zinc-950 to-transparent" />
+                    </div>
+                  )}
+
                   {/* STAGE CONTENT */}
                   <AnimatePresence initial={false}>
                     {isOpen && (
@@ -241,49 +279,6 @@ export default function FixturesPage() {
                         style={{ overflow: "hidden" }}
                       >
                         <div className="pb-6 border-t border-white/[0.06] pt-6">
-                          {/* DATE PILLS — only shown when stage has many days */}
-                          {dayKeys.length > 3 && (
-                            <div className="relative mb-6">
-                              <div className="overflow-x-auto scrollbar-none">
-                                <div className="flex gap-2 px-4 sm:px-6 pb-3 w-max min-w-full">
-                              {dayKeys.map((key) => {
-                                const rawLabel = key === "TBD__TBD"
-                                  ? "TBD"
-                                  : stageData.dayLabels[key] ?? key;
-                                const short = rawLabel.includes(" · ")
-                                  ? rawLabel.split(" · ").slice(1).join(" · ")
-                                  : rawLabel;
-                                // Extract just date portion for ultra-compact pill
-                                const dateStr = key.split("__")[1];
-                                const pillDate = dateStr && dateStr !== "TBD"
-                                  ? new Date(dateStr).toLocaleDateString(locale, { month: "short", day: "numeric", timeZone: "UTC" })
-                                  : short;
-                                const dayMs = (stageData.grouped[key] ?? []).filter((m) => m.status === "IN_PLAY" || m.status === "LIVE").length;
-                                const isSelected = selectedDay[stage] === key;
-                                return (
-                                  <button
-                                    key={key}
-                                    onClick={() => setSelectedDay((prev) => ({ ...prev, [stage]: key }))}
-                                    className={`shrink-0 px-4 py-2 rounded-xl text-xs font-black transition-all whitespace-nowrap relative ${
-                                      isSelected
-                                        ? "bg-yellow-400 text-black shadow-[0_0_10px_2px_rgba(234,179,8,0.3)]"
-                                        : "bg-zinc-900 border border-zinc-700/60 text-zinc-400 hover:text-white hover:border-zinc-500"
-                                    }`}
-                                  >
-                                    {pillDate}
-                                    {dayMs > 0 && (
-                                      <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                                    )}
-                                  </button>
-                                );
-                              })}
-                                </div>
-                              </div>
-                              {/* right fade hint */}
-                              <div className="pointer-events-none absolute right-0 top-0 bottom-3 w-12 bg-gradient-to-l from-zinc-950 to-transparent" />
-                            </div>
-                          )}
-
                           {/* MATCHES for active day (or all days if few) */}
                           {(dayKeys.length > 3 ? [selectedDay[stage] ?? dayKeys[0]] : dayKeys).filter(Boolean).map((dayKey) => {
                             const dayMatches = stageData.grouped[dayKey] ?? [];
