@@ -240,10 +240,12 @@ export default function FixturesPage() {
                         transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
                         style={{ overflow: "hidden" }}
                       >
-                        <div className="px-4 sm:px-6 pb-6 border-t border-white/[0.06] pt-6">
+                        <div className="pb-6 border-t border-white/[0.06] pt-6">
                           {/* DATE PILLS — only shown when stage has many days */}
                           {dayKeys.length > 3 && (
-                            <div className="flex gap-2 overflow-x-auto pb-4 mb-6 scrollbar-none -mx-1 px-1">
+                            <div className="relative mb-6">
+                              <div className="overflow-x-auto scrollbar-none">
+                                <div className="flex gap-2 px-4 sm:px-6 pb-3 w-max min-w-full">
                               {dayKeys.map((key) => {
                                 const rawLabel = key === "TBD__TBD"
                                   ? "TBD"
@@ -275,6 +277,10 @@ export default function FixturesPage() {
                                   </button>
                                 );
                               })}
+                                </div>
+                              </div>
+                              {/* right fade hint */}
+                              <div className="pointer-events-none absolute right-0 top-0 bottom-3 w-12 bg-gradient-to-l from-zinc-950 to-transparent" />
                             </div>
                           )}
 
@@ -289,7 +295,7 @@ export default function FixturesPage() {
                               : dayLabel;
 
                             return (
-                              <div key={dayKey}>
+                              <div key={dayKey} className="px-4 sm:px-6">
                                 {dayKeys.length <= 3 && (
                                 <div className="text-[11px] uppercase tracking-[0.3em] text-zinc-500 font-black mb-4">
                                   {shortDayLabel}
