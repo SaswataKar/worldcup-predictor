@@ -32,6 +32,7 @@ export default function FixturesPage() {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
   const [openStages, setOpenStages] = useState<Record<string, boolean>>({});
+  const [selectedDay, setSelectedDay] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const storedUser = Cookies.get("user");
@@ -102,6 +103,19 @@ export default function FixturesPage() {
       if (hasLiveOrUpcoming) { activeStage = stage; break; }
     }
     setOpenStages({ [activeStage]: true });
+
+    // Auto-select sensible day per stage
+    const todayUTC = new Date().toISOString().split("T")[0];
+    const initial: Record<string, string> = {};
+    stageData.sortedStages.forEach((stage) => {
+      const keys = stageData.byStage[stage] ?? [];
+      const todayKey = keys.find((k) => k.includes(todayUTC));
+      const upcomingKey = keys.find((k) =>
+        (stageData.grouped[k] ?? []).some((m) => m.status !== "FINISHED" && m.kickoff_time && new Date(m.kickoff_time).getTime() > now - 2 * 60 * 60 * 1000)
+      );
+      initial[stage] = todayKey ?? upcomingKey ?? keys[keys.length - 1] ?? "";
+    });
+    setSelectedDay(initial);
   }, [stageData.sortedStages.join(",")]);
 
   const toggleStage = (stage: string) =>
@@ -226,22 +240,61 @@ export default function FixturesPage() {
                         transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
                         style={{ overflow: "hidden" }}
                       >
-                        <div className="px-4 sm:px-6 pb-6 space-y-8 border-t border-white/[0.06] pt-6">
-                          {dayKeys.map((dayKey) => {
+                        <div className="px-4 sm:px-6 pb-6 border-t border-white/[0.06] pt-6">
+                          {/* DATE PILLS — only shown when stage has many days */}
+                          {dayKeys.length > 3 && (
+                            <div className="flex gap-2 overflow-x-auto pb-4 mb-6 scrollbar-none -mx-1 px-1">
+                              {dayKeys.map((key) => {
+                                const rawLabel = key === "TBD__TBD"
+                                  ? "TBD"
+                                  : stageData.dayLabels[key] ?? key;
+                                const short = rawLabel.includes(" · ")
+                                  ? rawLabel.split(" · ").slice(1).join(" · ")
+                                  : rawLabel;
+                                // Extract just date portion for ultra-compact pill
+                                const dateStr = key.split("__")[1];
+                                const pillDate = dateStr && dateStr !== "TBD"
+                                  ? new Date(dateStr).toLocaleDateString(locale, { month: "short", day: "numeric", timeZone: "UTC" })
+                                  : short;
+                                const dayMs = (stageData.grouped[key] ?? []).filter((m) => m.status === "IN_PLAY" || m.status === "LIVE").length;
+                                const isSelected = selectedDay[stage] === key;
+                                return (
+                                  <button
+                                    key={key}
+                                    onClick={() => setSelectedDay((prev) => ({ ...prev, [stage]: key }))}
+                                    className={`shrink-0 px-4 py-2 rounded-xl text-xs font-black transition-all whitespace-nowrap relative ${
+                                      isSelected
+                                        ? "bg-yellow-400 text-black shadow-[0_0_10px_2px_rgba(234,179,8,0.3)]"
+                                        : "bg-zinc-900 border border-zinc-700/60 text-zinc-400 hover:text-white hover:border-zinc-500"
+                                    }`}
+                                  >
+                                    {pillDate}
+                                    {dayMs > 0 && (
+                                      <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                                    )}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          )}
+
+                          {/* MATCHES for active day (or all days if few) */}
+                          {(dayKeys.length > 3 ? [selectedDay[stage] ?? dayKeys[0]] : dayKeys).filter(Boolean).map((dayKey) => {
                             const dayMatches = stageData.grouped[dayKey] ?? [];
                             const dayLabel = dayKey === "TBD__TBD"
                               ? t("page.tbdFixtures")
                               : stageData.dayLabels[dayKey] ?? dayKey;
-                            // Strip stage prefix from label (e.g. "Group Stage · Day 1" → "Day 1")
                             const shortDayLabel = dayLabel.includes(" · ")
                               ? dayLabel.split(" · ").slice(1).join(" · ")
                               : dayLabel;
 
                             return (
                               <div key={dayKey}>
+                                {dayKeys.length <= 3 && (
                                 <div className="text-[11px] uppercase tracking-[0.3em] text-zinc-500 font-black mb-4">
                                   {shortDayLabel}
                                 </div>
+                                )}
                                 <div className="space-y-3">
                                   {dayMatches.map((match) => {
                                     const { label, cls, live } = statusPill(match.status);
