@@ -21,6 +21,36 @@ type LeaderEntry = {
 
 type ActiveLeague = { id: string | null; name: string; code: string | null };
 
+const ALL_BOOSTERS = ["2x", "3x", "goat"] as const;
+
+const BOOSTER_META: Record<string, { icon: string; label: string; color: string }> = {
+  "2x":   { icon: "⚡", label: "2× Tiki Taka", color: "text-yellow-400" },
+  "3x":   { icon: "🎩", label: "3× Hat Trick", color: "text-purple-400" },
+  "goat": { icon: "🐐", label: "G.O.A.T",      color: "text-emerald-400" },
+};
+
+function BoosterBar({ used }: { used: string[] }) {
+  return (
+    <div className="flex items-center gap-1">
+      {ALL_BOOSTERS.map((b) => {
+        const isUsed = used.includes(b);
+        const meta = BOOSTER_META[b];
+        return (
+          <span
+            key={b}
+            title={isUsed ? `${meta.label} used` : `${meta.label} remaining`}
+            className={`text-base leading-none transition-all ${
+              isUsed ? meta.color : "opacity-20 grayscale"
+            }`}
+          >
+            {meta.icon}
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
 const RANK_CONFIG: Record<number, { glow: string; border: string; badge: string }> = {
   0: {
     badge: "bg-yellow-500/20 text-yellow-300 border border-yellow-500/30",
@@ -72,6 +102,7 @@ export default function LeaderboardPage() {
   const [globalLeaders, setGlobalLeaders] = useState<LeaderEntry[]>([]);
   const [leagueLeaders, setLeagueLeaders] = useState<LeaderEntry[]>([]);
   const [leagueMemberCount, setLeagueMemberCount] = useState(0);
+  const [boosterMap, setBoosterMap] = useState<Record<number, string[]>>({});
 
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
@@ -101,9 +132,10 @@ export default function LeaderboardPage() {
       fetch("/api/sync-leaderboard", { cache: "no-store" });
     }
 
-    const [globalRes, leagueRes] = await Promise.all([
+    const [globalRes, leagueRes, boosterRes] = await Promise.all([
       fetch("/api/leaderboard", { cache: "no-store" }),
       al?.code ? fetch(`/api/leagues/${al.code}`) : Promise.resolve(null),
+      fetch("/api/boosters/all", { cache: "no-store" }),
     ]);
 
     const globalJson = await globalRes.json();
@@ -117,6 +149,11 @@ export default function LeaderboardPage() {
         setLeagueLeaders(sortLeaders(leagueJson.leaderboard));
         setLeagueMemberCount(leagueJson.memberCount ?? 0);
       }
+    }
+
+    if (boosterRes.ok) {
+      const bj = await boosterRes.json();
+      if (bj.boosters) setBoosterMap(bj.boosters);
     }
 
     setLastUpdated(new Date());
@@ -242,13 +279,16 @@ export default function LeaderboardPage() {
                             </span>
                           )}
                         </div>
-                        {hasPoints && (
-                          <div className="flex items-center gap-4 text-zinc-500 text-sm mt-1">
-                            <span>🎯 {leader.exact_predictions} {t("lb.exact")}</span>
-                            <span className="text-zinc-700">·</span>
-                            <span>✅ {leader.correct_results} {t("lb.correct")}</span>
-                          </div>
-                        )}
+                        <div className="flex items-center gap-4 mt-1 flex-wrap">
+                          {hasPoints && (
+                            <div className="flex items-center gap-4 text-zinc-500 text-sm">
+                              <span>🎯 {leader.exact_predictions} {t("lb.exact")}</span>
+                              <span className="text-zinc-700">·</span>
+                              <span>✅ {leader.correct_results} {t("lb.correct")}</span>
+                            </div>
+                          )}
+                          <BoosterBar used={boosterMap[leader.user_id] ?? []} />
+                        </div>
                       </div>
                     </div>
 
