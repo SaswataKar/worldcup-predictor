@@ -24,6 +24,157 @@ const BOOSTER_NAMES: Record<string, string> = {
   draw: "🐐 G.O.A.T",
 };
 
+const BOOSTER_ICONS: Record<string, string> = { "2x": "⚽", "3x": "🔥", draw: "🐐" };
+
+// ─── Completed Days Section ───────────────────────────────────────────────────
+
+function CompletedDays({
+  completedGroups,
+  groupLabels,
+  predictions,
+  activeDayBoosters,
+}: {
+  completedGroups: Record<string, Match[]>;
+  groupLabels: Record<string, string>;
+  predictions: Record<number, Prediction>;
+  activeDayBoosters: Record<string, string[]>;
+}) {
+  const [open, setOpen] = useState(false);
+  const { locale } = useLocaleCtx();
+  const t = getT(locale);
+  const entries = Object.entries(completedGroups);
+  if (!entries.length) return null;
+
+  const totalPoints = entries.flatMap(([, ms]) => ms).reduce((sum, m) => {
+    const p = predictions[m.id];
+    return sum + (p?.awarded_points ?? 0);
+  }, 0);
+
+  return (
+    <div className="mb-12">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="w-full flex items-center justify-between gap-4 mb-6 group"
+      >
+        <div className="flex items-center gap-3 flex-wrap">
+          <span className="text-2xl sm:text-3xl font-black text-zinc-400 group-hover:text-white transition-colors">
+            ✅ Completed
+          </span>
+          {totalPoints > 0 && (
+            <span className="px-3 py-1 rounded-full bg-yellow-400/10 border border-yellow-400/25 text-yellow-300 text-xs font-black">
+              +{totalPoints} pts total
+            </span>
+          )}
+          <span className="text-zinc-600 text-sm font-bold">{entries.length} day{entries.length > 1 ? "s" : ""}</span>
+        </div>
+        <span className={`text-zinc-500 text-2xl transition-transform duration-200 ${open ? "rotate-180" : ""}`}>⌄</span>
+      </button>
+
+      {open && (
+        <div className="space-y-8">
+          {entries.map(([groupKey, dayMatches]) => {
+            const label = groupLabels[groupKey] ?? groupKey;
+            const utcDate = dateFromKey(groupKey);
+            const dayBoosters = activeDayBoosters[utcDate] || [];
+
+            return (
+              <div key={groupKey}>
+                <div className="flex items-center gap-3 mb-4 flex-wrap">
+                  <span className="text-sm font-black text-zinc-500 uppercase tracking-widest">{label}</span>
+                  {dayBoosters.map((b) => (
+                    <span key={b} className="text-xs px-2 py-0.5 rounded-full bg-zinc-800 border border-zinc-700 text-zinc-400 font-black">
+                      {BOOSTER_ICONS[b]} {b === "2x" ? "2×" : b === "3x" ? "3×" : "G.O.A.T"} used
+                    </span>
+                  ))}
+                </div>
+
+                <div className="space-y-3">
+                  {dayMatches.map((match) => {
+                    const pred = predictions[match.id];
+                    const isExact = pred &&
+                      pred.predicted_team1_score === match.team1_score &&
+                      pred.predicted_team2_score === match.team2_score;
+                    const isCorrect = pred && !isExact && (() => {
+                      const actual = (match.team1_score ?? 0) > (match.team2_score ?? 0) ? "team1"
+                        : (match.team2_score ?? 0) > (match.team1_score ?? 0) ? "team2" : "draw";
+                      const predicted = pred.predicted_team1_score > pred.predicted_team2_score ? "team1"
+                        : pred.predicted_team2_score > pred.predicted_team1_score ? "team2" : "draw";
+                      return actual === predicted;
+                    })();
+
+                    return (
+                      <div
+                        key={match.id}
+                        className={`rounded-2xl border px-4 py-4 backdrop-blur-md
+                          ${isExact ? "border-emerald-500/30 bg-emerald-500/5" :
+                            isCorrect ? "border-blue-500/25 bg-blue-500/5" :
+                            "border-white/[0.06] bg-white/[0.02]"}`}
+                      >
+                        <div className="flex items-center justify-between gap-4 flex-wrap">
+                          {/* Teams + final score */}
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <img src={match.team1_crest || "/placeholder-team.png"} className="w-6 h-6 object-contain" />
+                              <span className="text-sm font-black truncate max-w-[70px] sm:max-w-none">{match.team1}</span>
+                            </div>
+                            <span className="text-base font-black tabular-nums text-zinc-300">
+                              {match.team1_score} – {match.team2_score}
+                            </span>
+                            <div className="flex items-center gap-1.5">
+                              <img src={match.team2_crest || "/placeholder-team.png"} className="w-6 h-6 object-contain" />
+                              <span className="text-sm font-black truncate max-w-[70px] sm:max-w-none">{match.team2}</span>
+                            </div>
+                          </div>
+
+                          {/* Prediction + result + points */}
+                          <div className="flex items-center gap-2 flex-wrap text-xs">
+                            {pred ? (
+                              <>
+                                <span className="px-2.5 py-1 rounded-xl bg-zinc-800 border border-zinc-700 font-black tabular-nums">
+                                  🎯 {pred.predicted_team1_score}–{pred.predicted_team2_score}
+                                </span>
+                                {isExact && (
+                                  <span className="px-2.5 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/25 text-emerald-400 font-black">
+                                    ✨ Exact!
+                                  </span>
+                                )}
+                                {isCorrect && (
+                                  <span className="px-2.5 py-1 rounded-full bg-blue-500/15 border border-blue-500/25 text-blue-400 font-black">
+                                    ✅ Correct
+                                  </span>
+                                )}
+                                {!isExact && !isCorrect && (
+                                  <span className="px-2.5 py-1 rounded-full bg-zinc-800 border border-zinc-700 text-zinc-500 font-black">
+                                    ✗ Wrong
+                                  </span>
+                                )}
+                                {(pred.awarded_points ?? 0) > 0 && (
+                                  <span className="px-2.5 py-1 rounded-xl bg-yellow-400/10 border border-yellow-400/25 text-yellow-300 font-black">
+                                    +{pred.awarded_points} 🏆
+                                  </span>
+                                )}
+                                {dayBoosters.length > 0 && dayBoosters.map((b) => (
+                                  <span key={b} className="text-base leading-none" title={BOOSTER_NAMES[b]}>{BOOSTER_ICONS[b]}</span>
+                                ))}
+                              </>
+                            ) : (
+                              <span className="text-zinc-600 font-bold">No prediction</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Home() {
   const { locale } = useLocaleCtx();
   const t = getT(locale);
@@ -266,7 +417,7 @@ export default function Home() {
   };
 
   // ROLLING WINDOW — grouped by round+day, timezone-neutral
-  const { visibleGroupedMatches, groupLabels } = useMemo(() => {
+  const { visibleGroupedMatches, completedGroupedMatches, groupLabels } = useMemo(() => {
     const { grouped, sortedKeys } = groupMatches(
       matches.filter((m) => m.kickoff_time && !isNaN(new Date(m.kickoff_time).getTime()))
     );
@@ -274,12 +425,17 @@ export default function Home() {
 
     const now = Date.now();
 
+    // A day is "completed" when ALL its matches are FINISHED + processed
+    const isDayCompleted = (key: string) =>
+      grouped[key].length > 0 &&
+      grouped[key].every((m) => m.status === "FINISHED" && m.processed);
+
     // Anchor = earliest group still "active":
     //   live/in-play match, OR finished+unprocessed, OR future kickoff
     const anchorIdx = sortedKeys.findIndex((key) =>
       grouped[key].some((m) => {
         if (m.status === "IN_PLAY" || m.status === "LIVE" || m.status === "PAUSED") return true;
-        if (m.status === "FINISHED" && !m.processed) return true; // unprocessed = points not yet awarded
+        if (m.status === "FINISHED" && !m.processed) return true;
         if (m.kickoff_time && new Date(m.kickoff_time).getTime() > now) return true;
         return false;
       })
@@ -289,7 +445,14 @@ export default function Home() {
 
     const visible: Record<string, Match[]> = {};
     windowKeys.forEach((key) => { visible[key] = grouped[key]; });
-    return { visibleGroupedMatches: visible, groupLabels: labels };
+
+    // Completed = all days before the window that are fully done
+    const completed: Record<string, Match[]> = {};
+    sortedKeys.slice(0, idx).filter(isDayCompleted).forEach((key) => {
+      completed[key] = grouped[key];
+    });
+
+    return { visibleGroupedMatches: visible, completedGroupedMatches: completed, groupLabels: labels };
   }, [matches]);
 
   // Group key of the currently active/upcoming round-day (has at least one predictable match)
@@ -451,6 +614,16 @@ export default function Home() {
                 ))}
               </div>
             </div>
+          )}
+
+          {/* COMPLETED DAYS */}
+          {Object.keys(completedGroupedMatches).length > 0 && (
+            <CompletedDays
+              completedGroups={completedGroupedMatches}
+              groupLabels={groupLabels}
+              predictions={predictions}
+              activeDayBoosters={activeDayBoosters}
+            />
           )}
 
           {/* MATCH GROUPS */}
