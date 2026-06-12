@@ -130,8 +130,8 @@ export async function GET(req: NextRequest) {
             team,
             scorer: players[0]?.displayName ?? "Unknown",
             assist: players[1]?.displayName ?? null,
-            ownGoal: detail.ownGoal ?? typeId === "99" ?? false,
-            penalty: detail.penaltyKick ?? typeId === "98" ?? false,
+            ownGoal: detail.ownGoal || typeId === "99",
+            penalty: detail.penaltyKick || typeId === "98",
           });
         } else if (detail.yellowCard || typeText === "Yellow Card") {
           bookings.push({
