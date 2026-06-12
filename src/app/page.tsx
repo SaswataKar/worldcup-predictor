@@ -26,9 +26,26 @@ const BOOSTER_NAMES: Record<string, string> = {
 
 const BOOSTER_ICONS: Record<string, string> = { "2x": "⚽", "3x": "🔥", draw: "🐐" };
 
-// ─── Completed Days Section ───────────────────────────────────────────────────
+// ─── Results View ─────────────────────────────────────────────────────────────
 
-function CompletedDays({
+function ResultOutcomeBadge({ match, pred }: { match: Match; pred: Prediction | undefined }) {
+  if (!pred) return <span className="text-zinc-600 text-xs font-bold">No prediction</span>;
+  const isExact = pred.predicted_team1_score === match.team1_score && pred.predicted_team2_score === match.team2_score;
+  const actualResult = (match.team1_score ?? 0) > (match.team2_score ?? 0) ? "h" : (match.team2_score ?? 0) > (match.team1_score ?? 0) ? "a" : "d";
+  const predResult = pred.predicted_team1_score > pred.predicted_team2_score ? "h" : pred.predicted_team2_score > pred.predicted_team1_score ? "a" : "d";
+  const isCorrect = !isExact && actualResult === predResult;
+  return (
+    <span className={`px-2.5 py-1 rounded-full text-[11px] font-black border ${
+      isExact ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-400" :
+      isCorrect ? "bg-blue-500/15 border-blue-500/25 text-blue-400" :
+      "bg-zinc-800 border-zinc-700 text-zinc-500"
+    }`}>
+      {isExact ? "✨ Exact" : isCorrect ? "✅ Correct" : "✗ Wrong"}
+    </span>
+  );
+}
+
+function ResultsView({
   completedGroups,
   groupLabels,
   predictions,
@@ -39,138 +56,165 @@ function CompletedDays({
   predictions: Record<number, Prediction>;
   activeDayBoosters: Record<string, string[]>;
 }) {
-  const [open, setOpen] = useState(false);
-  const { locale } = useLocaleCtx();
-  const t = getT(locale);
   const entries = Object.entries(completedGroups);
-  if (!entries.length) return null;
+  const [selectedKey, setSelectedKey] = useState<string>(entries[entries.length - 1]?.[0] ?? "");
 
-  const totalPoints = entries.flatMap(([, ms]) => ms).reduce((sum, m) => {
-    const p = predictions[m.id];
-    return sum + (p?.awarded_points ?? 0);
-  }, 0);
+  if (!entries.length) return (
+    <div className="text-center py-24 text-zinc-600 font-bold">No completed match days yet.</div>
+  );
+
+  const dayMatches = completedGroups[selectedKey] ?? [];
+  const utcDate = dateFromKey(selectedKey);
+  const dayBoosters = activeDayBoosters[utcDate] || [];
+  const dayPoints = dayMatches.reduce((s, m) => s + (predictions[m.id]?.awarded_points ?? 0), 0);
 
   return (
-    <div className="mb-12">
-      <button
-        onClick={() => setOpen((o) => !o)}
-        className="w-full flex items-center justify-between gap-4 mb-6 group"
-      >
-        <div className="flex items-center gap-3 flex-wrap">
-          <span className="text-2xl sm:text-3xl font-black text-zinc-400 group-hover:text-white transition-colors">
-            ✅ Completed
-          </span>
-          {totalPoints > 0 && (
-            <span className="px-3 py-1 rounded-full bg-yellow-400/10 border border-yellow-400/25 text-yellow-300 text-xs font-black">
-              +{totalPoints} pts total
-            </span>
-          )}
-          <span className="text-zinc-600 text-sm font-bold">{entries.length} day{entries.length > 1 ? "s" : ""}</span>
+    <div>
+      {/* DAY SELECTOR */}
+      <div className="flex items-center gap-3 mb-8 flex-wrap">
+        <span className="text-xs uppercase tracking-widest text-zinc-500 font-black">Match Day</span>
+        <div className="flex gap-2 flex-wrap">
+          {entries.map(([key]) => (
+            <button
+              key={key}
+              onClick={() => setSelectedKey(key)}
+              className={`px-4 py-2 rounded-xl text-sm font-black transition-all ${
+                selectedKey === key
+                  ? "bg-yellow-400 text-black shadow-[0_0_12px_3px_rgba(234,179,8,0.3)]"
+                  : "bg-zinc-900 border border-zinc-700 text-zinc-400 hover:text-white hover:border-zinc-500"
+              }`}
+            >
+              {groupLabels[key] ?? key}
+            </button>
+          ))}
         </div>
-        <span className={`text-zinc-500 text-2xl transition-transform duration-200 ${open ? "rotate-180" : ""}`}>⌄</span>
-      </button>
+        {dayPoints > 0 && (
+          <span className="ml-auto px-3 py-1.5 rounded-xl bg-yellow-400/10 border border-yellow-400/25 text-yellow-300 text-sm font-black">
+            +{dayPoints} pts earned
+          </span>
+        )}
+        {dayBoosters.length > 0 && (
+          <div className="flex gap-1.5">
+            {dayBoosters.map((b) => (
+              <span key={b} className="px-3 py-1.5 rounded-xl bg-zinc-900 border border-zinc-700 text-xs font-black text-zinc-300">
+                {BOOSTER_ICONS[b]} {b === "2x" ? "2× Tiki Taka" : b === "3x" ? "3× Hat Trick" : "G.O.A.T"} used
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
 
-      {open && (
-        <div className="space-y-8">
-          {entries.map(([groupKey, dayMatches]) => {
-            const label = groupLabels[groupKey] ?? groupKey;
-            const utcDate = dateFromKey(groupKey);
-            const dayBoosters = activeDayBoosters[utcDate] || [];
+      {/* MATCH CARDS */}
+      <div className="space-y-5">
+        {dayMatches.map((match) => {
+          const pred = predictions[match.id];
+          const goals = (match.goals ?? []) as any[];
+          const bookings = (match.bookings ?? []) as any[];
+          const subs = (match.substitutions ?? []) as any[];
+          const homeGoals = goals.filter((g) => g.team === "home");
+          const awayGoals = goals.filter((g) => g.team === "away");
+          const homeBookings = bookings.filter((b) => b.team === "home");
+          const awayBookings = bookings.filter((b) => b.team === "away");
 
-            return (
-              <div key={groupKey}>
-                <div className="flex items-center gap-3 mb-4 flex-wrap">
-                  <span className="text-sm font-black text-zinc-500 uppercase tracking-widest">{label}</span>
-                  {dayBoosters.map((b) => (
-                    <span key={b} className="text-xs px-2 py-0.5 rounded-full bg-zinc-800 border border-zinc-700 text-zinc-400 font-black">
-                      {BOOSTER_ICONS[b]} {b === "2x" ? "2×" : b === "3x" ? "3×" : "G.O.A.T"} used
-                    </span>
-                  ))}
-                </div>
+          return (
+            <div key={match.id} className="rounded-3xl border border-white/[0.08] backdrop-blur-md overflow-hidden shadow-[0_0_0_1px_rgba(255,255,255,0.04),inset_0_1px_0_rgba(255,255,255,0.06)]">
 
-                <div className="space-y-3">
-                  {dayMatches.map((match) => {
-                    const pred = predictions[match.id];
-                    const isExact = pred &&
-                      pred.predicted_team1_score === match.team1_score &&
-                      pred.predicted_team2_score === match.team2_score;
-                    const isCorrect = pred && !isExact && (() => {
-                      const actual = (match.team1_score ?? 0) > (match.team2_score ?? 0) ? "team1"
-                        : (match.team2_score ?? 0) > (match.team1_score ?? 0) ? "team2" : "draw";
-                      const predicted = pred.predicted_team1_score > pred.predicted_team2_score ? "team1"
-                        : pred.predicted_team2_score > pred.predicted_team1_score ? "team2" : "draw";
-                      return actual === predicted;
-                    })();
-
-                    return (
-                      <div
-                        key={match.id}
-                        className={`rounded-2xl border px-4 py-4 backdrop-blur-md
-                          ${isExact ? "border-emerald-500/30 bg-emerald-500/5" :
-                            isCorrect ? "border-blue-500/25 bg-blue-500/5" :
-                            "border-white/[0.06] bg-white/[0.02]"}`}
-                      >
-                        <div className="flex items-center justify-between gap-4 flex-wrap">
-                          {/* Teams + final score */}
-                          <div className="flex items-center gap-3 min-w-0">
-                            <div className="flex items-center gap-1.5">
-                              <img src={match.team1_crest || "/placeholder-team.png"} className="w-6 h-6 object-contain" />
-                              <span className="text-sm font-black truncate max-w-[70px] sm:max-w-none">{match.team1}</span>
-                            </div>
-                            <span className="text-base font-black tabular-nums text-zinc-300">
-                              {match.team1_score} – {match.team2_score}
-                            </span>
-                            <div className="flex items-center gap-1.5">
-                              <img src={match.team2_crest || "/placeholder-team.png"} className="w-6 h-6 object-contain" />
-                              <span className="text-sm font-black truncate max-w-[70px] sm:max-w-none">{match.team2}</span>
-                            </div>
-                          </div>
-
-                          {/* Prediction + result + points */}
-                          <div className="flex items-center gap-2 flex-wrap text-xs">
-                            {pred ? (
-                              <>
-                                <span className="px-2.5 py-1 rounded-xl bg-zinc-800 border border-zinc-700 font-black tabular-nums">
-                                  🎯 {pred.predicted_team1_score}–{pred.predicted_team2_score}
-                                </span>
-                                {isExact && (
-                                  <span className="px-2.5 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/25 text-emerald-400 font-black">
-                                    ✨ Exact!
-                                  </span>
-                                )}
-                                {isCorrect && (
-                                  <span className="px-2.5 py-1 rounded-full bg-blue-500/15 border border-blue-500/25 text-blue-400 font-black">
-                                    ✅ Correct
-                                  </span>
-                                )}
-                                {!isExact && !isCorrect && (
-                                  <span className="px-2.5 py-1 rounded-full bg-zinc-800 border border-zinc-700 text-zinc-500 font-black">
-                                    ✗ Wrong
-                                  </span>
-                                )}
-                                {(pred.awarded_points ?? 0) > 0 && (
-                                  <span className="px-2.5 py-1 rounded-xl bg-yellow-400/10 border border-yellow-400/25 text-yellow-300 font-black">
-                                    +{pred.awarded_points} 🏆
-                                  </span>
-                                )}
-                                {dayBoosters.length > 0 && dayBoosters.map((b) => (
-                                  <span key={b} className="text-base leading-none" title={BOOSTER_NAMES[b]}>{BOOSTER_ICONS[b]}</span>
-                                ))}
-                              </>
-                            ) : (
-                              <span className="text-zinc-600 font-bold">No prediction</span>
-                            )}
-                          </div>
-                        </div>
+              {/* SCORE HEADER */}
+              <div className="px-4 sm:px-6 py-5 bg-white/[0.02]">
+                <div className="flex items-center justify-between gap-4 flex-wrap">
+                  {/* Teams + score */}
+                  <div className="flex items-center gap-3 sm:gap-6 min-w-0 flex-1">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <img src={match.team1_crest || "/placeholder-team.png"} className="w-8 h-8 sm:w-10 sm:h-10 object-contain shrink-0" />
+                      <span className="font-black text-sm sm:text-base truncate">{match.team1}</span>
+                    </div>
+                    <div className="shrink-0 text-center">
+                      <div className="text-2xl sm:text-3xl font-black tabular-nums">
+                        {match.team1_score} <span className="text-zinc-600">–</span> {match.team2_score}
                       </div>
-                    );
-                  })}
+                      <div className="text-[10px] uppercase tracking-widest text-zinc-600 mt-0.5">Final</div>
+                    </div>
+                    <div className="flex items-center gap-2 min-w-0">
+                      <img src={match.team2_crest || "/placeholder-team.png"} className="w-8 h-8 sm:w-10 sm:h-10 object-contain shrink-0" />
+                      <span className="font-black text-sm sm:text-base truncate">{match.team2}</span>
+                    </div>
+                  </div>
+
+                  {/* Prediction summary */}
+                  <div className="flex items-center gap-2 flex-wrap text-xs shrink-0">
+                    {pred && (
+                      <span className="px-3 py-1.5 rounded-xl bg-zinc-800 border border-zinc-700 font-black tabular-nums text-sm">
+                        🎯 {pred.predicted_team1_score}–{pred.predicted_team2_score}
+                      </span>
+                    )}
+                    <ResultOutcomeBadge match={match} pred={pred} />
+                    {(pred?.awarded_points ?? 0) > 0 && (
+                      <span className="px-3 py-1.5 rounded-xl bg-yellow-400/10 border border-yellow-400/25 text-yellow-300 font-black text-sm">
+                        +{pred!.awarded_points} 🏆
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
-            );
-          })}
-        </div>
-      )}
+
+              {/* EVENTS — goals + cards */}
+              {(goals.length > 0 || bookings.length > 0) && (
+                <div className="border-t border-white/[0.06] px-4 sm:px-6 py-4 grid grid-cols-2 gap-4">
+                  {/* HOME SIDE */}
+                  <div className="space-y-1.5">
+                    {homeGoals.map((g, i) => (
+                      <div key={i} className="flex items-center gap-1.5 text-xs">
+                        <span className="shrink-0">{g.ownGoal ? "⚽🔴" : g.penalty ? "⚽🎯" : "⚽"}</span>
+                        <span className="font-bold truncate">{g.scorer}</span>
+                        <span className="text-zinc-600 shrink-0">{g.minute}</span>
+                      </div>
+                    ))}
+                    {homeBookings.map((b, i) => (
+                      <div key={i} className="flex items-center gap-1.5 text-xs">
+                        <span className="shrink-0">{b.type === "Red" ? "🟥" : "🟨"}</span>
+                        <span className="font-bold truncate">{b.player}</span>
+                        <span className="text-zinc-600 shrink-0">{b.minute}</span>
+                      </div>
+                    ))}
+                    {subs.filter((s) => s.team === "home").map((s, i) => (
+                      <div key={i} className="flex items-center gap-1.5 text-xs text-zinc-500">
+                        <span className="shrink-0">🔄</span>
+                        <span className="truncate"><span className="text-emerald-400">{s.playerIn}</span> / <span className="text-red-400">{s.playerOut}</span></span>
+                        <span className="text-zinc-600 shrink-0">{s.minute}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* AWAY SIDE */}
+                  <div className="space-y-1.5">
+                    {awayGoals.map((g, i) => (
+                      <div key={i} className="flex items-center justify-end gap-1.5 text-xs">
+                        <span className="text-zinc-600 shrink-0">{g.minute}</span>
+                        <span className="font-bold truncate text-right">{g.scorer}</span>
+                        <span className="shrink-0">{g.ownGoal ? "⚽🔴" : g.penalty ? "⚽🎯" : "⚽"}</span>
+                      </div>
+                    ))}
+                    {awayBookings.map((b, i) => (
+                      <div key={i} className="flex items-center justify-end gap-1.5 text-xs">
+                        <span className="text-zinc-600 shrink-0">{b.minute}</span>
+                        <span className="font-bold truncate text-right">{b.player}</span>
+                        <span className="shrink-0">{b.type === "Red" ? "🟥" : "🟨"}</span>
+                      </div>
+                    ))}
+                    {subs.filter((s) => s.team === "away").map((s, i) => (
+                      <div key={i} className="flex items-center justify-end gap-1.5 text-xs text-zinc-500">
+                        <span className="text-zinc-600 shrink-0">{s.minute}</span>
+                        <span className="truncate text-right"><span className="text-emerald-400">{s.playerIn}</span> / <span className="text-red-400">{s.playerOut}</span></span>
+                        <span className="shrink-0">🔄</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -582,6 +626,9 @@ export default function Home() {
     toast.success("Prediction cancelled");
   };
 
+  const [activeTab, setActiveTab] = useState<"predict" | "results">("predict");
+  const hasCompleted = Object.keys(completedGroupedMatches).length > 0;
+
   if (!user) return null;
 
   return (
@@ -592,6 +639,42 @@ export default function Home() {
 
           <HowItWorks />
 
+          {/* TAB TOGGLE */}
+          <div className="flex items-center gap-2 mb-8 p-1 rounded-2xl bg-zinc-900/70 border border-zinc-800 w-fit">
+            <button
+              onClick={() => setActiveTab("predict")}
+              className={`px-6 py-2.5 rounded-xl text-sm font-black transition-all ${
+                activeTab === "predict"
+                  ? "bg-yellow-400 text-black shadow-[0_0_14px_3px_rgba(234,179,8,0.35)]"
+                  : "text-zinc-500 hover:text-zinc-300"
+              }`}
+            >
+              🎯 Predict
+            </button>
+            <button
+              onClick={() => setActiveTab("results")}
+              className={`px-6 py-2.5 rounded-xl text-sm font-black transition-all relative ${
+                activeTab === "results"
+                  ? "bg-yellow-400 text-black shadow-[0_0_14px_3px_rgba(234,179,8,0.35)]"
+                  : "text-zinc-500 hover:text-zinc-300"
+              }`}
+            >
+              📋 Results
+              {hasCompleted && activeTab !== "results" && (
+                <span className="absolute -top-1.5 -right-1.5 w-2.5 h-2.5 rounded-full bg-yellow-400 border-2 border-zinc-900" />
+              )}
+            </button>
+          </div>
+
+          {activeTab === "results" ? (
+            <ResultsView
+              completedGroups={completedGroupedMatches}
+              groupLabels={groupLabels}
+              predictions={predictions}
+              activeDayBoosters={activeDayBoosters}
+            />
+          ) : (
+            <>
           <BoosterInventory
             usedBoosterTypes={usedBoosterTypes}
             activeDayBoosters={activeDayBoosters}
@@ -614,16 +697,6 @@ export default function Home() {
                 ))}
               </div>
             </div>
-          )}
-
-          {/* COMPLETED DAYS */}
-          {Object.keys(completedGroupedMatches).length > 0 && (
-            <CompletedDays
-              completedGroups={completedGroupedMatches}
-              groupLabels={groupLabels}
-              predictions={predictions}
-              activeDayBoosters={activeDayBoosters}
-            />
           )}
 
           {/* MATCH GROUPS */}
@@ -700,6 +773,8 @@ export default function Home() {
               );
             })}
           </div>
+          </>
+          )}
         </div>
       </main>
     </PageWrapper>
