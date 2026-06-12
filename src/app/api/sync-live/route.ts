@@ -56,10 +56,17 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ success: true, message: "No live matches", updated: 0 });
   }
 
-  // Get unique dates of live matches (usually just today)
-  const dates = [...new Set(liveMatches.map((m) =>
-    new Date(m.kickoff_time).toISOString().slice(0, 10).replace(/-/g, "")
-  ))];
+  // Get unique ESPN dates — ESPN uses Eastern Time for WC 2026 dates.
+  // A match at 2026-06-12T02:00Z = 2026-06-11T22:00 ET, so ESPN lists it under June 11.
+  // Also include the day before UTC to catch late-night matches.
+  const toESPNDate = (kickoff: string) => {
+    const d = new Date(kickoff);
+    // Shift to ET (UTC-4 during EDT) for date bucketing
+    const etOffset = 4 * 60 * 60 * 1000;
+    const etDate = new Date(d.getTime() - etOffset);
+    return etDate.toISOString().slice(0, 10).replace(/-/g, "");
+  };
+  const dates = [...new Set(liveMatches.map((m) => toESPNDate(m.kickoff_time)))];
 
   let updated = 0;
 
