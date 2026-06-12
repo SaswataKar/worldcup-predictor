@@ -273,9 +273,16 @@ export default function Home() {
     const labels = buildGroupLabels(sortedKeys);
 
     const now = Date.now();
-    // Anchor = first group that has a future match (kickoff not yet passed)
+
+    // Anchor = earliest group still "active":
+    //   live/in-play match, OR finished+unprocessed, OR future kickoff
     const anchorIdx = sortedKeys.findIndex((key) =>
-      grouped[key].some((m) => new Date(m.kickoff_time!).getTime() > now)
+      grouped[key].some((m) => {
+        if (m.status === "IN_PLAY" || m.status === "LIVE" || m.status === "PAUSED") return true;
+        if (m.status === "FINISHED" && !m.processed) return true; // unprocessed = points not yet awarded
+        if (m.kickoff_time && new Date(m.kickoff_time).getTime() > now) return true;
+        return false;
+      })
     );
     const idx = anchorIdx === -1 ? Math.max(0, sortedKeys.length - 1) : anchorIdx;
     const windowKeys = sortedKeys.slice(idx, idx + 3);

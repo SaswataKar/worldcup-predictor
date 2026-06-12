@@ -47,6 +47,7 @@ export type Match = {
   goals: ESPNGoal[] | MatchEvent[] | null;
   bookings: ESPNBooking[] | MatchEvent[] | null;
   substitutions: ESPNSubstitution[] | MatchEvent[] | null;
+  processed?: boolean;
 };
 
 export type Prediction = {
