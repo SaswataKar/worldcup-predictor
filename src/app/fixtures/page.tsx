@@ -232,8 +232,8 @@ export default function FixturesPage() {
                   {/* DATE PILLS — outside motion.div so overflow:hidden doesn't clip horizontal scroll */}
                   {isOpen && dayKeys.length > 3 && (
                     <div className="relative border-t border-white/[0.06]">
-                      <div className="overflow-x-auto scrollbar-none">
-                        <div className="flex gap-2 px-4 sm:px-6 py-4" style={{ width: "max-content", minWidth: "100%" }}>
+                      <div className="overflow-x-auto scrollbar-none" style={{ touchAction: "pan-x", WebkitOverflowScrolling: "touch" } as React.CSSProperties}>
+                        <div className="flex gap-2 px-4 sm:px-6 py-4" style={{ width: "max-content" }}>
                           {dayKeys.map((key) => {
                             const rawLabel = key === "TBD__TBD" ? "TBD" : stageData.dayLabels[key] ?? key;
                             const short = rawLabel.includes(" · ") ? rawLabel.split(" · ").slice(1).join(" · ") : rawLabel;
