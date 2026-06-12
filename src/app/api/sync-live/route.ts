@@ -117,17 +117,21 @@ export async function GET(req: NextRequest) {
           ? (isESPNHome ? "home" : "away")
           : (isESPNHome ? "away" : "home");
 
-        const typeId = detail.type?.id;
+        const typeId = String(detail.type?.id ?? "");
         const typeText: string = detail.type?.text ?? "";
 
-        if (typeId === "70" || typeText === "Goal") {
+        // Goal type IDs: 70=Goal, 137=Header Goal, 98=Penalty Goal, 99=Own Goal, and others
+        const isGoal = typeId === "70" || typeId === "137" || typeId === "98" || typeId === "99"
+          || typeText.toLowerCase().includes("goal");
+
+        if (isGoal) {
           goals.push({
             minute,
             team,
             scorer: players[0]?.displayName ?? "Unknown",
             assist: players[1]?.displayName ?? null,
-            ownGoal: detail.ownGoal ?? false,
-            penalty: detail.penaltyKick ?? false,
+            ownGoal: detail.ownGoal ?? typeId === "99" ?? false,
+            penalty: detail.penaltyKick ?? typeId === "98" ?? false,
           });
         } else if (detail.yellowCard || typeText === "Yellow Card") {
           bookings.push({
