@@ -321,9 +321,14 @@ export default function PitchView({ match }: { match: Match }) {
   const snd = useSounds();
 
   const events = buildEvents(match);
-  const maxMinute = Math.max(...events.map(e => e.minute), isLive ? 45 : 0);
+  // For live: max grows as ESPN clock advances; don't pre-seed with 45 (HT event already covers finished)
+  const [liveClockMinute, setLiveClockMinute] = useState(0);
+  const maxMinute = isLive
+    ? Math.max(...events.filter(e => e.kind !== "halftime" && e.kind !== "fulltime").map(e => e.minute), liveClockMinute, 1)
+    : Math.max(...events.map(e => e.minute), 1);
 
-  const [minute, setMinute] = useState(isLive ? maxMinute : 0);
+  // Live: start at 0, ESPN clock sync will advance it. Finished: start at 0 for replay.
+  const [minute, setMinute] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState(1); // minutes per second
   const [selected, setSelected] = useState<string | null>(null);
@@ -427,11 +432,14 @@ export default function PitchView({ match }: { match: Match }) {
     prevCommCount.current = visible.length;
   }, [minute, espn?.commentary?.length]);
 
-  // Auto-advance for live (sync with ESPN clock)
+  // Auto-advance for live — sync scrubber to ESPN clock, keep it at current live minute
   useEffect(() => {
     if (!isLive || !espn?.clock) return;
     const parsed = parseInt(espn.clock);
-    if (!isNaN(parsed)) setMinute(parsed);
+    if (!isNaN(parsed) && parsed > 0) {
+      setLiveClockMinute(parsed);
+      setMinute(parsed); // always track the live minute
+    }
   }, [espn?.clock, isLive]);
 
   // Play button — advance 1 minute every (2000/speed)ms
@@ -451,12 +459,16 @@ export default function PitchView({ match }: { match: Match }) {
     return () => { if (playRef.current) clearInterval(playRef.current); };
   }, [playing, maxMinute, speed]);
 
-  // Live clock tick
-  const [liveClock, setLiveClock] = useState(espn?.clock ?? "");
-  useEffect(() => { setLiveClock(espn?.clock ?? ""); }, [espn?.clock]);
+  // Live clock: display ticks every 60s between ESPN refreshes, and advances scrubber
+  const [liveClock, setLiveClock] = useState("");
+  useEffect(() => {
+    if (espn?.clock) setLiveClock(espn.clock);
+  }, [espn?.clock]);
   useEffect(() => {
     if (!isLive) return;
     const id = setInterval(() => {
+      setLiveClockMinute(m => m + 1);
+      setMinute(m => m + 1);
       setLiveClock(prev => {
         const n = parseInt(prev);
         return isNaN(n) ? prev : `${n + 1}'`;
