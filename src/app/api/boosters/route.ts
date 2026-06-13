@@ -21,6 +21,23 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Missing fields" }, { status: 400 });
   }
 
+  // Reject if any match on this date has already kicked off
+  const dayStart = `${date}T00:00:00.000Z`;
+  const dayEnd   = `${date}T23:59:59.999Z`;
+  const { data: startedMatches } = await supabaseServer
+    .from("matches")
+    .select("id, status, kickoff_time")
+    .gte("kickoff_time", dayStart)
+    .lte("kickoff_time", dayEnd)
+    .in("status", ["IN_PLAY", "LIVE", "PAUSED", "FINISHED"]);
+
+  if (startedMatches && startedMatches.length > 0) {
+    return NextResponse.json(
+      { error: "Booster cannot be applied after a match has started." },
+      { status: 409 }
+    );
+  }
+
   // Check for existing booster on this matchday (one booster per day)
   const { data: existing } = await supabaseServer
     .from("daily_boosters")

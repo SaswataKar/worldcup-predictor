@@ -511,15 +511,16 @@ export default function Home() {
   // UTC date of the active group (used for booster storage/lookup)
   const activeMatchdayDate = activeMatchday ? dateFromKey(activeMatchday) : null;
 
-  // True once any match in the active group has reached its prediction-close window
+  // Lock boosters once the first match of the active matchday has actually kicked off
+  // (status-based so it doesn't depend on clock drift or polling delay)
   const isActiveMatchdayConsumed = useMemo(() => {
     if (!activeMatchday) return false;
     const dayMatches = visibleGroupedMatches[activeMatchday] || [];
     const now = new Date();
     return dayMatches.some((m) => {
+      if (m.status === "IN_PLAY" || m.status === "LIVE" || m.status === "PAUSED" || m.status === "FINISHED") return true;
       if (!m.kickoff_time) return false;
-      const kickoff = new Date(m.kickoff_time);
-      return now >= new Date(kickoff.getTime() - 60 * 1000);
+      return now >= new Date(new Date(m.kickoff_time).getTime() - 60 * 1000);
     });
   }, [activeMatchday, visibleGroupedMatches]);
 

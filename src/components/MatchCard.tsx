@@ -337,33 +337,39 @@ export default function MatchCard({
 
           {/* META */}
           <div className="flex items-center gap-3 flex-wrap text-xs font-semibold">
-            {isLive && (
+            {/* Only one status indicator — LIVE capsule when live, status pill otherwise */}
+            {isLive ? (
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-red-500/60 bg-red-500/15 text-red-400 text-[11px] font-black tracking-widest animate-pulse shadow-[0_0_10px_2px_rgba(239,68,68,0.25)]">
                 <span className="w-1.5 h-1.5 rounded-full bg-red-400 inline-block shrink-0" />
                 LIVE
               </span>
+            ) : (
+              <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-black tracking-wide ${statusPillClass}`}>
+                {statusLabel}
+              </span>
             )}
-            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-black tracking-wide ${statusPillClass}`}>
-              {statusLabel}
-            </span>
 
-            <div className="text-zinc-400 hidden sm:flex flex-col items-end leading-tight">
-              <span className="text-[11px] text-zinc-600 uppercase tracking-widest">{t("match.kickoff")} ({tzLabel()})</span>
-              <span>{getLocalKickoff()}</span>
-            </div>
+            {!isLive && (
+              <>
+                <div className="text-zinc-400 hidden sm:flex flex-col items-end leading-tight">
+                  <span className="text-[11px] text-zinc-600 uppercase tracking-widest">{t("match.kickoff")} ({tzLabel()})</span>
+                  <span>{getLocalKickoff()}</span>
+                </div>
 
-            <div className="text-zinc-700 hidden sm:block">·</div>
+                <div className="text-zinc-700 hidden sm:block">·</div>
 
-            <div className="text-zinc-400 hidden sm:flex flex-col items-end leading-tight">
-              <span className="text-[11px] text-zinc-600 uppercase tracking-widest">{t("match.predCloses")}</span>
-              <span className={locked ? "text-red-400" : "text-zinc-400"}>{getCloseTime()}</span>
-            </div>
+                <div className="text-zinc-400 hidden sm:flex flex-col items-end leading-tight">
+                  <span className="text-[11px] text-zinc-600 uppercase tracking-widest">{t("match.predCloses")}</span>
+                  <span className={locked ? "text-red-400" : "text-zinc-400"}>{getCloseTime()}</span>
+                </div>
 
-            <div className="text-zinc-700">·</div>
+                <div className="text-zinc-700">·</div>
 
-            <span className={`tabular-nums ${locked ? "text-red-400" : "text-zinc-500"}`}>
-              ⏳ {getCountdown()}
-            </span>
+                <span className={`tabular-nums ${locked ? "text-red-400" : "text-zinc-500"}`}>
+                  ⏳ {getCountdown()}
+                </span>
+              </>
+            )}
 
             {prediction && (
               <>
