@@ -463,12 +463,12 @@ export default function PitchView({ match }: { match: Match }) {
         )}
       </div>
 
-      {/* ── Stats bar ── */}
-      {espn && !espnError && (
+      {/* ── Stats bar — live only ── */}
+      {isLive && espn && !espnError && (
         <div className="px-5 py-4 border-t border-white/[0.06] space-y-2.5">
           <div className="flex items-center justify-between text-[10px] uppercase tracking-widest text-zinc-600 font-black mb-3">
             <span className="text-yellow-300">{match.team1}</span>
-            <span>Stats</span>
+            <span>Live Stats</span>
             <span className="text-blue-300">{match.team2}</span>
           </div>
           <StatRow label="Possession" home={espn.team1Stats.possession} away={espn.team2Stats.possession} />
