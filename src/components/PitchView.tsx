@@ -256,18 +256,69 @@ function EventMarker({ ev, isNew, onClick, selected }: {
   );
 }
 
+// ── Player wander hook ─────────────────────────────────────────────────────
+// Radius by position abbreviation — GK barely moves, midfielders roam
+function wanderRadius(pos: string): number {
+  if (pos === "GK") return 1.5;
+  if (pos.startsWith("D") || pos === "CB" || pos === "LB" || pos === "RB") return 4;
+  if (pos.startsWith("M") || pos === "CM" || pos === "DM" || pos === "AM") return 6;
+  return 5; // forwards
+}
+
+function useWanderPositions(
+  players: { position: string }[],
+  baseXY: { x: number; y: number }[],
+  active: boolean,
+) {
+  const [offsets, setOffsets] = useState<{ dx: number; dy: number }[]>(() =>
+    players.map(() => ({ dx: 0, dy: 0 }))
+  );
+
+  useEffect(() => {
+    if (!active) {
+      setOffsets(players.map(() => ({ dx: 0, dy: 0 })));
+      return;
+    }
+    const tick = () => {
+      setOffsets(players.map((p, i) => {
+        const r = wanderRadius(p.position);
+        const base = baseXY[i];
+        if (!base) return { dx: 0, dy: 0 };
+        // bias toward center of pitch (y = H/2 = 34)
+        const dyBias = (34 - base.y) * 0.05;
+        return {
+          dx: (Math.random() - 0.5) * r * 2,
+          dy: (Math.random() - 0.5) * r * 2 + dyBias,
+        };
+      }));
+    };
+    tick(); // immediate first wander
+    const id = setInterval(tick, 3500);
+    return () => clearInterval(id);
+  }, [active, players.length]);
+
+  return offsets;
+}
+
 // ── Player dot ─────────────────────────────────────────────────────────────
-function PlayerDot({ x, y, name, pos, color, dim }: {
-  x: number; y: number; name: string; pos: string; color: string; dim: boolean;
+function PlayerDot({ x, y, dx, dy, name, pos, color, live }: {
+  x: number; y: number; dx: number; dy: number;
+  name: string; pos: string; color: string; live: boolean;
 }) {
+  const tx = x + dx;
+  const ty = y + dy;
   return (
-    <g opacity={dim ? 0.35 : 1} style={{ transition: "opacity 0.5s" }}>
-      <circle cx={x} cy={y} r={2.6} fill={color} stroke="rgba(255,255,255,0.5)" strokeWidth={0.4} />
-      <text x={x} y={y + 0.9} textAnchor="middle" fontSize={2} fill="white" fontWeight="bold"
+    <g
+      transform={`translate(${tx}, ${ty})`}
+      opacity={live ? 0.55 : 1}
+      style={{ transition: live ? "transform 2.5s ease-in-out, opacity 0.5s" : "opacity 0.5s" }}
+    >
+      <circle cx={0} cy={0} r={2.6} fill={color} stroke="rgba(255,255,255,0.5)" strokeWidth={0.4} />
+      <text x={0} y={0.9} textAnchor="middle" fontSize={2} fill="white" fontWeight="bold"
         style={{ userSelect: "none" }}>
         {pos}
       </text>
-      <text x={x} y={y + 5} textAnchor="middle" fontSize={1.6} fill="rgba(255,255,255,0.85)"
+      <text x={0} y={5} textAnchor="middle" fontSize={1.6} fill="rgba(255,255,255,0.85)"
         style={{ userSelect: "none" }}>
         {name.split(" ").slice(-1)[0]}
       </text>
@@ -309,6 +360,48 @@ type ESPNDetail = {
 
 const MISS_KEYWORDS = /\b(miss|missed|wide|over the bar|off the post|off the crossbar|saved|great save|denied|blocked shot|shooting chance)\b/i;
 
+// ── Wandering players component ─────────────────────────────────────────────
+function WanderingPlayers({ team1Players, team1Base, team2Players, team2Base, wanderActive, minute, isLive }: {
+  team1Players: { name: string; position: string; formationPlace: number }[];
+  team1Base: { x: number; y: number }[];
+  team2Players: { name: string; position: string; formationPlace: number }[];
+  team2Base: { x: number; y: number }[];
+  wanderActive: boolean;
+  minute: number;
+  isLive: boolean;
+}) {
+  const t1Offsets = useWanderPositions(team1Players, team1Base, wanderActive);
+  const t2Offsets = useWanderPositions(team2Players, team2Base, wanderActive);
+
+  // At kickoff (minute <= 1): show formation at full opacity, no wander
+  // Live after kickoff: wander at 55% opacity
+  // Finished: hide entirely (event markers tell the story)
+  const showFormation = minute <= 1;
+  const groupOpacity = showFormation ? 1 : isLive ? 1 : 0;
+
+  return (
+    <g style={{ opacity: groupOpacity, transition: "opacity 0.8s ease" }}
+       pointerEvents={groupOpacity === 0 ? "none" : undefined}>
+      {team1Players.map((p, i) => (
+        <PlayerDot key={`t1-${i}`}
+          x={team1Base[i]?.x ?? 0} y={team1Base[i]?.y ?? 0}
+          dx={wanderActive ? (t1Offsets[i]?.dx ?? 0) : 0}
+          dy={wanderActive ? (t1Offsets[i]?.dy ?? 0) : 0}
+          name={p.name} pos={p.position} color="#b45309" live={wanderActive}
+        />
+      ))}
+      {team2Players.map((p, i) => (
+        <PlayerDot key={`t2-${i}`}
+          x={team2Base[i]?.x ?? 0} y={team2Base[i]?.y ?? 0}
+          dx={wanderActive ? (t2Offsets[i]?.dx ?? 0) : 0}
+          dy={wanderActive ? (t2Offsets[i]?.dy ?? 0) : 0}
+          name={p.name} pos={p.position} color="#1d4ed8" live={wanderActive}
+        />
+      ))}
+    </g>
+  );
+}
+
 export default function PitchView({ match }: { match: Match }) {
   const isLive = match.status === "IN_PLAY" || match.status === "LIVE";
   const isFinished = match.status === "FINISHED";
@@ -321,10 +414,11 @@ export default function PitchView({ match }: { match: Match }) {
   const snd = useSounds();
 
   const events = buildEvents(match);
-  // For live: max grows as ESPN clock advances; don't pre-seed with 45 (HT event already covers finished)
   const [liveClockMinute, setLiveClockMinute] = useState(0);
+  // Live: fixed 125min bar so it never runs out during extra time / penalties
+  // Finished: actual last event minute
   const maxMinute = isLive
-    ? Math.max(...events.filter(e => e.kind !== "halftime" && e.kind !== "fulltime").map(e => e.minute), liveClockMinute, 1)
+    ? 125
     : Math.max(...events.map(e => e.minute), 1);
 
   // Live: start at 0, ESPN clock sync will advance it. Finished: start at 0 for replay.
@@ -449,8 +543,10 @@ export default function PitchView({ match }: { match: Match }) {
       const ms = Math.round(2000 / speed);
       playRef.current = setInterval(() => {
         setMinute(m => {
-          if (m >= maxMinute) { setPlaying(false); return m; }
-          return m + 1;
+          // For live: never stop — ESPN clock sync keeps it accurate
+          // For finished: stop at last event minute
+          if (!isLive && m >= maxMinute) { setPlaying(false); return m; }
+          return Math.min(m + 1, 125);
         });
       }, ms);
     } else {
@@ -553,25 +649,19 @@ export default function PitchView({ match }: { match: Match }) {
         <svg viewBox={`-2 -1 ${W + 4} ${H + 2}`} className="w-full" style={{ maxHeight: 420 }}>
           <PitchSVG />
 
-          {/* Formation dots — visible at kickoff, fade out as match progresses */}
-          {espn && !espnError && (
-            <g style={{ opacity: minute <= 1 ? 1 : 0, transition: "opacity 0.8s ease" }} pointerEvents={minute <= 1 ? undefined : "none"}>
-            <>
-              {espn.team1.players.map((p, i) => {
-                const { x, y } = getPlayerPos(espn.team1.formation, p.formationPlace ?? (i + 1), "home");
-                return (
-                  <PlayerDot key={i} x={x} y={y} name={p.name} pos={p.position} color="#b45309" dim={false} />
-                );
-              })}
-              {espn.team2.players.map((p, i) => {
-                const { x, y } = getPlayerPos(espn.team2.formation, p.formationPlace ?? (i + 1), "away");
-                return (
-                  <PlayerDot key={i} x={x} y={y} name={p.name} pos={p.position} color="#1d4ed8" dim={false} />
-                );
-              })}
-            </>
-            </g>
-          )}
+          {/* Players — formation at kickoff, wander live */}
+          {espn && !espnError && (() => {
+            const t1Base = espn.team1.players.map((p, i) => getPlayerPos(espn.team1.formation, p.formationPlace ?? (i + 1), "home"));
+            const t2Base = espn.team2.players.map((p, i) => getPlayerPos(espn.team2.formation, p.formationPlace ?? (i + 1), "away"));
+            const wanderActive = isLive && minute > 1;
+            return (
+              <WanderingPlayers
+                team1Players={espn.team1.players} team1Base={t1Base}
+                team2Players={espn.team2.players} team2Base={t2Base}
+                wanderActive={wanderActive} minute={minute} isLive={isLive}
+              />
+            );
+          })()}
 
           {/* Event markers */}
           {visibleEvents.map(ev => (
