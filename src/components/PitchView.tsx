@@ -234,6 +234,8 @@ function StatRow({ label, home, away }: { label: string; home: string; away: str
 }
 
 // ── Main component ─────────────────────────────────────────────────────────
+type CommentaryEntry = { minute: number; clock: string; text: string; period: number };
+
 type ESPNDetail = {
   team1: { formation: string; players: { name: string; position: string; formationPlace: number }[] };
   team2: { formation: string; players: { name: string; position: string; formationPlace: number }[] };
@@ -241,6 +243,7 @@ type ESPNDetail = {
   team2Stats: Record<string, string>;
   clock: string;
   state: string;
+  commentary: CommentaryEntry[];
 };
 
 export default function PitchView({ match }: { match: Match }) {
@@ -260,6 +263,8 @@ export default function PitchView({ match }: { match: Match }) {
   const [newEventIds, setNewEventIds] = useState<Set<string>>(new Set());
   const prevEventCount = useRef(0);
   const playRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const commentaryEndRef = useRef<HTMLDivElement | null>(null);
+  const prevCommentaryCount = useRef(0);
 
   // Fetch ESPN detail
   const fetchDetail = useCallback(async () => {
@@ -326,6 +331,21 @@ export default function PitchView({ match }: { match: Match }) {
     }, 60000);
     return () => clearInterval(id);
   }, [isLive]);
+
+  // Commentary filtered to current scrubber minute
+  const visibleCommentary = (espn?.commentary ?? []).filter(c => {
+    // period 1 = first half (≤45), period 2 = second half (46-90), ET etc
+    const adjustedMin = c.period === 2 ? c.minute + 45 : c.period > 2 ? c.minute + 90 : c.minute;
+    return adjustedMin <= minute;
+  });
+
+  // Auto-scroll commentary to latest entry
+  useEffect(() => {
+    if (visibleCommentary.length !== prevCommentaryCount.current) {
+      prevCommentaryCount.current = visibleCommentary.length;
+      commentaryEndRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+  }, [visibleCommentary.length]);
 
   // Visible events up to current minute
   const visibleEvents = events.filter(e => e.minute <= minute);
@@ -527,6 +547,50 @@ export default function PitchView({ match }: { match: Match }) {
           </div>
         )}
       </div>
+
+      {/* ── Commentary panel ── */}
+      {espn && (espn.commentary?.length ?? 0) > 0 && (
+        <div className="border-t border-white/[0.06]">
+          <div className="px-5 py-3 flex items-center justify-between">
+            <span className="text-[10px] uppercase tracking-widest text-zinc-600 font-black">Commentary</span>
+            <span className="text-[10px] text-zinc-700">{visibleCommentary.length} / {espn.commentary.length}</span>
+          </div>
+          <div className="h-48 overflow-y-auto px-5 pb-5 space-y-2 scrollbar-none">
+            {visibleCommentary.length === 0 ? (
+              <p className="text-xs text-zinc-700 italic">No commentary yet — drag the scrubber forward.</p>
+            ) : (
+              visibleCommentary.map((c, i) => {
+                const adjustedMin = c.period === 2 ? c.minute + 45 : c.period > 2 ? c.minute + 90 : c.minute;
+                // Highlight goal-related lines
+                const isGoal = /goal|scores?|penalty/i.test(c.text);
+                const isCard = /yellow|red card|booking/i.test(c.text);
+                const isSub = /substitut|comes on|replac/i.test(c.text);
+                const isLatest = i === visibleCommentary.length - 1;
+                return (
+                  <div
+                    key={i}
+                    className={`flex gap-3 text-xs rounded-xl px-3 py-2 transition-all ${
+                      isLatest ? "bg-white/[0.06] ring-1 ring-white/[0.08]" : "bg-transparent"
+                    }`}
+                  >
+                    <span className={`shrink-0 font-black tabular-nums w-8 text-right ${
+                      isGoal ? "text-yellow-400" : isCard ? "text-red-400" : isSub ? "text-blue-400" : "text-zinc-600"
+                    }`}>
+                      {adjustedMin}&apos;
+                    </span>
+                    <span className={`leading-relaxed ${
+                      isGoal ? "text-yellow-200 font-black" : isCard ? "text-red-300" : isLatest ? "text-zinc-200" : "text-zinc-500"
+                    }`}>
+                      {isGoal && "⚽ "}{isCard && "🟨 "}{isSub && "🔄 "}{c.text}
+                    </span>
+                  </div>
+                );
+              })
+            )}
+            <div ref={commentaryEndRef} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

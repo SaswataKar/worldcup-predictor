@@ -83,8 +83,9 @@ function EventRow({ ev, homeTeam, awayTeam }: { ev: UnifiedEvent; homeTeam: stri
   );
 }
 
-function LiveMatchCard({ match }: { match: Match }) {
+function LiveMatchCard({ match, defaultCollapsed = false }: { match: Match; defaultCollapsed?: boolean }) {
   const [pitchOpen, setPitchOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(defaultCollapsed);
   const events = buildEvents(match);
   const isLive = match.status === "IN_PLAY" || match.status === "LIVE";
   const isFinished = match.status === "FINISHED";
@@ -96,83 +97,71 @@ function LiveMatchCard({ match }: { match: Match }) {
         : "border-white/[0.08] shadow-[0_0_0_1px_rgba(255,255,255,0.04),inset_0_1px_0_rgba(255,255,255,0.06)]"
       }`}
     >
-      {/* SCORE HEADER */}
-      <div className="relative px-5 sm:px-8 py-6 bg-white/[0.02]">
-        {isLive && (
-          <div className="absolute top-4 right-4 flex items-center gap-2">
-            <span className="relative flex h-2.5 w-2.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
-              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-red-500" />
+      {/* COLLAPSED ROW — always visible */}
+      <button
+        onClick={() => { setCollapsed(c => !c); if (pitchOpen) setPitchOpen(false); }}
+        className="w-full flex items-center justify-between gap-4 px-5 sm:px-6 py-4 bg-white/[0.02] hover:bg-white/[0.04] transition-colors text-left"
+      >
+        <div className="flex items-center gap-3 min-w-0">
+          <img src={match.team1_crest || "/placeholder-team.png"} className="w-7 h-7 object-contain shrink-0" />
+          <span className="font-black text-sm truncate">{match.team1}</span>
+          <span className="font-black text-lg tabular-nums shrink-0 px-2">
+            {match.team1_score ?? 0} <span className="text-zinc-600">–</span> {match.team2_score ?? 0}
+          </span>
+          <span className="font-black text-sm truncate">{match.team2}</span>
+          <img src={match.team2_crest || "/placeholder-team.png"} className="w-7 h-7 object-contain shrink-0" />
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          {isLive && (
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-red-500/40 bg-red-500/10 text-red-400 text-[10px] font-black animate-pulse">
+              <span className="w-1.5 h-1.5 rounded-full bg-red-400" />LIVE
             </span>
-            <span className="text-red-400 text-[11px] font-black tracking-widest uppercase">Live</span>
-          </div>
-        )}
-        {isFinished && (
-          <div className="absolute top-4 right-4">
-            <span className="text-zinc-600 text-[11px] font-black tracking-widest uppercase">Full Time</span>
-          </div>
-        )}
+          )}
+          {isFinished && <span className="text-zinc-600 text-[10px] font-black uppercase tracking-widest">FT</span>}
+          <span className="text-zinc-600 text-sm">{collapsed ? "▸" : "▾"}</span>
+        </div>
+      </button>
 
-        <div className="flex items-center justify-between gap-4">
-          {/* Home */}
-          <div className="flex flex-col items-center gap-2 flex-1 min-w-0">
-            <img src={match.team1_crest || "/placeholder-team.png"} className="w-14 h-14 sm:w-16 sm:h-16 object-contain drop-shadow-lg" />
-            <span className="text-sm sm:text-base font-black text-center leading-tight">{match.team1}</span>
-          </div>
-
-          {/* Score */}
-          <div className="text-center shrink-0 px-4">
-            <div className="text-5xl sm:text-6xl font-black tabular-nums">
-              <span className={isLive ? "text-white" : "text-zinc-300"}>
-                {match.team1_score ?? 0}
-              </span>
-              <span className="text-zinc-700 mx-2">–</span>
-              <span className={isLive ? "text-white" : "text-zinc-300"}>
-                {match.team2_score ?? 0}
-              </span>
+      {/* EXPANDED CONTENT */}
+      {!collapsed && !pitchOpen && (
+        <>
+          {/* EVENT TIMELINE */}
+          {events.length > 0 ? (
+            <div className="border-t border-white/[0.06] px-5 sm:px-8 py-2 max-h-72 overflow-y-auto">
+              <div className="text-[10px] uppercase tracking-widest text-zinc-600 font-black py-2">Match Events</div>
+              {events.map((ev, i) => (
+                <EventRow key={i} ev={ev} homeTeam={match.team1} awayTeam={match.team2} />
+              ))}
             </div>
-          </div>
+          ) : (
+            <div className="border-t border-white/[0.06] px-5 sm:px-8 py-6 text-center text-zinc-600 text-sm font-bold">
+              {isLive ? "Waiting for first event…" : "No events recorded"}
+            </div>
+          )}
+        </>
+      )}
 
-          {/* Away */}
-          <div className="flex flex-col items-center gap-2 flex-1 min-w-0">
-            <img src={match.team2_crest || "/placeholder-team.png"} className="w-14 h-14 sm:w-16 sm:h-16 object-contain drop-shadow-lg" />
-            <span className="text-sm sm:text-base font-black text-center leading-tight">{match.team2}</span>
-          </div>
-        </div>
-      </div>
-
-      {/* EVENT TIMELINE */}
-      {events.length > 0 ? (
-        <div className="border-t border-white/[0.06] px-5 sm:px-8 py-2 max-h-72 overflow-y-auto">
-          <div className="text-[10px] uppercase tracking-widest text-zinc-600 font-black py-2">Match Events</div>
-          {events.map((ev, i) => (
-            <EventRow key={i} ev={ev} homeTeam={match.team1} awayTeam={match.team2} />
-          ))}
-        </div>
-      ) : (
-        <div className="border-t border-white/[0.06] px-5 sm:px-8 py-6 text-center text-zinc-600 text-sm font-bold">
-          {isLive ? "Waiting for first event…" : "No events recorded"}
+      {/* PITCH VIEW — replaces content */}
+      {!collapsed && pitchOpen && (
+        <div className="border-t border-white/[0.06] px-4 sm:px-6 pb-6 pt-4">
+          <PitchView match={match} />
         </div>
       )}
 
-      {/* Pitch toggle */}
-      <div className="border-t border-white/[0.06] px-5 sm:px-8 py-3 flex">
-        <button
-          onClick={() => setPitchOpen(o => !o)}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black transition-all ${
-            pitchOpen
-              ? "bg-emerald-500/15 border border-emerald-500/30 text-emerald-400"
-              : "bg-zinc-800 border border-zinc-700 text-zinc-400 hover:text-white hover:border-zinc-500"
-          }`}
-        >
-          <span>🏟️</span>
-          {pitchOpen ? "Hide Pitch View" : "View on Pitch"}
-        </button>
-      </div>
-
-      {pitchOpen && (
-        <div className="px-4 sm:px-6 pb-6">
-          <PitchView match={match} />
+      {/* BOTTOM BAR — pitch toggle, only when expanded */}
+      {!collapsed && (
+        <div className="border-t border-white/[0.06] px-5 sm:px-6 py-3 flex">
+          <button
+            onClick={() => setPitchOpen(o => !o)}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black transition-all ${
+              pitchOpen
+                ? "bg-emerald-500/15 border border-emerald-500/30 text-emerald-400"
+                : "bg-zinc-800 border border-zinc-700 text-zinc-400 hover:text-white hover:border-zinc-500"
+            }`}
+          >
+            <span>🏟️</span>
+            {pitchOpen ? "← Back to Events" : "View on Pitch"}
+          </button>
         </div>
       )}
     </div>
@@ -362,7 +351,7 @@ export default function FeedPage() {
               <h2 className="text-sm font-black uppercase tracking-widest text-zinc-500 mb-5">Finished Matches</h2>
               <div className="space-y-6">
                 {recentlyFinished.map((m) => (
-                  <LiveMatchCard key={m.id} match={m} />
+                  <LiveMatchCard key={m.id} match={m} defaultCollapsed={true} />
                 ))}
               </div>
             </section>
