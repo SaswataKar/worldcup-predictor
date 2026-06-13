@@ -21,21 +21,27 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Missing fields" }, { status: 400 });
   }
 
-  // Reject if any match on this date has already kicked off
+  // Reject if we're within 1 minute of the earliest kickoff on this date
   const dayStart = `${date}T00:00:00.000Z`;
   const dayEnd   = `${date}T23:59:59.999Z`;
-  const { data: startedMatches } = await supabaseServer
+  const { data: dayMatches } = await supabaseServer
     .from("matches")
-    .select("id, status, kickoff_time")
+    .select("kickoff_time")
     .gte("kickoff_time", dayStart)
-    .lte("kickoff_time", dayEnd)
-    .in("status", ["IN_PLAY", "LIVE", "PAUSED", "FINISHED"]);
+    .lte("kickoff_time", dayEnd);
 
-  if (startedMatches && startedMatches.length > 0) {
-    return NextResponse.json(
-      { error: "Booster cannot be applied after a match has started." },
-      { status: 409 }
-    );
+  const kickoffs = (dayMatches ?? [])
+    .map((m: any) => m.kickoff_time ? new Date(m.kickoff_time).getTime() : Infinity)
+    .filter((t: number) => t !== Infinity);
+
+  if (kickoffs.length > 0) {
+    const earliest = Math.min(...kickoffs);
+    if (Date.now() >= earliest - 60 * 1000) {
+      return NextResponse.json(
+        { error: "Booster window has closed — predictions lock 1 minute before the first match." },
+        { status: 409 }
+      );
+    }
   }
 
   // Check for existing booster on this matchday (one booster per day)
