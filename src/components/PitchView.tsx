@@ -78,7 +78,7 @@ function getYPositions(count: number): number[] {
 }
 
 function getPlayerPos(formation: string, place: number, side: "home" | "away") {
-  if (place === 1) return { x: side === "home" ? 5 : W - 5, y: H / 2 };
+  if (place === 1) return { x: side === "home" ? 2 : W - 2, y: H / 2 };
   const lines = formation.split("-").map(Number).filter(Boolean);
   if (!lines.length) return { x: W / 2, y: H / 2 };
   let rem = place - 2, lineIdx = 0, posInLine = 0;
