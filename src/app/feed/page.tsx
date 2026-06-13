@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 
 import Header from "@/components/Header";
 import PageWrapper from "@/components/PageWrapper";
+import PitchView from "@/components/PitchView";
 import { userTZ } from "@/lib/utils";
 import type { Match, ESPNGoal, ESPNBooking, ESPNSubstitution } from "@/types";
 
@@ -83,6 +84,7 @@ function EventRow({ ev, homeTeam, awayTeam }: { ev: UnifiedEvent; homeTeam: stri
 }
 
 function LiveMatchCard({ match }: { match: Match }) {
+  const [pitchOpen, setPitchOpen] = useState(false);
   const events = buildEvents(match);
   const isLive = match.status === "IN_PLAY" || match.status === "LIVE";
   const isFinished = match.status === "FINISHED";
@@ -150,6 +152,27 @@ function LiveMatchCard({ match }: { match: Match }) {
       ) : (
         <div className="border-t border-white/[0.06] px-5 sm:px-8 py-6 text-center text-zinc-600 text-sm font-bold">
           {isLive ? "Waiting for first event…" : "No events recorded"}
+        </div>
+      )}
+
+      {/* Pitch toggle */}
+      <div className="border-t border-white/[0.06] px-5 sm:px-8 py-3 flex">
+        <button
+          onClick={() => setPitchOpen(o => !o)}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black transition-all ${
+            pitchOpen
+              ? "bg-emerald-500/15 border border-emerald-500/30 text-emerald-400"
+              : "bg-zinc-800 border border-zinc-700 text-zinc-400 hover:text-white hover:border-zinc-500"
+          }`}
+        >
+          <span>🏟️</span>
+          {pitchOpen ? "Hide Pitch View" : "View on Pitch"}
+        </button>
+      </div>
+
+      {pitchOpen && (
+        <div className="px-4 sm:px-6 pb-6">
+          <PitchView match={match} />
         </div>
       )}
     </div>
