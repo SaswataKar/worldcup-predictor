@@ -260,12 +260,9 @@ export default function FeedPage() {
 
   const now = Date.now();
   const liveMatches = matches.filter((m) => m.status === "IN_PLAY" || m.status === "LIVE");
-  const recentlyFinished = matches.filter((m) => {
-    if (m.status !== "FINISHED") return false;
-    if (!m.kickoff_time) return false;
-    const ago = now - new Date(m.kickoff_time).getTime();
-    return ago < 4 * 60 * 60 * 1000; // finished within last 4h
-  });
+  const recentlyFinished = matches
+    .filter((m) => m.status === "FINISHED" && m.kickoff_time)
+    .sort((a, b) => new Date(b.kickoff_time!).getTime() - new Date(a.kickoff_time!).getTime());
   const upcoming = matches
     .filter((m) => {
       if (m.status === "FINISHED" || m.status === "IN_PLAY" || m.status === "LIVE") return false;
@@ -362,7 +359,7 @@ export default function FeedPage() {
           {/* RECENTLY FINISHED */}
           {recentlyFinished.length > 0 && (
             <section className="mb-12">
-              <h2 className="text-sm font-black uppercase tracking-widest text-zinc-500 mb-5">Recently Finished</h2>
+              <h2 className="text-sm font-black uppercase tracking-widest text-zinc-500 mb-5">Finished Matches</h2>
               <div className="space-y-6">
                 {recentlyFinished.map((m) => (
                   <LiveMatchCard key={m.id} match={m} />
