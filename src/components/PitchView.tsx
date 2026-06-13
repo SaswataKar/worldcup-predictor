@@ -423,8 +423,9 @@ export default function PitchView({ match }: { match: Match }) {
 
   // Live: start at 0, ESPN clock sync will advance it. Finished: start at 0 for replay.
   const [minute, setMinute] = useState(0);
+  // `playing` only used for finished match replay — live never needs a play button
   const [playing, setPlaying] = useState(false);
-  const [speed, setSpeed] = useState(1); // minutes per second
+  const [speed, setSpeed] = useState(1);
   const [selected, setSelected] = useState<string | null>(null);
   const [newEventIds, setNewEventIds] = useState<Set<string>>(new Set());
   const prevEventCount = useRef(0);
@@ -474,7 +475,7 @@ export default function PitchView({ match }: { match: Match }) {
       setNewEventIds(newIds);
       setTimeout(() => setNewEventIds(new Set()), 1000);
 
-      const canPlaySound = !muted && (!playing || isLive);
+      const canPlaySound = !muted && (isLive || !playing);
       if (canPlaySound) {
         // Only play sound for the most significant new event (first goal > first booking)
         const goal = newEvs.find(e => e.kind === "goal");
@@ -717,31 +718,45 @@ export default function PitchView({ match }: { match: Match }) {
       <div className="px-5 pb-5 pt-3 border-t border-white/[0.06]">
         {/* Controls */}
         <div className="flex items-center gap-2 mb-3 flex-wrap">
-          <button
-            onClick={() => { setMinute(0); setPlaying(false); }}
-            className="text-zinc-500 hover:text-white transition-colors text-xs font-black px-2 py-1 rounded-lg hover:bg-zinc-800"
-          >↩ Reset</button>
-          <button
-            onClick={() => setPlaying(p => !p)}
-            className={`px-4 py-1.5 rounded-xl text-xs font-black transition-all ${
-              playing ? "bg-red-500/20 text-red-400 border border-red-500/30" : "bg-yellow-400 text-black"
-            }`}
-          >
-            {playing ? "⏸ Pause" : "▶ Play"}
-          </button>
-          {/* Speed selector */}
-          <div className="flex items-center gap-1 bg-zinc-900 border border-zinc-800 rounded-xl p-0.5">
-            {[1, 2, 5].map(s => (
+          {isLive ? (
+            /* Live: no play button — auto-advances in real time */
+            <>
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-500/10 border border-red-500/20">
+                <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+                <span className="text-red-400 text-xs font-black">LIVE</span>
+              </div>
+              <span className="text-[10px] text-zinc-600">Drag to review past events</span>
+              <span className="ml-auto font-black tabular-nums text-sm text-zinc-300">{minute}&apos;</span>
+            </>
+          ) : (
+            /* Finished: full replay controls */
+            <>
               <button
-                key={s}
-                onClick={() => setSpeed(s)}
-                className={`px-2.5 py-1 rounded-lg text-xs font-black transition-all ${
-                  speed === s ? "bg-zinc-700 text-white" : "text-zinc-500 hover:text-zinc-300"
+                onClick={() => { setMinute(0); setPlaying(false); }}
+                className="text-zinc-500 hover:text-white transition-colors text-xs font-black px-2 py-1 rounded-lg hover:bg-zinc-800"
+              >↩ Reset</button>
+              <button
+                onClick={() => setPlaying(p => !p)}
+                className={`px-4 py-1.5 rounded-xl text-xs font-black transition-all ${
+                  playing ? "bg-red-500/20 text-red-400 border border-red-500/30" : "bg-yellow-400 text-black"
                 }`}
-              >{s}×</button>
-            ))}
-          </div>
-          <span className="ml-auto font-black tabular-nums text-sm text-zinc-300">{minute}&apos;</span>
+              >
+                {playing ? "⏸ Pause" : "▶ Play"}
+              </button>
+              <div className="flex items-center gap-1 bg-zinc-900 border border-zinc-800 rounded-xl p-0.5">
+                {[1, 2, 5].map(s => (
+                  <button
+                    key={s}
+                    onClick={() => setSpeed(s)}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-black transition-all ${
+                      speed === s ? "bg-zinc-700 text-white" : "text-zinc-500 hover:text-zinc-300"
+                    }`}
+                  >{s}×</button>
+                ))}
+              </div>
+              <span className="ml-auto font-black tabular-nums text-sm text-zinc-300">{minute}&apos;</span>
+            </>
+          )}
         </div>
 
         {/* Slider with event ticks */}
