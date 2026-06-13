@@ -365,6 +365,8 @@ export default function PitchView({ match }: { match: Match }) {
   }, [muted]);
 
   // Detect new events — flash animation + sounds
+  // Sounds only fire when NOT auto-playing (prevents pile-up during scrub)
+  // Exception: live matches always fire since minute advances are real-time
   useEffect(() => {
     const visible = events.filter(e => e.minute <= minute && e.kind !== "kickoff" && e.kind !== "halftime" && e.kind !== "fulltime");
     if (visible.length > prevEventCount.current) {
@@ -373,9 +375,13 @@ export default function PitchView({ match }: { match: Match }) {
       setNewEventIds(newIds);
       setTimeout(() => setNewEventIds(new Set()), 1000);
 
-      if (!muted) for (const ev of newEvs) {
-        if (ev.kind === "goal") {
-          if (ev.ownGoal) {
+      const canPlaySound = !muted && (!playing || isLive);
+      if (canPlaySound) {
+        // Only play sound for the most significant new event (first goal > first booking)
+        const goal = newEvs.find(e => e.kind === "goal");
+        const booking = newEvs.find(e => e.kind === "booking");
+        if (goal) {
+          if (goal.ownGoal) {
             snd.setAmbientVol(0, 400);
             setTimeout(() => snd.playOneShot("/sounds/cricket.mp3", 0.9, 0), 600);
             setTimeout(() => snd.setAmbientVol(0.18, 2000), 5000);
@@ -384,7 +390,7 @@ export default function PitchView({ match }: { match: Match }) {
             snd.setAmbientVol(0.35, 300);
             setTimeout(() => snd.setAmbientVol(0.18, 3000), 5000);
           }
-        } else if (ev.kind === "booking") {
+        } else if (booking) {
           snd.playWhistle();
           setTimeout(() => snd.playOneShot("/sounds/crowd-boo.mp3", 0.8, 0), 800);
         }
@@ -393,27 +399,29 @@ export default function PitchView({ match }: { match: Match }) {
     prevEventCount.current = visible.length;
   }, [minute, events.length]);
 
-  // Kickoff and fulltime whistles
+  // Kickoff and fulltime whistles — only when not auto-playing
   const prevMinute = useRef(-1);
   useEffect(() => {
     if (prevMinute.current < 0 && minute === 0) { prevMinute.current = 0; return; }
-    if (!muted) {
+    if (!muted && (!playing || isLive)) {
       if (prevMinute.current <= 0 && minute === 1) snd.playWhistle();
       if (isFinished && prevMinute.current < 90 && minute >= 90) {
-        snd.playWhistle(); setTimeout(() => snd.playWhistle(), 800); setTimeout(() => snd.playWhistle(), 1600);
+        snd.playWhistle();
+        setTimeout(() => snd.playWhistle(), 800);
+        setTimeout(() => snd.playWhistle(), 1600);
       }
     }
     prevMinute.current = minute;
   }, [minute]);
 
-  // Miss detection from new commentary lines
+  // Miss detection — only when not auto-playing
   const prevCommCount = useRef(0);
   useEffect(() => {
     const visible = (espn?.commentary ?? []).filter(c => c.minute <= minute);
     if (visible.length > prevCommCount.current) {
       const newLines = visible.slice(prevCommCount.current);
-      if (!muted && newLines.some(c => MISS_KEYWORDS.test(c.text)))
-      snd.playOneShot("/sounds/crowd-aww.mp3", 0.8);
+      if (!muted && (!playing || isLive) && newLines.some(c => MISS_KEYWORDS.test(c.text)))
+        snd.playOneShot("/sounds/crowd-aww.mp3", 0.8);
     }
     prevCommCount.current = visible.length;
   }, [minute, espn?.commentary?.length]);
