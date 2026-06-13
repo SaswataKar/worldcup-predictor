@@ -209,6 +209,42 @@ function UpcomingCard({ match }: { match: Match }) {
   );
 }
 
+function FinishedSection({ matches }: { matches: Match[] }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <section className="mb-12">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center justify-between gap-3 mb-5 group"
+      >
+        <h2 className="text-sm font-black uppercase tracking-widest text-zinc-500 group-hover:text-zinc-300 transition-colors">
+          Finished Matches
+        </h2>
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] font-black text-zinc-700 bg-zinc-800 px-2 py-0.5 rounded-full">{matches.length}</span>
+          <span className="text-zinc-600 group-hover:text-zinc-400 transition-colors text-sm">{open ? "▾" : "▸"}</span>
+        </div>
+      </button>
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            style={{ overflow: "hidden" }}
+          >
+            <div className="space-y-4">
+              {matches.map((m) => (
+                <LiveMatchCard key={m.id} match={m} defaultCollapsed={true} />
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </section>
+  );
+}
+
 export default function FeedPage() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
@@ -271,7 +307,7 @@ export default function FeedPage() {
   return (
     <PageWrapper>
       <main className="min-h-screen text-white p-3 sm:p-6">
-        <div className="max-w-3xl mx-auto">
+        <div className="max-w-7xl mx-auto">
           <Header user={user} />
 
           {/* HERO */}
@@ -347,14 +383,7 @@ export default function FeedPage() {
 
           {/* RECENTLY FINISHED */}
           {recentlyFinished.length > 0 && (
-            <section className="mb-12">
-              <h2 className="text-sm font-black uppercase tracking-widest text-zinc-500 mb-5">Finished Matches</h2>
-              <div className="space-y-6">
-                {recentlyFinished.map((m) => (
-                  <LiveMatchCard key={m.id} match={m} defaultCollapsed={true} />
-                ))}
-              </div>
-            </section>
+            <FinishedSection matches={recentlyFinished} />
           )}
 
           {/* UPCOMING */}
