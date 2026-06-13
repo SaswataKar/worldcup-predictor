@@ -64,7 +64,8 @@ function buildEvents(match: Match): PitchEvent[] {
     const isHome = g.team === "home";
     let x: number, y: number;
     if (g.penalty) { x = isHome ? W - PENALTY_SPOT : PENALTY_SPOT; y = H / 2; }
-    else if (g.ownGoal) { x = isHome ? PENALTY_SPOT - 5 : W - PENALTY_SPOT + 5; y = H / 2 + (sr(i * 3) - 0.5) * 6; }
+    // OG: ball ends up in the conceding team's goal — opposite side from benefiting team
+    else if (g.ownGoal) { x = isHome ? W - PENALTY_SPOT + 5 : PENALTY_SPOT - 5; y = H / 2 + (sr(i * 3) - 0.5) * 6; }
     else { x = isHome ? W - 8 + sr(i * 7) * 3 : 8 - sr(i * 7) * 3; y = H / 2 + (sr(i * 5 + 1) - 0.5) * 10; }
     evs.push({
       id: `g${i}`, minute: min, kind: "goal", team: g.team,
@@ -352,13 +353,9 @@ export default function PitchView({ match }: { match: Match }) {
   const currentScore = { home: 0, away: 0 };
   visibleEvents.forEach(e => {
     if (e.kind === "goal") {
-      if (e.ownGoal) {
-        if (e.team === "home") currentScore.away++;
-        else currentScore.home++;
-      } else {
-        if (e.team === "home") currentScore.home++;
-        else currentScore.away++;
-      }
+      // e.team = the team that benefits (ESPN attributes OG to scoring team, not the OG player's team)
+      if (e.team === "home") currentScore.home++;
+      else currentScore.away++;
     }
   });
 
