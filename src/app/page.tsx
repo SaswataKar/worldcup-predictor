@@ -17,14 +17,10 @@ import { useLocaleCtx } from "@/context/LocaleContext";
 import { groupMatches, buildGroupLabels, dateFromKey } from "@/lib/matchGroups";
 import { getT } from "@/lib/translations";
 import type { Match, Prediction, PredictedScore, User } from "@/types";
+import { BOOSTER_ICON, BOOSTER_LABEL } from "@/lib/boosterMeta";
 
-const BOOSTER_NAMES: Record<string, string> = {
-  "2x": "⚽ Tiki Taka",
-  "3x": "🔥 Hat Trick Hero",
-  draw: "🐐 G.O.A.T",
-};
-
-const BOOSTER_ICONS: Record<string, string> = { "2x": "⚽", "3x": "🔥", draw: "🐐" };
+const BOOSTER_ICONS: Record<string, string> = { "2x": BOOSTER_ICON("2x"), "3x": BOOSTER_ICON("3x"), draw: BOOSTER_ICON("draw") };
+const BOOSTER_NAMES: Record<string, string> = { "2x": BOOSTER_LABEL("2x"), "3x": BOOSTER_LABEL("3x"), draw: BOOSTER_LABEL("draw") };
 
 // ─── Results View ─────────────────────────────────────────────────────────────
 
@@ -97,7 +93,7 @@ function ResultsView({
           <div className="flex gap-1.5">
             {dayBoosters.map((b) => (
               <span key={b} className="px-3 py-1.5 rounded-xl bg-zinc-900 border border-zinc-700 text-xs font-black text-zinc-300">
-                {BOOSTER_ICONS[b]} {b === "2x" ? "2× Tiki Taka" : b === "3x" ? "3× Hat Trick" : "G.O.A.T"} used
+                {BOOSTER_ICONS[b]} {BOOSTER_LABEL(b)} used
               </span>
             ))}
           </div>

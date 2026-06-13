@@ -6,6 +6,7 @@ import type { Match, Prediction, PredictedScore, ESPNGoal, ESPNBooking, ESPNSubs
 import { toLocalDateKey, userTZ, tzLabel } from "@/lib/utils";
 import { useLocaleCtx } from "@/context/LocaleContext";
 import { getT } from "@/lib/translations";
+import { BOOSTER_ICON } from "@/lib/boosterMeta";
 
 type MatchCardProps = {
   match: Match;
@@ -20,7 +21,7 @@ type MatchCardProps = {
   activeDayBoosters: Record<string, string[]>;
 };
 
-const BOOSTER_ICONS: Record<string, string> = { "2x": "⚽", "3x": "🔥", draw: "🐐" };
+const BOOSTER_ICONS: Record<string, string> = { "2x": BOOSTER_ICON("2x"), "3x": BOOSTER_ICON("3x"), draw: BOOSTER_ICON("draw") };
 
 // Subtle football pitch SVG rendered inside each card
 function PitchBackground() {

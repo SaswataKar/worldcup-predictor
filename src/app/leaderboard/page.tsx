@@ -21,29 +21,24 @@ type LeaderEntry = {
 
 type ActiveLeague = { id: string | null; name: string; code: string | null };
 
-const ALL_BOOSTERS = ["2x", "3x", "goat"] as const;
+import { BOOSTER_ICON, BOOSTER_LABEL } from "@/lib/boosterMeta";
 
-const BOOSTER_META: Record<string, { icon: string; label: string; color: string }> = {
-  "2x":   { icon: "⚡", label: "2× Tiki Taka", color: "text-yellow-400" },
-  "3x":   { icon: "🎩", label: "3× Hat Trick", color: "text-purple-400" },
-  "goat": { icon: "🐐", label: "G.O.A.T",      color: "text-emerald-400" },
-};
+const ALL_BOOSTERS = ["2x", "3x", "draw"] as const;
 
 function BoosterBar({ used }: { used: string[] }) {
+  // normalise "goat" → "draw" so either DB key matches
+  const normUsed = used.map((b) => b === "goat" ? "draw" : b);
   return (
     <div className="flex items-center gap-1">
       {ALL_BOOSTERS.map((b) => {
-        const isUsed = used.includes(b);
-        const meta = BOOSTER_META[b];
+        const isUsed = normUsed.includes(b);
         return (
           <span
             key={b}
-            title={isUsed ? `${meta.label} used` : `${meta.label} remaining`}
-            className={`text-base leading-none transition-all ${
-              isUsed ? meta.color : "opacity-20 grayscale"
-            }`}
+            title={isUsed ? `${BOOSTER_LABEL(b)} used` : `${BOOSTER_LABEL(b)} remaining`}
+            className={`text-base leading-none transition-all ${isUsed ? "" : "opacity-20 grayscale"}`}
           >
-            {meta.icon}
+            {BOOSTER_ICON(b)}
           </span>
         );
       })}
