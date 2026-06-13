@@ -389,24 +389,24 @@ export default function PitchView({ match }: { match: Match }) {
         <svg viewBox={`-2 -1 ${W + 4} ${H + 2}`} className="w-full" style={{ maxHeight: 420 }}>
           <PitchSVG />
 
-          {/* Formation dots */}
+          {/* Formation dots — visible at kickoff, fade out as match progresses */}
           {espn && !espnError && (
+            <g style={{ opacity: minute <= 1 ? 1 : 0, transition: "opacity 0.8s ease" }} pointerEvents={minute <= 1 ? undefined : "none"}>
             <>
               {espn.team1.players.map((p, i) => {
                 const { x, y } = getPlayerPos(espn.team1.formation, p.formationPlace ?? (i + 1), "home");
                 return (
-                  <PlayerDot key={i} x={x} y={y} name={p.name} pos={p.position}
-                    color="#b45309" dim={minute > 2} />
+                  <PlayerDot key={i} x={x} y={y} name={p.name} pos={p.position} color="#b45309" dim={false} />
                 );
               })}
               {espn.team2.players.map((p, i) => {
                 const { x, y } = getPlayerPos(espn.team2.formation, p.formationPlace ?? (i + 1), "away");
                 return (
-                  <PlayerDot key={i} x={x} y={y} name={p.name} pos={p.position}
-                    color="#1d4ed8" dim={minute > 2} />
+                  <PlayerDot key={i} x={x} y={y} name={p.name} pos={p.position} color="#1d4ed8" dim={false} />
                 );
               })}
             </>
+            </g>
           )}
 
           {/* Event markers */}
