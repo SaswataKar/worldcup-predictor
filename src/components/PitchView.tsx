@@ -77,8 +77,9 @@ function getYPositions(count: number): number[] {
   return Array.from({ length: count }, (_, i) => pad + (i + 1) * (H - 2 * pad) / (count + 1));
 }
 
-function getPlayerPos(formation: string, place: number, side: "home" | "away") {
-  if (place === 1) return { x: side === "home" ? 2 : W - 2, y: H / 2 };
+function getPlayerPos(formation: string, place: number, side: "home" | "away", pos?: string) {
+  // GK always goes on goal line regardless of formationPlace
+  if (place === 1 || pos === "GK" || pos === "G") return { x: side === "home" ? 2 : W - 2, y: H / 2 };
   const lines = formation.split("-").map(Number).filter(Boolean);
   if (!lines.length) return { x: W / 2, y: H / 2 };
   let rem = place - 2, lineIdx = 0, posInLine = 0;
@@ -652,8 +653,8 @@ export default function PitchView({ match }: { match: Match }) {
 
           {/* Players — formation at kickoff, wander live */}
           {espn && !espnError && (() => {
-            const t1Base = espn.team1.players.map((p, i) => getPlayerPos(espn.team1.formation, p.formationPlace ?? (i + 1), "home"));
-            const t2Base = espn.team2.players.map((p, i) => getPlayerPos(espn.team2.formation, p.formationPlace ?? (i + 1), "away"));
+            const t1Base = espn.team1.players.map((p, i) => getPlayerPos(espn.team1.formation, p.formationPlace ?? (i + 1), "home", p.position));
+            const t2Base = espn.team2.players.map((p, i) => getPlayerPos(espn.team2.formation, p.formationPlace ?? (i + 1), "away", p.position));
             const wanderActive = isLive && minute > 1;
             return (
               <WanderingPlayers
