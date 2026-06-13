@@ -6,7 +6,7 @@ import type { Match, ESPNGoal, ESPNBooking, ESPNSubstitution } from "@/types";
 // ── Sound engine ────────────────────────────────────────────────────────────
 function useSounds() {
   const ambient = useRef<HTMLAudioElement | null>(null);
-  const lastEventSound = useRef<number>(0); // timestamp of last event sound
+  const soundLockedUntil = useRef<number>(0); // nothing plays while locked
 
   const fadeTo = useCallback((el: HTMLAudioElement, target: number, ms: number, done?: () => void) => {
     const steps = Math.max(1, ms / 50);
@@ -42,18 +42,17 @@ function useSounds() {
     fadeTo(ambient.current, vol, ms);
   }, [fadeTo]);
 
-  // Play a one-shot sound with cooldown to prevent pile-up during fast scrub
-  const playOneShot = useCallback((src: string, vol = 1, cooldownMs = 2500) => {
+  // Play a one-shot event sound, clipped to `clipMs` duration, then lock for `lockMs`.
+  const playOneShot = useCallback((src: string, vol = 1, lockMs = 0, clipMs = 0) => {
     if (typeof window === "undefined") return;
-    const now = Date.now();
-    if (now - lastEventSound.current < cooldownMs) return; // skip if too recent
-    lastEventSound.current = now;
+    if (Date.now() < soundLockedUntil.current) return;
+    if (lockMs > 0) soundLockedUntil.current = Date.now() + lockMs;
     const a = new Audio(src);
     a.volume = vol;
     a.play().catch(() => {});
+    if (clipMs > 0) setTimeout(() => { a.pause(); a.currentTime = 0; }, clipMs);
   }, []);
 
-  // Whistle has its own shorter cooldown
   const playWhistle = useCallback((vol = 0.7) => {
     if (typeof window === "undefined") return;
     const a = new Audio("/sounds/whistle.mp3");
@@ -61,7 +60,7 @@ function useSounds() {
     a.play().catch(() => {});
   }, []);
 
-  return { startAmbient, stopAmbient, setAmbientVol, playOneShot, playWhistle, ambient };
+  return { startAmbient, stopAmbient, setAmbientVol, playOneShot, playWhistle, ambient, soundLockedUntil };
 }
 
 // ── Pitch constants (FIFA metres as SVG units) ─────────────────────────────
@@ -383,17 +382,18 @@ export default function PitchView({ match }: { match: Match }) {
         const booking = newEvs.find(e => e.kind === "booking");
         if (goal) {
           if (goal.ownGoal) {
+            snd.soundLockedUntil.current = Date.now() + 7000;
             snd.setAmbientVol(0, 400);
-            setTimeout(() => snd.playOneShot("/sounds/cricket.mp3", 0.9, 0), 600);
-            setTimeout(() => snd.setAmbientVol(0.18, 2000), 5000);
+            setTimeout(() => snd.playOneShot("/sounds/cricket.mp3", 0.9, 0, 5000), 600);
+            setTimeout(() => snd.setAmbientVol(0.18, 2000), 6000);
           } else {
-            snd.playOneShot("/sounds/crowd-goal.mp3", 1.0, 0);
-            snd.setAmbientVol(0.35, 300);
-            setTimeout(() => snd.setAmbientVol(0.18, 3000), 5000);
+            snd.playOneShot("/sounds/crowd-goal.mp3", 1.0, 7000, 6000); // clip at 6s
+            snd.setAmbientVol(0.4, 300);
+            setTimeout(() => snd.setAmbientVol(0.18, 3000), 6000);
           }
         } else if (booking) {
           snd.playWhistle();
-          setTimeout(() => snd.playOneShot("/sounds/crowd-boo.mp3", 0.8, 0), 800);
+          setTimeout(() => snd.playOneShot("/sounds/crowd-boo.mp3", 0.8, 4000, 3500), 800); // clip at 3.5s
         }
       }
     }
@@ -422,7 +422,7 @@ export default function PitchView({ match }: { match: Match }) {
     if (visible.length > prevCommCount.current) {
       const newLines = visible.slice(prevCommCount.current);
       if (!muted && (!playing || isLive) && newLines.some(c => MISS_KEYWORDS.test(c.text)))
-        snd.playOneShot("/sounds/crowd-aww.mp3", 0.8);
+        snd.playOneShot("/sounds/crowd-aww.mp3", 0.8, 3000, 2500);
     }
     prevCommCount.current = visible.length;
   }, [minute, espn?.commentary?.length]);
@@ -434,15 +434,17 @@ export default function PitchView({ match }: { match: Match }) {
     if (!isNaN(parsed)) setMinute(parsed);
   }, [espn?.clock, isLive]);
 
-  // Play button — tick every 1s, advance by `speed` minutes per tick
+  // Play button — advance 1 minute every (2000/speed)ms
+  // 1× = 2s/min → 90 min takes 3 min | 2× = 1s/min → 1.5 min | 5× = 400ms/min → 36s
   useEffect(() => {
     if (playing) {
+      const ms = Math.round(2000 / speed);
       playRef.current = setInterval(() => {
         setMinute(m => {
           if (m >= maxMinute) { setPlaying(false); return m; }
-          return Math.min(m + speed, maxMinute);
+          return m + 1;
         });
-      }, 1000);
+      }, ms);
     } else {
       if (playRef.current) clearInterval(playRef.current);
     }
