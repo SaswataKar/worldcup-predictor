@@ -283,21 +283,30 @@ export default function FeedPage() {
     return () => clearInterval(tick);
   }, [fetchMatches]);
 
+  const tz = userTZ();
   const now = Date.now();
   const liveMatches = matches.filter((m) => m.status === "IN_PLAY" || m.status === "LIVE");
   const recentlyFinished = matches
     .filter((m) => m.status === "FINISHED" && m.kickoff_time)
     .sort((a, b) => new Date(b.kickoff_time!).getTime() - new Date(a.kickoff_time!).getTime());
-  const upcoming = matches
+
+  // All upcoming matches grouped by local date
+  const upcomingAll = matches
     .filter((m) => {
       if (m.status === "FINISHED" || m.status === "IN_PLAY" || m.status === "LIVE") return false;
       if (!m.kickoff_time) return false;
-      const diff = new Date(m.kickoff_time).getTime() - now;
-      return diff > 0 && diff < 24 * 60 * 60 * 1000; // next 24h
+      return new Date(m.kickoff_time).getTime() > now;
     })
-    .slice(0, 5);
+    .sort((a, b) => new Date(a.kickoff_time!).getTime() - new Date(b.kickoff_time!).getTime());
 
-  const hasAnything = liveMatches.length > 0 || recentlyFinished.length > 0 || upcoming.length > 0;
+  const upcomingByDay = upcomingAll.reduce<Record<string, Match[]>>((acc, m) => {
+    const day = new Date(m.kickoff_time!).toLocaleDateString("en", { timeZone: tz, weekday: "short", day: "numeric", month: "short" });
+    if (!acc[day]) acc[day] = [];
+    acc[day].push(m);
+    return acc;
+  }, {});
+
+  const hasAnything = liveMatches.length > 0 || recentlyFinished.length > 0 || upcomingAll.length > 0;
 
   // Progress ring
   const progress = (REFRESH_INTERVAL - secondsToRefresh) / REFRESH_INTERVAL;
@@ -386,17 +395,17 @@ export default function FeedPage() {
             <FinishedSection matches={recentlyFinished} />
           )}
 
-          {/* UPCOMING */}
-          {upcoming.length > 0 && (
-            <section>
-              <h2 className="text-sm font-black uppercase tracking-widest text-zinc-500 mb-5">Up Next — Today</h2>
+          {/* UPCOMING — all future matches grouped by day */}
+          {Object.entries(upcomingByDay).map(([day, dayMatches]) => (
+            <section key={day} className="mb-8">
+              <h2 className="text-sm font-black uppercase tracking-widest text-zinc-500 mb-4">{day}</h2>
               <div className="space-y-3">
-                {upcoming.map((m) => (
+                {dayMatches.map((m) => (
                   <UpcomingCard key={m.id} match={m} />
                 ))}
               </div>
             </section>
-          )}
+          ))}
         </div>
       </main>
     </PageWrapper>
