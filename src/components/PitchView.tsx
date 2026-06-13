@@ -3,6 +3,163 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import type { Match, ESPNGoal, ESPNBooking, ESPNSubstitution } from "@/types";
 
+// ── Synthesised sound engine (no audio files needed) ──────────────────────
+function getCtx(): AudioContext | null {
+  if (typeof window === "undefined") return null;
+  try { return new (window.AudioContext || (window as any).webkitAudioContext)(); } catch { return null; }
+}
+
+// Pink noise buffer (more natural than white noise)
+function makePinkNoise(ctx: AudioContext, duration: number): AudioBuffer {
+  const sr = ctx.sampleRate;
+  const buf = ctx.createBuffer(1, sr * duration, sr);
+  const data = buf.getChannelData(0);
+  let b0=0,b1=0,b2=0,b3=0,b4=0,b5=0,b6=0;
+  for (let i = 0; i < data.length; i++) {
+    const w = Math.random() * 2 - 1;
+    b0=0.99886*b0+w*0.0555179; b1=0.99332*b1+w*0.0750759;
+    b2=0.96900*b2+w*0.1538520; b3=0.86650*b3+w*0.3104856;
+    b4=0.55000*b4+w*0.5329522; b5=-0.7616*b5-w*0.0168980;
+    data[i] = (b0+b1+b2+b3+b4+b5+b6+w*0.5362) * 0.11;
+    b6 = w * 0.115926;
+  }
+  return buf;
+}
+
+const _ctxRef: { current: AudioContext | null } = { current: null };
+function ctx(): AudioContext | null {
+  if (!_ctxRef.current) _ctxRef.current = getCtx();
+  return _ctxRef.current;
+}
+
+const sounds = {
+  // Crowd ambient: looping pink noise through bandpass — stadium hum
+  ambientNode: null as AudioBufferSourceNode | null,
+  ambientGain: null as GainNode | null,
+
+  startAmbient(vol = 0.18) {
+    const c = ctx(); if (!c) return;
+    this.stopAmbient();
+    const buf = makePinkNoise(c, 4);
+    const src = c.createBufferSource();
+    src.buffer = buf; src.loop = true;
+    const bp = c.createBiquadFilter(); bp.type = "bandpass"; bp.frequency.value = 800; bp.Q.value = 0.4;
+    const gain = c.createGain(); gain.gain.value = 0;
+    src.connect(bp); bp.connect(gain); gain.connect(c.destination);
+    src.start();
+    gain.gain.linearRampToValueAtTime(vol, c.currentTime + 1.5);
+    this.ambientNode = src; this.ambientGain = gain;
+  },
+
+  stopAmbient(fadeMs = 800) {
+    const c = ctx(); if (!c || !this.ambientGain) return;
+    const g = this.ambientGain;
+    g.gain.linearRampToValueAtTime(0, c.currentTime + fadeMs / 1000);
+    const node = this.ambientNode;
+    setTimeout(() => { try { node?.stop(); } catch {} }, fadeMs + 100);
+    this.ambientNode = null; this.ambientGain = null;
+  },
+
+  setAmbientVol(vol: number, fadeMs = 500) {
+    const c = ctx(); if (!c || !this.ambientGain) return;
+    this.ambientGain.gain.linearRampToValueAtTime(vol, c.currentTime + fadeMs / 1000);
+  },
+
+  // Single referee whistle: sine wave with vibrato
+  whistle() {
+    const c = ctx(); if (!c) return;
+    const osc = c.createOscillator(); osc.type = "sine"; osc.frequency.value = 3000;
+    // slight wobble
+    const lfo = c.createOscillator(); lfo.frequency.value = 6;
+    const lfoGain = c.createGain(); lfoGain.gain.value = 40;
+    lfo.connect(lfoGain); lfoGain.connect(osc.frequency);
+    const gain = c.createGain(); gain.gain.value = 0.5;
+    gain.gain.setValueAtTime(0.5, c.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.8);
+    osc.connect(gain); gain.connect(c.destination);
+    lfo.start(); osc.start(); osc.stop(c.currentTime + 0.8); lfo.stop(c.currentTime + 0.8);
+  },
+
+  // Triple whistle for full time
+  tripleWhistle() {
+    this.whistle();
+    setTimeout(() => this.whistle(), 700);
+    setTimeout(() => this.whistle(), 1400);
+  },
+
+  // Goal roar: burst of pink noise that swells then fades + crowd pitch rise
+  goalRoar() {
+    const c = ctx(); if (!c) return;
+    const buf = makePinkNoise(c, 4);
+    const src = c.createBufferSource(); src.buffer = buf;
+    const bp = c.createBiquadFilter(); bp.type = "bandpass"; bp.frequency.value = 1200; bp.Q.value = 0.3;
+    const gain = c.createGain();
+    gain.gain.setValueAtTime(0, c.currentTime);
+    gain.gain.linearRampToValueAtTime(1.4, c.currentTime + 0.3);
+    gain.gain.linearRampToValueAtTime(0.9, c.currentTime + 1.5);
+    gain.gain.linearRampToValueAtTime(0, c.currentTime + 4);
+    src.connect(bp); bp.connect(gain); gain.connect(c.destination);
+    src.start(); src.stop(c.currentTime + 4);
+    // high freq excitement layer
+    const osc = c.createOscillator(); osc.type = "sawtooth"; osc.frequency.value = 300;
+    osc.frequency.linearRampToValueAtTime(800, c.currentTime + 0.5);
+    const og = c.createGain(); og.gain.setValueAtTime(0.15, c.currentTime);
+    og.gain.linearRampToValueAtTime(0, c.currentTime + 1.5);
+    osc.connect(og); og.connect(c.destination);
+    osc.start(); osc.stop(c.currentTime + 1.5);
+  },
+
+  // Crowd aww: descending pitch noise
+  aww() {
+    const c = ctx(); if (!c) return;
+    const buf = makePinkNoise(c, 2);
+    const src = c.createBufferSource(); src.buffer = buf;
+    const bp = c.createBiquadFilter(); bp.type = "bandpass";
+    bp.frequency.setValueAtTime(1000, c.currentTime);
+    bp.frequency.linearRampToValueAtTime(400, c.currentTime + 1.5);
+    bp.Q.value = 0.5;
+    const gain = c.createGain();
+    gain.gain.setValueAtTime(0.7, c.currentTime);
+    gain.gain.linearRampToValueAtTime(0, c.currentTime + 2);
+    src.connect(bp); bp.connect(gain); gain.connect(c.destination);
+    src.start(); src.stop(c.currentTime + 2);
+  },
+
+  // Crowd boo: low rumble noise
+  boo() {
+    const c = ctx(); if (!c) return;
+    const buf = makePinkNoise(c, 3);
+    const src = c.createBufferSource(); src.buffer = buf;
+    const lp = c.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 600;
+    const gain = c.createGain();
+    gain.gain.setValueAtTime(0, c.currentTime);
+    gain.gain.linearRampToValueAtTime(0.9, c.currentTime + 0.3);
+    gain.gain.linearRampToValueAtTime(0, c.currentTime + 3);
+    src.connect(lp); lp.connect(gain); gain.connect(c.destination);
+    src.start(); src.stop(c.currentTime + 3);
+  },
+
+  // Cricket chirping: rhythmic high-freq clicks
+  cricket() {
+    const c = ctx(); if (!c) return;
+    const chirp = (t: number) => {
+      for (let i = 0; i < 3; i++) {
+        const osc = c.createOscillator(); osc.type = "sine";
+        osc.frequency.setValueAtTime(4200, t + i * 0.08);
+        osc.frequency.linearRampToValueAtTime(3800, t + i * 0.08 + 0.06);
+        const g = c.createGain();
+        g.gain.setValueAtTime(0.3, t + i * 0.08);
+        g.gain.exponentialRampToValueAtTime(0.001, t + i * 0.08 + 0.07);
+        osc.connect(g); g.connect(c.destination);
+        osc.start(t + i * 0.08); osc.stop(t + i * 0.08 + 0.07);
+      }
+    };
+    const now = c.currentTime;
+    // 4 chirp bursts with gaps
+    [0, 0.5, 1.0, 1.5, 2.2, 2.7].forEach(offset => chirp(now + offset));
+  },
+};
+
 // ── Pitch constants (FIFA metres as SVG units) ─────────────────────────────
 const W = 105, H = 68;
 const PENALTY_DEPTH = 16.5, PENALTY_H = 40.32;
@@ -247,13 +404,17 @@ type ESPNDetail = {
   commentary: CommentaryEntry[];
 };
 
+const MISS_KEYWORDS = /\b(miss|missed|wide|over the bar|off the post|off the crossbar|saved|great save|denied|blocked shot|shooting chance)\b/i;
+
 export default function PitchView({ match }: { match: Match }) {
   const isLive = match.status === "IN_PLAY" || match.status === "LIVE";
   const isFinished = match.status === "FINISHED";
 
+
   const [espn, setEspn] = useState<ESPNDetail | null>(null);
   const [espnLoading, setEspnLoading] = useState(true);
   const [espnError, setEspnError] = useState(false);
+  const [muted, setMuted] = useState(false);
 
   const events = buildEvents(match);
   const maxMinute = Math.max(...events.map(e => e.minute), isFinished ? 90 : isLive ? 45 : 0);
@@ -286,16 +447,68 @@ export default function PitchView({ match }: { match: Match }) {
     return () => clearInterval(id);
   }, [isLive, fetchDetail]);
 
-  // Detect new events (for flash animation)
+  // Start ambient crowd on mount, fade out on unmount
+  useEffect(() => {
+    if (!muted) sounds.startAmbient();
+    return () => sounds.stopAmbient();
+  }, []);
+
+  // Mute: stop/start ambient
+  useEffect(() => {
+    if (muted) sounds.stopAmbient(200);
+    else sounds.startAmbient();
+  }, [muted]);
+
+  // Detect new events — flash animation + sounds
   useEffect(() => {
     const visible = events.filter(e => e.minute <= minute && e.kind !== "kickoff" && e.kind !== "halftime" && e.kind !== "fulltime");
     if (visible.length > prevEventCount.current) {
-      const newIds = new Set(visible.slice(prevEventCount.current).map(e => e.id));
+      const newEvs = visible.slice(prevEventCount.current);
+      const newIds = new Set(newEvs.map(e => e.id));
       setNewEventIds(newIds);
       setTimeout(() => setNewEventIds(new Set()), 1000);
+
+      if (!muted) for (const ev of newEvs) {
+        if (ev.kind === "goal") {
+          if (ev.ownGoal) {
+            sounds.setAmbientVol(0, 300);
+            setTimeout(() => sounds.cricket(), 500);
+            setTimeout(() => sounds.setAmbientVol(0.18, 1500), 4500);
+          } else {
+            sounds.goalRoar();
+            sounds.setAmbientVol(0.35, 200);
+            setTimeout(() => sounds.setAmbientVol(0.18, 3000), 4000);
+          }
+        } else if (ev.kind === "booking") {
+          sounds.whistle();
+          setTimeout(() => sounds.boo(), 600);
+        }
+      }
     }
     prevEventCount.current = visible.length;
   }, [minute, events.length]);
+
+  // Kickoff and fulltime whistles
+  const prevMinute = useRef(-1);
+  useEffect(() => {
+    if (prevMinute.current < 0 && minute === 0) { prevMinute.current = 0; return; }
+    if (!muted) {
+      if (prevMinute.current <= 0 && minute === 1) sounds.whistle();
+      if (isFinished && prevMinute.current < 90 && minute >= 90) sounds.tripleWhistle();
+    }
+    prevMinute.current = minute;
+  }, [minute]);
+
+  // Miss detection from new commentary lines
+  const prevCommCount = useRef(0);
+  useEffect(() => {
+    const visible = (espn?.commentary ?? []).filter(c => c.minute <= minute);
+    if (visible.length > prevCommCount.current) {
+      const newLines = visible.slice(prevCommCount.current);
+      if (!muted && newLines.some(c => MISS_KEYWORDS.test(c.text))) sounds.aww();
+    }
+    prevCommCount.current = visible.length;
+  }, [minute, espn?.commentary?.length]);
 
   // Auto-advance for live (sync with ESPN clock)
   useEffect(() => {
@@ -372,7 +585,14 @@ export default function PitchView({ match }: { match: Match }) {
       `}</style>
 
       {/* ── Score header ── */}
-      <div className="px-5 py-4 flex items-center justify-between gap-4 border-b border-white/[0.06] bg-white/[0.02]">
+      <div className="px-5 py-4 flex items-center justify-between gap-4 border-b border-white/[0.06] bg-white/[0.02]" style={{ position: "relative" }}>
+        <button
+          onClick={() => setMuted(m => !m)}
+          title={muted ? "Unmute sounds" : "Mute sounds"}
+          className="absolute top-3 right-3 text-lg opacity-50 hover:opacity-100 transition-opacity"
+        >
+          {muted ? "🔇" : "🔊"}
+        </button>
         <div className="flex items-center gap-3 min-w-0">
           <img src={match.team1_crest || "/placeholder-team.png"} className="w-8 h-8 object-contain" />
           <span className="font-black text-sm truncate text-yellow-300">{match.team1}</span>
