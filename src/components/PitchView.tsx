@@ -322,10 +322,11 @@ export default function PitchView({ match }: { match: Match }) {
   const snd = useSounds();
 
   const events = buildEvents(match);
-  const maxMinute = Math.max(...events.map(e => e.minute), isFinished ? 90 : isLive ? 45 : 0);
+  const maxMinute = Math.max(...events.map(e => e.minute), isLive ? 45 : 0);
 
   const [minute, setMinute] = useState(isLive ? maxMinute : 0);
   const [playing, setPlaying] = useState(false);
+  const [speed, setSpeed] = useState(1); // minutes per second
   const [selected, setSelected] = useState<string | null>(null);
   const [newEventIds, setNewEventIds] = useState<Set<string>>(new Set());
   const prevEventCount = useRef(0);
@@ -433,20 +434,20 @@ export default function PitchView({ match }: { match: Match }) {
     if (!isNaN(parsed)) setMinute(parsed);
   }, [espn?.clock, isLive]);
 
-  // Play button
+  // Play button — tick every 1s, advance by `speed` minutes per tick
   useEffect(() => {
     if (playing) {
       playRef.current = setInterval(() => {
         setMinute(m => {
           if (m >= maxMinute) { setPlaying(false); return m; }
-          return m + 1;
+          return Math.min(m + speed, maxMinute);
         });
-      }, 300);
+      }, 1000);
     } else {
       if (playRef.current) clearInterval(playRef.current);
     }
     return () => { if (playRef.current) clearInterval(playRef.current); };
-  }, [playing, maxMinute]);
+  }, [playing, maxMinute, speed]);
 
   // Live clock tick
   const [liveClock, setLiveClock] = useState(espn?.clock ?? "");
@@ -611,7 +612,7 @@ export default function PitchView({ match }: { match: Match }) {
       {/* ── Timeline scrubber ── */}
       <div className="px-5 pb-5 pt-3 border-t border-white/[0.06]">
         {/* Controls */}
-        <div className="flex items-center gap-3 mb-3">
+        <div className="flex items-center gap-2 mb-3 flex-wrap">
           <button
             onClick={() => { setMinute(0); setPlaying(false); }}
             className="text-zinc-500 hover:text-white transition-colors text-xs font-black px-2 py-1 rounded-lg hover:bg-zinc-800"
@@ -624,6 +625,18 @@ export default function PitchView({ match }: { match: Match }) {
           >
             {playing ? "⏸ Pause" : "▶ Play"}
           </button>
+          {/* Speed selector */}
+          <div className="flex items-center gap-1 bg-zinc-900 border border-zinc-800 rounded-xl p-0.5">
+            {[1, 2, 5].map(s => (
+              <button
+                key={s}
+                onClick={() => setSpeed(s)}
+                className={`px-2.5 py-1 rounded-lg text-xs font-black transition-all ${
+                  speed === s ? "bg-zinc-700 text-white" : "text-zinc-500 hover:text-zinc-300"
+                }`}
+              >{s}×</button>
+            ))}
+          </div>
           <span className="ml-auto font-black tabular-nums text-sm text-zinc-300">{minute}&apos;</span>
         </div>
 
@@ -632,7 +645,7 @@ export default function PitchView({ match }: { match: Match }) {
           <div className="relative h-6 flex items-center">
             {/* Tick marks */}
             {events.filter(e => e.kind !== "kickoff" && e.kind !== "halftime" && e.kind !== "fulltime").map(ev => {
-              const pct = (ev.minute / Math.max(maxMinute, 90)) * 100;
+              const pct = (ev.minute / maxMinute) * 100;
               const color = ev.kind === "goal" ? "#facc15" : ev.cardType === "Red" ? "#ef4444" : ev.kind === "booking" ? "#fbbf24" : "#60a5fa";
               return (
                 <div key={ev.id} className="absolute top-0 bottom-0 flex items-center"
@@ -642,18 +655,27 @@ export default function PitchView({ match }: { match: Match }) {
               );
             })}
             {/* Halftime mark */}
-            <div className="absolute top-0 bottom-0 flex items-center" style={{ left: `${(45 / Math.max(maxMinute, 90)) * 100}%` }}>
+            <div className="absolute top-0 bottom-0 flex items-center" style={{ left: `${(45 / maxMinute) * 100}%` }}>
               <div className="w-px h-3 bg-zinc-600" />
             </div>
+            {/* 90' mark if match went beyond */}
+            {maxMinute > 90 && (
+              <div className="absolute top-0 bottom-0 flex items-center" style={{ left: `${(90 / maxMinute) * 100}%` }}>
+                <div className="w-px h-3 bg-zinc-700" />
+              </div>
+            )}
             <input
-              type="range" min={0} max={Math.max(maxMinute, 90)} value={minute}
+              type="range" min={0} max={maxMinute} value={minute}
               onChange={e => { setMinute(Number(e.target.value)); setPlaying(false); }}
               className="w-full appearance-none bg-zinc-800 rounded-full h-1.5 cursor-pointer relative z-10"
               style={{ accentColor: "#facc15" }}
             />
           </div>
           <div className="flex justify-between text-[10px] text-zinc-700 mt-1 font-black">
-            <span>0&apos;</span><span>45&apos;</span><span>90&apos;</span>
+            <span>0&apos;</span>
+            <span>45&apos;</span>
+            {maxMinute > 90 && <span>90&apos;</span>}
+            <span>{maxMinute}&apos;</span>
           </div>
         </div>
 
