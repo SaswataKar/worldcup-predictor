@@ -537,9 +537,9 @@ export default function PitchView({ match }: { match: Match }) {
     }
   }, [espn?.clock, isLive]);
 
-  // Play button — advance 1 minute every (2000/speed)ms
-  // 1× = 2s/min → 90 min takes 3 min | 2× = 1s/min → 1.5 min | 5× = 400ms/min → 36s
+  // Play button — finished match replay only; live auto-advances via 60s interval
   useEffect(() => {
+    if (isLive) return; // live handled separately
     if (playing) {
       const ms = Math.round(2000 / speed);
       playRef.current = setInterval(() => {
@@ -785,7 +785,7 @@ export default function PitchView({ match }: { match: Match }) {
             )}
             <input
               type="range" min={0} max={maxMinute} value={minute}
-              onChange={e => { setMinute(Number(e.target.value)); setPlaying(false); }}
+              onChange={e => { setMinute(Number(e.target.value)); if (!isLive) setPlaying(false); }}
               className="w-full appearance-none bg-zinc-800 rounded-full h-1.5 cursor-pointer relative z-10"
               style={{ accentColor: "#facc15" }}
             />
