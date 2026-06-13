@@ -3,43 +3,13 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import type { Match, ESPNGoal, ESPNBooking, ESPNSubstitution } from "@/types";
 
-// ── Sound engine using real audio files ────────────────────────────────────
-function makeAudio(src: string, loop = false, vol = 1) {
-  if (typeof window === "undefined") return null;
-  const a = new Audio(src);
-  a.loop = loop;
-  a.volume = vol;
-  return a;
-}
+// ── Sound engine ────────────────────────────────────────────────────────────
+function useSounds() {
+  const ambient = useRef<HTMLAudioElement | null>(null);
+  const lastEventSound = useRef<number>(0); // timestamp of last event sound
 
-const sounds = {
-  _ambient: null as HTMLAudioElement | null,
-
-  init() {
-    if (this._ambient) return;
-    this._ambient = makeAudio("/sounds/crowd-ambient.mp3", true, 0);
-  },
-
-  startAmbient() {
-    this.init();
-    if (!this._ambient) return;
-    this._ambient.volume = 0;
-    this._ambient.play().catch(() => {});
-    this._fadeTo(this._ambient, 0.2, 1500);
-  },
-
-  stopAmbient(ms = 800) {
-    if (!this._ambient) return;
-    this._fadeTo(this._ambient, 0, ms, () => this._ambient?.pause());
-  },
-
-  setAmbientVol(vol: number, ms = 500) {
-    if (!this._ambient) return;
-    this._fadeTo(this._ambient, vol, ms);
-  },
-
-  _fadeTo(el: HTMLAudioElement, target: number, ms: number, done?: () => void) {
-    const steps = ms / 50;
+  const fadeTo = useCallback((el: HTMLAudioElement, target: number, ms: number, done?: () => void) => {
+    const steps = Math.max(1, ms / 50);
     const delta = (target - el.volume) / steps;
     let count = 0;
     const id = setInterval(() => {
@@ -47,20 +17,52 @@ const sounds = {
       el.volume = Math.min(1, Math.max(0, el.volume + delta));
       if (count >= steps) { el.volume = target; clearInterval(id); done?.(); }
     }, 50);
-  },
+    return id;
+  }, []);
 
-  _play(src: string, vol = 1) {
-    const a = makeAudio(src, false, vol);
-    a?.play().catch(() => {});
-  },
+  const startAmbient = useCallback(() => {
+    if (typeof window === "undefined") return;
+    if (!ambient.current) {
+      ambient.current = new Audio("/sounds/crowd-ambient.mp3");
+      ambient.current.loop = true;
+      ambient.current.volume = 0;
+    }
+    ambient.current.play().catch(() => {});
+    fadeTo(ambient.current, 0.18, 2000);
+  }, [fadeTo]);
 
-  whistle()       { this._play("/sounds/whistle.mp3", 0.8); },
-  tripleWhistle() { this.whistle(); setTimeout(() => this.whistle(), 700); setTimeout(() => this.whistle(), 1400); },
-  goalRoar()      { this._play("/sounds/crowd-goal.mp3", 1.0); },
-  aww()           { this._play("/sounds/crowd-aww.mp3", 0.85); },
-  boo()           { this._play("/sounds/crowd-boo.mp3", 0.85); },
-  cricket()       { this._play("/sounds/cricket.mp3", 0.9); },
-};
+  const stopAmbient = useCallback(() => {
+    if (!ambient.current) return;
+    const el = ambient.current;
+    fadeTo(el, 0, 800, () => { el.pause(); el.currentTime = 0; });
+  }, [fadeTo]);
+
+  const setAmbientVol = useCallback((vol: number, ms = 500) => {
+    if (!ambient.current) return;
+    fadeTo(ambient.current, vol, ms);
+  }, [fadeTo]);
+
+  // Play a one-shot sound with cooldown to prevent pile-up during fast scrub
+  const playOneShot = useCallback((src: string, vol = 1, cooldownMs = 2500) => {
+    if (typeof window === "undefined") return;
+    const now = Date.now();
+    if (now - lastEventSound.current < cooldownMs) return; // skip if too recent
+    lastEventSound.current = now;
+    const a = new Audio(src);
+    a.volume = vol;
+    a.play().catch(() => {});
+  }, []);
+
+  // Whistle has its own shorter cooldown
+  const playWhistle = useCallback((vol = 0.7) => {
+    if (typeof window === "undefined") return;
+    const a = new Audio("/sounds/whistle.mp3");
+    a.volume = vol;
+    a.play().catch(() => {});
+  }, []);
+
+  return { startAmbient, stopAmbient, setAmbientVol, playOneShot, playWhistle, ambient };
+}
 
 // ── Pitch constants (FIFA metres as SVG units) ─────────────────────────────
 const W = 105, H = 68;
@@ -317,6 +319,7 @@ export default function PitchView({ match }: { match: Match }) {
   const [espnLoading, setEspnLoading] = useState(true);
   const [espnError, setEspnError] = useState(false);
   const [muted, setMuted] = useState(false);
+  const snd = useSounds();
 
   const events = buildEvents(match);
   const maxMinute = Math.max(...events.map(e => e.minute), isFinished ? 90 : isLive ? 45 : 0);
@@ -349,16 +352,16 @@ export default function PitchView({ match }: { match: Match }) {
     return () => clearInterval(id);
   }, [isLive, fetchDetail]);
 
-  // Start ambient crowd on mount, fade out on unmount
+  // Start ambient on mount, stop on unmount
   useEffect(() => {
-    if (!muted) sounds.startAmbient();
-    return () => sounds.stopAmbient();
+    if (!muted) snd.startAmbient();
+    return () => snd.stopAmbient();
   }, []);
 
-  // Mute: stop/start ambient
+  // Mute toggle
   useEffect(() => {
-    if (muted) sounds.stopAmbient(200);
-    else sounds.startAmbient();
+    if (muted) snd.stopAmbient();
+    else snd.startAmbient();
   }, [muted]);
 
   // Detect new events — flash animation + sounds
@@ -373,17 +376,17 @@ export default function PitchView({ match }: { match: Match }) {
       if (!muted) for (const ev of newEvs) {
         if (ev.kind === "goal") {
           if (ev.ownGoal) {
-            sounds.setAmbientVol(0, 300);
-            setTimeout(() => sounds.cricket(), 500);
-            setTimeout(() => sounds.setAmbientVol(0.18, 1500), 4500);
+            snd.setAmbientVol(0, 400);
+            setTimeout(() => snd.playOneShot("/sounds/cricket.mp3", 0.9, 0), 600);
+            setTimeout(() => snd.setAmbientVol(0.18, 2000), 5000);
           } else {
-            sounds.goalRoar();
-            sounds.setAmbientVol(0.35, 200);
-            setTimeout(() => sounds.setAmbientVol(0.18, 3000), 4000);
+            snd.playOneShot("/sounds/crowd-goal.mp3", 1.0, 0);
+            snd.setAmbientVol(0.35, 300);
+            setTimeout(() => snd.setAmbientVol(0.18, 3000), 5000);
           }
         } else if (ev.kind === "booking") {
-          sounds.whistle();
-          setTimeout(() => sounds.boo(), 600);
+          snd.playWhistle();
+          setTimeout(() => snd.playOneShot("/sounds/crowd-boo.mp3", 0.8, 0), 800);
         }
       }
     }
@@ -395,8 +398,10 @@ export default function PitchView({ match }: { match: Match }) {
   useEffect(() => {
     if (prevMinute.current < 0 && minute === 0) { prevMinute.current = 0; return; }
     if (!muted) {
-      if (prevMinute.current <= 0 && minute === 1) sounds.whistle();
-      if (isFinished && prevMinute.current < 90 && minute >= 90) sounds.tripleWhistle();
+      if (prevMinute.current <= 0 && minute === 1) snd.playWhistle();
+      if (isFinished && prevMinute.current < 90 && minute >= 90) {
+        snd.playWhistle(); setTimeout(() => snd.playWhistle(), 800); setTimeout(() => snd.playWhistle(), 1600);
+      }
     }
     prevMinute.current = minute;
   }, [minute]);
@@ -407,7 +412,8 @@ export default function PitchView({ match }: { match: Match }) {
     const visible = (espn?.commentary ?? []).filter(c => c.minute <= minute);
     if (visible.length > prevCommCount.current) {
       const newLines = visible.slice(prevCommCount.current);
-      if (!muted && newLines.some(c => MISS_KEYWORDS.test(c.text))) sounds.aww();
+      if (!muted && newLines.some(c => MISS_KEYWORDS.test(c.text)))
+      snd.playOneShot("/sounds/crowd-aww.mp3", 0.8);
     }
     prevCommCount.current = visible.length;
   }, [minute, espn?.commentary?.length]);
