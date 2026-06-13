@@ -259,7 +259,7 @@ function EventMarker({ ev, isNew, onClick, selected }: {
 // ── Player wander hook ─────────────────────────────────────────────────────
 // Radius by position abbreviation — GK barely moves, midfielders roam
 function wanderRadius(pos: string): number {
-  if (pos === "GK") return 1.5;
+  if (pos === "GK" || pos === "G") return 0;
   if (pos.startsWith("D") || pos === "CB" || pos === "LB" || pos === "RB") return 4;
   if (pos.startsWith("M") || pos === "CM" || pos === "DM" || pos === "AM") return 6;
   return 5; // forwards
