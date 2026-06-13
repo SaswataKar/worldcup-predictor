@@ -3,161 +3,63 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import type { Match, ESPNGoal, ESPNBooking, ESPNSubstitution } from "@/types";
 
-// ── Synthesised sound engine (no audio files needed) ──────────────────────
-function getCtx(): AudioContext | null {
+// ── Sound engine using real audio files ────────────────────────────────────
+function makeAudio(src: string, loop = false, vol = 1) {
   if (typeof window === "undefined") return null;
-  try { return new (window.AudioContext || (window as any).webkitAudioContext)(); } catch { return null; }
-}
-
-// Pink noise buffer (more natural than white noise)
-function makePinkNoise(ctx: AudioContext, duration: number): AudioBuffer {
-  const sr = ctx.sampleRate;
-  const buf = ctx.createBuffer(1, sr * duration, sr);
-  const data = buf.getChannelData(0);
-  let b0=0,b1=0,b2=0,b3=0,b4=0,b5=0,b6=0;
-  for (let i = 0; i < data.length; i++) {
-    const w = Math.random() * 2 - 1;
-    b0=0.99886*b0+w*0.0555179; b1=0.99332*b1+w*0.0750759;
-    b2=0.96900*b2+w*0.1538520; b3=0.86650*b3+w*0.3104856;
-    b4=0.55000*b4+w*0.5329522; b5=-0.7616*b5-w*0.0168980;
-    data[i] = (b0+b1+b2+b3+b4+b5+b6+w*0.5362) * 0.11;
-    b6 = w * 0.115926;
-  }
-  return buf;
-}
-
-const _ctxRef: { current: AudioContext | null } = { current: null };
-function ctx(): AudioContext | null {
-  if (!_ctxRef.current) _ctxRef.current = getCtx();
-  return _ctxRef.current;
+  const a = new Audio(src);
+  a.loop = loop;
+  a.volume = vol;
+  return a;
 }
 
 const sounds = {
-  // Crowd ambient: looping pink noise through bandpass — stadium hum
-  ambientNode: null as AudioBufferSourceNode | null,
-  ambientGain: null as GainNode | null,
+  _ambient: null as HTMLAudioElement | null,
 
-  startAmbient(vol = 0.18) {
-    const c = ctx(); if (!c) return;
-    this.stopAmbient();
-    const buf = makePinkNoise(c, 4);
-    const src = c.createBufferSource();
-    src.buffer = buf; src.loop = true;
-    const bp = c.createBiquadFilter(); bp.type = "bandpass"; bp.frequency.value = 800; bp.Q.value = 0.4;
-    const gain = c.createGain(); gain.gain.value = 0;
-    src.connect(bp); bp.connect(gain); gain.connect(c.destination);
-    src.start();
-    gain.gain.linearRampToValueAtTime(vol, c.currentTime + 1.5);
-    this.ambientNode = src; this.ambientGain = gain;
+  init() {
+    if (this._ambient) return;
+    this._ambient = makeAudio("/sounds/crowd-ambient.mp3", true, 0);
   },
 
-  stopAmbient(fadeMs = 800) {
-    const c = ctx(); if (!c || !this.ambientGain) return;
-    const g = this.ambientGain;
-    g.gain.linearRampToValueAtTime(0, c.currentTime + fadeMs / 1000);
-    const node = this.ambientNode;
-    setTimeout(() => { try { node?.stop(); } catch {} }, fadeMs + 100);
-    this.ambientNode = null; this.ambientGain = null;
+  startAmbient() {
+    this.init();
+    if (!this._ambient) return;
+    this._ambient.volume = 0;
+    this._ambient.play().catch(() => {});
+    this._fadeTo(this._ambient, 0.2, 1500);
   },
 
-  setAmbientVol(vol: number, fadeMs = 500) {
-    const c = ctx(); if (!c || !this.ambientGain) return;
-    this.ambientGain.gain.linearRampToValueAtTime(vol, c.currentTime + fadeMs / 1000);
+  stopAmbient(ms = 800) {
+    if (!this._ambient) return;
+    this._fadeTo(this._ambient, 0, ms, () => this._ambient?.pause());
   },
 
-  // Single referee whistle: sine wave with vibrato
-  whistle() {
-    const c = ctx(); if (!c) return;
-    const osc = c.createOscillator(); osc.type = "sine"; osc.frequency.value = 3000;
-    // slight wobble
-    const lfo = c.createOscillator(); lfo.frequency.value = 6;
-    const lfoGain = c.createGain(); lfoGain.gain.value = 40;
-    lfo.connect(lfoGain); lfoGain.connect(osc.frequency);
-    const gain = c.createGain(); gain.gain.value = 0.5;
-    gain.gain.setValueAtTime(0.5, c.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.8);
-    osc.connect(gain); gain.connect(c.destination);
-    lfo.start(); osc.start(); osc.stop(c.currentTime + 0.8); lfo.stop(c.currentTime + 0.8);
+  setAmbientVol(vol: number, ms = 500) {
+    if (!this._ambient) return;
+    this._fadeTo(this._ambient, vol, ms);
   },
 
-  // Triple whistle for full time
-  tripleWhistle() {
-    this.whistle();
-    setTimeout(() => this.whistle(), 700);
-    setTimeout(() => this.whistle(), 1400);
+  _fadeTo(el: HTMLAudioElement, target: number, ms: number, done?: () => void) {
+    const steps = ms / 50;
+    const delta = (target - el.volume) / steps;
+    let count = 0;
+    const id = setInterval(() => {
+      count++;
+      el.volume = Math.min(1, Math.max(0, el.volume + delta));
+      if (count >= steps) { el.volume = target; clearInterval(id); done?.(); }
+    }, 50);
   },
 
-  // Goal roar: burst of pink noise that swells then fades + crowd pitch rise
-  goalRoar() {
-    const c = ctx(); if (!c) return;
-    const buf = makePinkNoise(c, 4);
-    const src = c.createBufferSource(); src.buffer = buf;
-    const bp = c.createBiquadFilter(); bp.type = "bandpass"; bp.frequency.value = 1200; bp.Q.value = 0.3;
-    const gain = c.createGain();
-    gain.gain.setValueAtTime(0, c.currentTime);
-    gain.gain.linearRampToValueAtTime(1.4, c.currentTime + 0.3);
-    gain.gain.linearRampToValueAtTime(0.9, c.currentTime + 1.5);
-    gain.gain.linearRampToValueAtTime(0, c.currentTime + 4);
-    src.connect(bp); bp.connect(gain); gain.connect(c.destination);
-    src.start(); src.stop(c.currentTime + 4);
-    // high freq excitement layer
-    const osc = c.createOscillator(); osc.type = "sawtooth"; osc.frequency.value = 300;
-    osc.frequency.linearRampToValueAtTime(800, c.currentTime + 0.5);
-    const og = c.createGain(); og.gain.setValueAtTime(0.15, c.currentTime);
-    og.gain.linearRampToValueAtTime(0, c.currentTime + 1.5);
-    osc.connect(og); og.connect(c.destination);
-    osc.start(); osc.stop(c.currentTime + 1.5);
+  _play(src: string, vol = 1) {
+    const a = makeAudio(src, false, vol);
+    a?.play().catch(() => {});
   },
 
-  // Crowd aww: descending pitch noise
-  aww() {
-    const c = ctx(); if (!c) return;
-    const buf = makePinkNoise(c, 2);
-    const src = c.createBufferSource(); src.buffer = buf;
-    const bp = c.createBiquadFilter(); bp.type = "bandpass";
-    bp.frequency.setValueAtTime(1000, c.currentTime);
-    bp.frequency.linearRampToValueAtTime(400, c.currentTime + 1.5);
-    bp.Q.value = 0.5;
-    const gain = c.createGain();
-    gain.gain.setValueAtTime(0.7, c.currentTime);
-    gain.gain.linearRampToValueAtTime(0, c.currentTime + 2);
-    src.connect(bp); bp.connect(gain); gain.connect(c.destination);
-    src.start(); src.stop(c.currentTime + 2);
-  },
-
-  // Crowd boo: low rumble noise
-  boo() {
-    const c = ctx(); if (!c) return;
-    const buf = makePinkNoise(c, 3);
-    const src = c.createBufferSource(); src.buffer = buf;
-    const lp = c.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 600;
-    const gain = c.createGain();
-    gain.gain.setValueAtTime(0, c.currentTime);
-    gain.gain.linearRampToValueAtTime(0.9, c.currentTime + 0.3);
-    gain.gain.linearRampToValueAtTime(0, c.currentTime + 3);
-    src.connect(lp); lp.connect(gain); gain.connect(c.destination);
-    src.start(); src.stop(c.currentTime + 3);
-  },
-
-  // Cricket chirping: rhythmic high-freq clicks
-  cricket() {
-    const c = ctx(); if (!c) return;
-    const chirp = (t: number) => {
-      for (let i = 0; i < 3; i++) {
-        const osc = c.createOscillator(); osc.type = "sine";
-        osc.frequency.setValueAtTime(4200, t + i * 0.08);
-        osc.frequency.linearRampToValueAtTime(3800, t + i * 0.08 + 0.06);
-        const g = c.createGain();
-        g.gain.setValueAtTime(0.3, t + i * 0.08);
-        g.gain.exponentialRampToValueAtTime(0.001, t + i * 0.08 + 0.07);
-        osc.connect(g); g.connect(c.destination);
-        osc.start(t + i * 0.08); osc.stop(t + i * 0.08 + 0.07);
-      }
-    };
-    const now = c.currentTime;
-    // 4 chirp bursts with gaps
-    [0, 0.5, 1.0, 1.5, 2.2, 2.7].forEach(offset => chirp(now + offset));
-  },
+  whistle()       { this._play("/sounds/whistle.mp3", 0.8); },
+  tripleWhistle() { this.whistle(); setTimeout(() => this.whistle(), 700); setTimeout(() => this.whistle(), 1400); },
+  goalRoar()      { this._play("/sounds/crowd-goal.mp3", 1.0); },
+  aww()           { this._play("/sounds/crowd-aww.mp3", 0.85); },
+  boo()           { this._play("/sounds/crowd-boo.mp3", 0.85); },
+  cricket()       { this._play("/sounds/cricket.mp3", 0.9); },
 };
 
 // ── Pitch constants (FIFA metres as SVG units) ─────────────────────────────
