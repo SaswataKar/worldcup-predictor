@@ -103,20 +103,19 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   const state = comp?.status?.type?.state ?? "";
   const period = comp?.status?.period ?? 1;
 
-  // Commentary
+  // Commentary — flat array, each item is an entry with time + text
   type CommentaryEntry = { minute: number; clock: string; text: string; period: number };
   const commentary: CommentaryEntry[] = [];
-  for (const block of sumData.commentary ?? []) {
-    for (const entry of block.entries ?? []) {
-      const text: string = entry.text ?? entry.comment ?? "";
-      if (!text) continue;
-      const clockStr: string = entry.clock?.displayValue ?? entry.clock ?? "";
-      const min = parseInt(clockStr) || 0;
-      const per: number = entry.period?.number ?? block.period?.number ?? 1;
-      commentary.push({ minute: min, clock: clockStr, text, period: per });
-    }
+  for (const entry of sumData.commentary ?? []) {
+    const text: string = entry.text ?? "";
+    if (!text) continue;
+    const clockStr: string = entry.time?.displayValue ?? "";
+    // displayValue is like "9'" — parse directly (already reflects true match minute)
+    const min = parseInt(clockStr) || 0;
+    const per: number = entry.play?.period?.number ?? 1;
+    commentary.push({ minute: min, clock: clockStr, text, period: per });
   }
-  // Sort chronologically: period 1 first, then by minute
+  // Already in sequence order from ESPN; sort by period then minute as safety
   commentary.sort((a, b) => a.period !== b.period ? a.period - b.period : a.minute - b.minute);
 
   return NextResponse.json({

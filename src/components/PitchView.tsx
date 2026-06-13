@@ -333,12 +333,8 @@ export default function PitchView({ match }: { match: Match }) {
     return () => clearInterval(id);
   }, [isLive]);
 
-  // Commentary filtered to current scrubber minute
-  const visibleCommentary = (espn?.commentary ?? []).filter(c => {
-    // period 1 = first half (≤45), period 2 = second half (46-90), ET etc
-    const adjustedMin = c.period === 2 ? c.minute + 45 : c.period > 2 ? c.minute + 90 : c.minute;
-    return adjustedMin <= minute;
-  });
+  // Commentary filtered to current scrubber minute (displayValue already reflects true match minute)
+  const visibleCommentary = (espn?.commentary ?? []).filter(c => c.minute <= minute);
 
   // Auto-scroll commentary to latest entry
   useEffect(() => {
@@ -557,7 +553,7 @@ export default function PitchView({ match }: { match: Match }) {
               <p className="text-xs text-zinc-700 italic">No commentary yet — drag the scrubber forward.</p>
             ) : (
               visibleCommentary.map((c, i) => {
-                const adjustedMin = c.period === 2 ? c.minute + 45 : c.period > 2 ? c.minute + 90 : c.minute;
+                const adjustedMin = c.minute;
                 // Highlight goal-related lines
                 const isGoal = /goal|scores?|penalty/i.test(c.text);
                 const isCard = /yellow|red card|booking/i.test(c.text);
