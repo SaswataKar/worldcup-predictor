@@ -40,18 +40,32 @@ export async function GET(req: NextRequest) {
   }
 
   const now = new Date();
-  const windowStart = new Date(now.getTime() - 150 * 60 * 1000); // 150 min ago (covers 90min + extra time + buffer)
-  const windowEnd = new Date(now.getTime() + 10 * 60 * 1000);   // 10 min ahead
+  const windowStart = new Date(now.getTime() - 210 * 60 * 1000); // 210 min ago (90 + 30 ET + 30 pens + buffer)
+  const windowEnd = new Date(now.getTime() + 10 * 60 * 1000);    // 10 min ahead
 
-  // Only run during live match windows — no API calls on non-match periods
-  const { data: liveMatches, error: dbError } = await supabaseServer
+  // Fetch matches in the active window PLUS any that are still stuck as IN_PLAY/LIVE
+  // (catches matches the cron missed while they ran long)
+  const { data: windowMatches, error: dbError } = await supabaseServer
     .from("matches")
     .select("*")
     .gte("kickoff_time", windowStart.toISOString())
     .lte("kickoff_time", windowEnd.toISOString())
     .neq("status", "FINISHED");
 
+  const { data: stuckMatches } = await supabaseServer
+    .from("matches")
+    .select("*")
+    .in("status", ["IN_PLAY", "LIVE"]);
+
+  // Merge, deduplicating by id
+  const seen = new Set<string>();
+  const liveMatches: typeof windowMatches = [];
+  for (const m of [...(windowMatches ?? []), ...(stuckMatches ?? [])]) {
+    if (!seen.has(m.id)) { seen.add(m.id); liveMatches.push(m); }
+  }
+
   if (dbError) return NextResponse.json({ error: dbError.message }, { status: 500 });
+
   if (!liveMatches?.length) {
     return NextResponse.json({ success: true, message: "No live matches", updated: 0 });
   }
