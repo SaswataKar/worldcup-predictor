@@ -35,10 +35,19 @@ export async function POST(req: NextRequest) {
     .filter((t: number) => t !== Infinity);
 
   if (kickoffs.length > 0) {
-    const earliest = Math.min(...kickoffs);
-    if (Date.now() >= earliest - 60 * 1000) {
+    // Only block if there are no future matches remaining — if some matches already started
+    // but others are still upcoming, the booster can still be applied to the upcoming ones.
+    const futureKickoffs = kickoffs.filter(t => t > Date.now() + 60 * 1000);
+    if (futureKickoffs.length === 0) {
       return NextResponse.json(
-        { error: "Booster window has closed — predictions lock 1 minute before the first match." },
+        { error: "Booster window has closed — all matches today have already kicked off." },
+        { status: 409 }
+      );
+    }
+    const nextKickoff = Math.min(...futureKickoffs);
+    if (Date.now() >= nextKickoff - 60 * 1000) {
+      return NextResponse.json(
+        { error: "Booster window has closed — next match kicks off in under 1 minute." },
         { status: 409 }
       );
     }

@@ -507,7 +507,7 @@ export default function Home() {
   // UTC date of the active group (used for booster storage/lookup)
   const activeMatchdayDate = activeMatchday ? dateFromKey(activeMatchday) : null;
 
-  // Lock boosters 1 minute before the earliest kickoff on the active matchday
+  // Lock boosters only when ALL remaining matches on the matchday have kicked off
   const isActiveMatchdayConsumed = useMemo(() => {
     if (!activeMatchday) return false;
     const dayMatches = visibleGroupedMatches[activeMatchday] || [];
@@ -516,8 +516,8 @@ export default function Home() {
       .map((m) => m.kickoff_time ? new Date(m.kickoff_time).getTime() : Infinity)
       .filter((t) => t !== Infinity);
     if (!kickoffs.length) return false;
-    const earliest = Math.min(...kickoffs);
-    return now.getTime() >= earliest - 60 * 1000;
+    const futureKickoffs = kickoffs.filter(t => t > now.getTime() + 60 * 1000);
+    return futureKickoffs.length === 0;
   }, [activeMatchday, visibleGroupedMatches]);
 
   // TBD MATCHES
