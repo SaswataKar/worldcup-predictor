@@ -193,9 +193,9 @@ export default function MatchCard({
     isPostponed ||
     isSuspended;
 
-  // Boosters are keyed by UTC date (same as dateFromKey in matchGroups) — must match here
+  // Boosters are keyed by ET date (America/New_York) — same as getGroupKey in matchGroups
   const matchDate = match.kickoff_time
-    ? new Date(match.kickoff_time).toISOString().split("T")[0]
+    ? new Date(match.kickoff_time).toLocaleDateString("en-CA", { timeZone: "America/New_York" })
     : null;
 
   const activeBoosters = matchDate ? (activeDayBoosters[matchDate] || []) : [];

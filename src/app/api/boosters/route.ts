@@ -21,14 +21,21 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Missing fields" }, { status: 400 });
   }
 
-  // Reject if we're within 1 minute of the earliest kickoff on this date
-  const dayStart = `${date}T00:00:00.000Z`;
-  const dayEnd   = `${date}T23:59:59.999Z`;
-  const { data: dayMatches } = await supabaseServer
+  // `date` is an ET date (America/New_York) — same as getGroupKey.
+  // Fetch a 30h window then filter by ET date so Iran-style late UTC kickoffs are included.
+  const nextDay = new Date(new Date(`${date}T00:00:00Z`).getTime() + 30 * 60 * 60 * 1000).toISOString();
+  const { data: allMatches } = await supabaseServer
     .from("matches")
     .select("kickoff_time")
-    .gte("kickoff_time", dayStart)
-    .lte("kickoff_time", dayEnd);
+    .gte("kickoff_time", `${date}T00:00:00Z`)
+    .lte("kickoff_time", nextDay);
+
+  const dayMatches = (allMatches ?? []).filter((m: any) => {
+    if (!m.kickoff_time) return false;
+    return new Date(m.kickoff_time).toLocaleDateString("en-CA", {
+      timeZone: "America/New_York",
+    }) === date;
+  });
 
   const kickoffs = (dayMatches ?? [])
     .map((m: any) => m.kickoff_time ? new Date(m.kickoff_time).getTime() : Infinity)
