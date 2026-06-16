@@ -6,6 +6,8 @@ const ESPN_NAME_MAP: Record<string, string> = {
   "South Korea": "Korea Republic",
   "Ivory Coast": "Côte d'Ivoire",
   "IR Iran": "Iran",
+  "Türkiye": "Turkey",
+  "Cape Verde": "Cape Verde Islands",
 };
 function normalize(n: string) { return (ESPN_NAME_MAP[n] ?? n).toLowerCase().trim(); }
 function toESPNDate(kickoff: string) {
@@ -53,29 +55,51 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   if (error || !match) return NextResponse.json({ error: "Match not found" }, { status: 404 });
   if (!match.kickoff_time) return NextResponse.json({ error: "No kickoff time" }, { status: 400 });
 
-  const dateStr = toESPNDate(match.kickoff_time);
-  const sbRes = await fetch(
-    `https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard?dates=${dateStr}`,
-    { cache: "no-store" }
-  );
-  if (!sbRes.ok) return NextResponse.json({ error: "ESPN scoreboard unavailable" }, { status: 502 });
-  const sbData = await sbRes.json();
+  // Use stored ESPN event ID if available — avoids fragile name matching
+  let espnEventId: string | null = match.espn_event_id ?? null;
+  let espnHomeAway: "home" | "away" = "home";
 
-  // Find matching ESPN event
-  let espnEventId: string | null = null;
-  let espnHomeAway: "home" | "away" = "home"; // ESPN's home = our team1?
-  for (const event of sbData.events ?? []) {
-    const comp = event.competitions?.[0];
-    const espnHome = comp?.competitors?.find((c: any) => c.homeAway === "home")?.team?.displayName ?? "";
-    const espnAway = comp?.competitors?.find((c: any) => c.homeAway === "away")?.team?.displayName ?? "";
-    const t1 = normalize(match.team1), t2 = normalize(match.team2);
-    const eh = normalize(espnHome), ea = normalize(espnAway);
-    if ((t1 === eh && t2 === ea) || (t1 === ea && t2 === eh)) {
-      espnEventId = event.id;
-      espnHomeAway = (t1 === eh) ? "home" : "away";
-      break;
+  if (espnEventId) {
+    // Verify orientation via scoreboard (cheap, single event lookup)
+    const sbRes = await fetch(
+      `https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard?dates=${toESPNDate(match.kickoff_time)}`,
+      { cache: "no-store" }
+    );
+    if (sbRes.ok) {
+      const sbData = await sbRes.json();
+      const event = sbData.events?.find((e: any) => e.id === espnEventId);
+      if (event) {
+        const comp = event.competitions?.[0];
+        const espnHome = comp?.competitors?.find((c: any) => c.homeAway === "home")?.team?.displayName ?? "";
+        espnHomeAway = normalize(match.team1) === normalize(espnHome) ? "home" : "away";
+      }
+    }
+  } else {
+    // First time: name-match to find and store the ESPN event ID
+    const dateStr = toESPNDate(match.kickoff_time);
+    const sbRes = await fetch(
+      `https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard?dates=${dateStr}`,
+      { cache: "no-store" }
+    );
+    if (!sbRes.ok) return NextResponse.json({ error: "ESPN scoreboard unavailable" }, { status: 502 });
+    const sbData = await sbRes.json();
+
+    for (const event of sbData.events ?? []) {
+      const comp = event.competitions?.[0];
+      const espnHome = comp?.competitors?.find((c: any) => c.homeAway === "home")?.team?.displayName ?? "";
+      const espnAway = comp?.competitors?.find((c: any) => c.homeAway === "away")?.team?.displayName ?? "";
+      const t1 = normalize(match.team1), t2 = normalize(match.team2);
+      const eh = normalize(espnHome), ea = normalize(espnAway);
+      if ((t1 === eh && t2 === ea) || (t1 === ea && t2 === eh)) {
+        espnEventId = event.id;
+        espnHomeAway = (t1 === eh) ? "home" : "away";
+        // Persist so future calls skip name matching
+        await supabaseServer.from("matches").update({ espn_event_id: espnEventId }).eq("id", match.id);
+        break;
+      }
     }
   }
+
   if (!espnEventId) return NextResponse.json({ error: "ESPN event not found" }, { status: 404 });
 
   const sumRes = await fetch(
