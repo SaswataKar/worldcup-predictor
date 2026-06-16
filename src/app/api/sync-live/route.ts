@@ -127,11 +127,16 @@ export async function GET(req: NextRequest) {
     const dbHomeIsESPNHome = normalize(dbMatch.team1) === normalize(espnHomeName)
       || homeComp?.team?.id === espnData.rosters?.find((r: any) => r.homeAway === "home")?.team?.id;
 
-    // Use scoreboard comp.details via summary — fall back to scoreboard if needed
+    // Fetch scoreboard using ET date (ESPN organises events by ET, not UTC).
+    // Iran at 01:00 UTC Jun 16 = ET Jun 15 — using raw UTC date misses it entirely.
+    const etDate = (() => {
+      const d = new Date(dbMatch.kickoff_time);
+      const et = new Date(d.getTime() - 4 * 60 * 60 * 1000);
+      return et.toISOString().slice(0, 10).replace(/-/g, "");
+    })();
     const scoreboard = await fetch(
-      `https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard?dates=${
-        new Date(dbMatch.kickoff_time).toISOString().slice(0,10).replace(/-/g,"")
-      }`, { cache: "no-store" }
+      `https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard?dates=${etDate}`,
+      { cache: "no-store" }
     ).then(r => r.json()).catch(() => null);
 
     const sbEvent = scoreboard?.events?.find((e: any) => e.id === dbMatch.espn_event_id);
@@ -146,6 +151,18 @@ export async function GET(req: NextRequest) {
         team1_score: dbHomeIsESPNHome ? homeScore : awayScore,
         team2_score: dbHomeIsESPNHome ? awayScore : homeScore,
         goals, bookings, substitutions,
+      }).eq("id", dbMatch.id);
+      updated++;
+    } else {
+      // Scoreboard lookup failed (e.g. cross-midnight UTC/ET edge case) but we still
+      // have status + score from the summary header — update those at minimum so the
+      // match doesn't stay stuck as IN_PLAY.
+      const homeScore = homeComp?.score != null ? Number(homeComp.score) : null;
+      const awayScore = awayComp?.score != null ? Number(awayComp.score) : null;
+      await supabaseServer.from("matches").update({
+        status: mapStatus(espnStatus, espnState),
+        team1_score: dbHomeIsESPNHome ? homeScore : awayScore,
+        team2_score: dbHomeIsESPNHome ? awayScore : homeScore,
       }).eq("id", dbMatch.id);
       updated++;
     }
