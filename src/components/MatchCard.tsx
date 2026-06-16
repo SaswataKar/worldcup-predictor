@@ -313,133 +313,130 @@ export default function MatchCard({
         }}
         className="w-full px-3 sm:px-6 py-4 sm:py-5 text-left"
       >
-        <div className="flex items-center justify-between gap-2 sm:gap-4 flex-wrap">
-          {/* TEAMS + SCORE */}
-          <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
-            <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
-              <img src={match.team1_crest || "/placeholder-team.png"} className="w-6 h-6 sm:w-8 sm:h-8 object-contain shrink-0" />
-              <span className="text-sm sm:text-base font-black truncate max-w-[80px] sm:max-w-none">{match.team1}</span>
-            </div>
-
-            <div className="flex items-center justify-center shrink-0 min-w-[44px] sm:min-w-[56px]">
-              {(isFinished || isLive || match.team1_score != null) ? (
-                <span className={`text-base sm:text-xl font-black tabular-nums ${isLive ? "text-red-300" : ""}`}>
-                  {match.team1_score ?? "?"}–{match.team2_score ?? "?"}
-                </span>
-              ) : (
-                <span className="text-zinc-600 font-black text-xs sm:text-sm">VS</span>
-              )}
-            </div>
-
-            <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
-              <img src={match.team2_crest || "/placeholder-team.png"} className="w-6 h-6 sm:w-8 sm:h-8 object-contain shrink-0" />
-              <span className="text-sm sm:text-base font-black truncate max-w-[80px] sm:max-w-none">{match.team2}</span>
-            </div>
+        {/* ROW 1: Teams + Score + chevron */}
+        <div className="flex items-center gap-2 sm:gap-4">
+          {/* Team 1 */}
+          <div className="flex items-center gap-1.5 min-w-0 flex-1 justify-end">
+            <span className="text-sm sm:text-base font-black truncate">{match.team1}</span>
+            <img src={match.team1_crest || "/placeholder-team.png"} className="w-6 h-6 sm:w-8 sm:h-8 object-contain shrink-0" />
           </div>
 
-          {/* META */}
-          <div className="flex items-center gap-3 flex-wrap text-xs font-semibold">
-            {/* Only one status indicator — LIVE capsule when live, status pill otherwise */}
-            {isLive ? (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-red-500/60 bg-red-500/15 text-red-400 text-[11px] font-black tracking-widest animate-pulse shadow-[0_0_10px_2px_rgba(239,68,68,0.25)]">
-                <span className="w-1.5 h-1.5 rounded-full bg-red-400 inline-block shrink-0" />
-                LIVE
+          {/* Score / VS */}
+          <div className="flex flex-col items-center shrink-0 min-w-[52px] sm:min-w-[64px]">
+            {(isFinished || isLive || match.team1_score != null) ? (
+              <span className={`text-lg sm:text-xl font-black tabular-nums leading-none ${isLive ? "text-red-300" : "text-white"}`}>
+                {match.team1_score ?? "?"}–{match.team2_score ?? "?"}
               </span>
             ) : (
-              <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-black tracking-wide ${statusPillClass}`}>
-                {statusLabel}
-              </span>
+              <span className="text-zinc-600 font-black text-sm">VS</span>
             )}
-
-            {!isLive && (
-              <>
-                <div className="text-zinc-400 hidden sm:flex flex-col items-end leading-tight">
-                  <span className="text-[11px] text-zinc-600 uppercase tracking-widest">{t("match.kickoff")} ({tzLabel()})</span>
-                  <span>{getLocalKickoff()}</span>
-                </div>
-
-                <div className="text-zinc-700 hidden sm:block">·</div>
-
-                <div className="text-zinc-400 hidden sm:flex flex-col items-end leading-tight">
-                  <span className="text-[11px] text-zinc-600 uppercase tracking-widest">{t("match.predCloses")}</span>
-                  <span className={locked ? "text-red-400" : "text-zinc-400"}>{getCloseTime()}</span>
-                </div>
-
-                <div className="text-zinc-700">·</div>
-
-                <span className={`tabular-nums ${locked ? "text-red-400" : "text-zinc-500"}`}>
-                  ⏳ {getCountdown()}
-                </span>
-              </>
-            )}
-
-            {prediction && (
-              <>
-                <div className="text-zinc-700">·</div>
-                {/* Predicted score badge — stands out from surrounding meta */}
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-zinc-800 border border-zinc-700 text-white font-black text-xs tabular-nums">
-                  🎯 {prediction.predicted_team1_score}–{prediction.predicted_team2_score}
-                </span>
-              </>
-            )}
-
-            {prediction?.processed && (
-              <>
-                <div className="text-zinc-700">·</div>
-                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-yellow-400/10 border border-yellow-400/30 text-yellow-300 font-black text-xs">
-                  +{prediction.awarded_points} 🏆
-                </span>
-              </>
-            )}
-
-            {/* Live / waiting-for-scores indicators in collapsed row */}
-            {prediction && !prediction.processed && isLive && (
-              <>
-                <div className="text-zinc-700">·</div>
-                <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-red-400">
-                  <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse inline-block" />
-                  {t("status.live")}
-                </span>
-              </>
-            )}
-
-            {prediction && !prediction.processed && isFinished && (
-              <>
-                <div className="text-zinc-700">·</div>
-                <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-yellow-400">
-                  <svg className="w-3 h-3 animate-spin" viewBox="0 0 24 24" fill="none">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 00-8 8h4z"/>
-                  </svg>
-                  Waiting for scores
-                </span>
-              </>
-            )}
-
-            {/* ACTIVE DAY BOOSTERS */}
-            {activeBoosters.length > 0 && (
-              <>
-                <div className="text-zinc-700">·</div>
-                <span className="flex gap-1">
-                  {activeBoosters.map((b) => (
-                    <span key={b} className="text-lg leading-none">{BOOSTER_ICONS[b] ?? b}</span>
-                  ))}
-                </span>
-              </>
-            )}
-
-            <motion.span
-              animate={{ rotate: expanded ? 180 : 0 }}
-              transition={{ duration: 0.22, ease: [0.25, 0.1, 0.25, 1] }}
-              className="text-zinc-500 text-lg leading-none ml-1"
-            >
-              ⌄
-            </motion.span>
+            {/* Status label under score on mobile */}
+            <span className={`mt-1 text-[10px] font-black tracking-widest ${isLive ? "text-red-400" : "text-zinc-500"}`}>
+              {isLive ? "LIVE" : isFinished ? "FT" : ""}
+            </span>
           </div>
+
+          {/* Team 2 */}
+          <div className="flex items-center gap-1.5 min-w-0 flex-1">
+            <img src={match.team2_crest || "/placeholder-team.png"} className="w-6 h-6 sm:w-8 sm:h-8 object-contain shrink-0" />
+            <span className="text-sm sm:text-base font-black truncate">{match.team2}</span>
+          </div>
+
+          {/* Chevron */}
+          <motion.span
+            animate={{ rotate: expanded ? 180 : 0 }}
+            transition={{ duration: 0.22, ease: [0.25, 0.1, 0.25, 1] }}
+            className="text-zinc-500 text-lg leading-none shrink-0"
+          >
+            ⌄
+          </motion.span>
+        </div>
+
+        {/* ROW 2: Meta row — status, kickoff, prediction, points, booster */}
+        <div className="flex items-center gap-2 flex-wrap mt-2.5 text-xs font-semibold">
+          {/* Status pill (hidden on mobile when live — shown inline in score row) */}
+          {isLive ? (
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-red-500/60 bg-red-500/15 text-red-400 text-[11px] font-black tracking-widest animate-pulse shadow-[0_0_10px_2px_rgba(239,68,68,0.25)]">
+              <span className="w-1.5 h-1.5 rounded-full bg-red-400 inline-block shrink-0" />
+              LIVE
+            </span>
+          ) : (
+            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-black tracking-wide ${statusPillClass}`}>
+              {statusLabel}
+            </span>
+          )}
+
+          {/* Kickoff time — desktop only */}
+          {!isLive && (
+            <>
+              <div className="text-zinc-400 hidden sm:flex flex-col items-end leading-tight">
+                <span className="text-[11px] text-zinc-600 uppercase tracking-widest">{t("match.kickoff")} ({tzLabel()})</span>
+                <span>{getLocalKickoff()}</span>
+              </div>
+              <div className="text-zinc-700 hidden sm:block">·</div>
+              <div className="text-zinc-400 hidden sm:flex flex-col items-end leading-tight">
+                <span className="text-[11px] text-zinc-600 uppercase tracking-widest">{t("match.predCloses")}</span>
+                <span className={locked ? "text-red-400" : "text-zinc-400"}>{getCloseTime()}</span>
+              </div>
+              <div className="text-zinc-700 hidden sm:block">·</div>
+            </>
+          )}
+
+          {/* Countdown — hide when finished */}
+          {!isLive && !isFinished && (
+            <span className={`tabular-nums ${locked ? "text-red-400" : "text-zinc-500"}`}>
+              ⏳ {getCountdown()}
+            </span>
+          )}
+
+          {/* Prediction badge */}
+          {prediction && (
+            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-xl bg-zinc-800 border border-zinc-700 text-white font-black text-[11px] tabular-nums">
+              🎯 {prediction.predicted_team1_score}–{prediction.predicted_team2_score}
+            </span>
+          )}
+
+          {/* Points badge */}
+          {prediction?.processed && (prediction.awarded_points ?? 0) > 0 && (
+            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-xl bg-yellow-400/10 border border-yellow-400/30 text-yellow-300 font-black text-[11px]">
+              +{prediction.awarded_points} 🏆
+            </span>
+          )}
+          {prediction?.processed && (prediction.awarded_points ?? 0) === 0 && (
+            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-xl bg-zinc-800/60 border border-zinc-700/50 text-zinc-500 font-black text-[11px]">
+              +0
+            </span>
+          )}
+
+          {/* Live / waiting indicators */}
+          {prediction && !prediction.processed && isLive && (
+            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-red-400">
+              <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse inline-block" />
+              {t("status.live")}
+            </span>
+          )}
+          {prediction && !prediction.processed && isFinished && (
+            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-yellow-400">
+              <svg className="w-3 h-3 animate-spin" viewBox="0 0 24 24" fill="none">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 00-8 8h4z"/>
+              </svg>
+              Waiting…
+            </span>
+          )}
+
+          {/* Booster icons */}
+          {activeBoosters.length > 0 && (
+            <span className="flex gap-0.5">
+              {activeBoosters.map((b) => (
+                <span key={b} className="text-base leading-none">{BOOSTER_ICONS[b] ?? b}</span>
+              ))}
+            </span>
+          )}
         </div>
 
         {/* MOBILE: kickoff + close time row */}
-        <div className="flex items-center gap-4 mt-3 sm:hidden text-xs text-zinc-500 font-semibold">
+        <div className="flex items-center gap-4 mt-2 sm:hidden text-xs text-zinc-500 font-semibold">
           <div className="flex flex-col leading-tight">
             <span className="text-[10px] text-zinc-700 uppercase tracking-widest">{t("match.kickoff")} ({tzLabel()})</span>
             <span>{getLocalKickoff()}</span>
