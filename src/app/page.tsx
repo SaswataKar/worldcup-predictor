@@ -737,12 +737,8 @@ export default function Home() {
               const dayBoosters = activeDayBoosters[utcDate] || [];
               const label = groupLabels[groupKey] ?? groupKey;
               const visibleKeys = Object.keys(visibleGroupedMatches);
-              // Eligible for booster = active matchday or the one right after
-              const isEligibleForBooster =
-                groupKey === activeMatchday ||
-                (activeMatchday
-                  ? visibleKeys.indexOf(groupKey) === visibleKeys.indexOf(activeMatchday) + 1
-                  : groupIdx === 0);
+              // Eligible for booster = any matchday visible on the predictor screen
+              const isEligibleForBooster = true;
               // "Today" / "Tomorrow" label — compare ET date
               const etToday = new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" });
               const etTomorrow = (() => {
