@@ -9,6 +9,8 @@ type Props = {
   usedBoosterTypes: string[];
   activeDayBoosters: Record<string, string[]>;
   activeMatchday: string | null;
+  nextMatchday: string | null;
+  activeMatchdayFirstKickoff: Date | null;
   isMatchdayConsumed: boolean;
   onActivate: (boosterType: string, date: string) => Promise<void>;
   onRemove: (boosterType: string) => Promise<void>;
@@ -73,6 +75,8 @@ export default function BoosterInventory({
   usedBoosterTypes,
   activeDayBoosters,
   activeMatchday,
+  nextMatchday,
+  activeMatchdayFirstKickoff,
   isMatchdayConsumed,
   onActivate,
   onRemove,
@@ -163,14 +167,29 @@ export default function BoosterInventory({
               <>
                 Active matchday:{" "}
                 <span className="text-white font-bold">{formatDay(activeMatchday, locale)}</span>
+                {!isMatchdayConsumed && activeMatchdayFirstKickoff && (
+                  <span className="ml-2 text-amber-400 text-xs font-semibold">
+                    · Window closes {activeMatchdayFirstKickoff.toLocaleTimeString(locale, {
+                      hour: "numeric", minute: "2-digit", hour12: true,
+                      timeZoneName: "short",
+                    })} ({activeMatchdayFirstKickoff.toLocaleDateString(locale, { day: "numeric", month: "short" })})
+                  </span>
+                )}
                 {isMatchdayConsumed && (
-                  <span className="ml-2 text-red-400 text-xs font-bold">· Boosters consumed</span>
+                  <span className="ml-2 text-red-400 text-xs font-bold">· Window closed</span>
                 )}
               </>
             ) : (
               <span className="text-zinc-600">No matchday currently open for predictions</span>
             )}
           </p>
+          {nextMatchday && (
+            <p className="text-zinc-600 text-xs mt-1">
+              Next matchday:{" "}
+              <span className="text-zinc-400 font-semibold">{formatDay(nextMatchday, locale)}</span>
+              <span className="text-zinc-600"> — you can pre-assign your booster below</span>
+            </p>
+          )}
         </div>
 
         <motion.div
@@ -298,12 +317,41 @@ export default function BoosterInventory({
                                   disabled={isLoading}
                                   className={`w-full px-5 py-2.5 rounded-2xl text-sm font-black border ${booster.border} ${booster.text} bg-white/[0.04] hover:bg-white/[0.08] transition-all disabled:opacity-50`}
                                 >
-                                  {isLoading ? "…" : `${t("time.today")} →`}
+                                  {isLoading ? "…" : `Move to today →`}
                                 </button>
                               )}
-                              {activeMatchday && isMatchdayConsumed && (
+                              {isMatchdayConsumed && nextMatchday && (
+                                <button
+                                  onClick={async () => {
+                                    setLoadingKey(booster.key);
+                                    try { await onActivate(booster.key, nextMatchday); }
+                                    finally { setLoadingKey(null); }
+                                  }}
+                                  disabled={isLoading}
+                                  className={`w-full px-5 py-2.5 rounded-2xl text-sm font-black border ${booster.border} ${booster.text} bg-white/[0.04] hover:bg-white/[0.08] transition-all disabled:opacity-50`}
+                                >
+                                  {isLoading ? "…" : `Move to ${formatDay(nextMatchday, locale)} →`}
+                                </button>
+                              )}
+                              {isMatchdayConsumed && !nextMatchday && (
                                 <span className="text-zinc-600 text-xs font-semibold">Window closed for today</span>
                               )}
+                            </div>
+                          ) : isMatchdayConsumed && nextMatchday ? (
+                            // Active window closed but next matchday exists — offer pre-assign
+                            <div className="flex flex-col gap-2">
+                              <span className="text-zinc-500 text-xs font-semibold">Today's window closed</span>
+                              <button
+                                onClick={async () => {
+                                  setLoadingKey(booster.key);
+                                  try { await onActivate(booster.key, nextMatchday); }
+                                  finally { setLoadingKey(null); }
+                                }}
+                                disabled={isLoading}
+                                className={`w-full px-5 py-2.5 rounded-2xl text-sm font-black border ${booster.border} ${booster.text} bg-white/[0.04] hover:bg-white/[0.08] transition-all disabled:opacity-50`}
+                              >
+                                {isLoading ? "…" : `Pre-assign for ${formatDay(nextMatchday, locale)} →`}
+                              </button>
                             </div>
                           ) : (
                             <button
@@ -315,8 +363,6 @@ export default function BoosterInventory({
                                 ? "…"
                                 : !activeMatchday
                                 ? t("booster.notAssigned")
-                                : isMatchdayConsumed
-                                ? "Window closed"
                                 : `${t("booster.activate")} →`}
                             </button>
                           )}

@@ -504,8 +504,28 @@ export default function Home() {
     );
   }, [visibleGroupedMatches]);
 
-  // UTC date of the active group (used for booster storage/lookup)
+  // ET date of the active group (used for booster storage/lookup)
   const activeMatchdayDate = activeMatchday ? dateFromKey(activeMatchday) : null;
+
+  // Next upcoming matchday after the active one — used so users can pre-assign
+  // their booster before the active matchday window closes (important for IST users
+  // whose local midnight falls before the first ET kickoff).
+  const nextMatchdayDate = useMemo(() => {
+    const keys = Object.keys(visibleGroupedMatches);
+    const activeIdx = activeMatchday ? keys.indexOf(activeMatchday) : -1;
+    const nextKey = activeIdx >= 0 ? keys[activeIdx + 1] : keys[0];
+    return nextKey ? dateFromKey(nextKey) : null;
+  }, [activeMatchday, visibleGroupedMatches]);
+
+  // First kickoff of the active matchday — shown as the booster deadline in local TZ
+  const activeMatchdayFirstKickoff = useMemo(() => {
+    if (!activeMatchday) return null;
+    const dayMatches = visibleGroupedMatches[activeMatchday] || [];
+    const times = dayMatches
+      .map((m) => m.kickoff_time ? new Date(m.kickoff_time).getTime() : Infinity)
+      .filter((t) => t !== Infinity);
+    return times.length ? new Date(Math.min(...times)) : null;
+  }, [activeMatchday, visibleGroupedMatches]);
 
   // Booster window closes once the FIRST match on the matchday kicks off.
   // Activate and remove share the same threshold to prevent the trap where
@@ -676,8 +696,10 @@ export default function Home() {
             usedBoosterTypes={usedBoosterTypes}
             activeDayBoosters={activeDayBoosters}
             activeMatchday={activeMatchdayDate}
+            nextMatchday={nextMatchdayDate}
+            activeMatchdayFirstKickoff={activeMatchdayFirstKickoff}
             isMatchdayConsumed={isActiveMatchdayConsumed}
-            onActivate={(boosterType, _groupKey) => activateBooster(boosterType, activeMatchdayDate ?? _groupKey)}
+            onActivate={(boosterType, date) => activateBooster(boosterType, date)}
             onRemove={removeBooster}
           />
 
