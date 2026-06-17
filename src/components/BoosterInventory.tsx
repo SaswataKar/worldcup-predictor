@@ -88,7 +88,6 @@ export default function BoosterInventory({
   const { locale } = useLocaleCtx();
   const t = getT(locale);
   const [open, setOpen] = useState(false);
-  const [loadingKey, setLoadingKey] = useState<string | null>(null);
 
   const availableCount = BOOSTERS.filter((b) => !usedBoosterTypes.includes(b.key)).length;
 
@@ -104,29 +103,6 @@ export default function BoosterInventory({
     if (assignedDate === activeMatchday) return isMatchdayConsumed;
     return isPastDate(assignedDate) || isMatchdayConsumed;
   });
-
-  const handleToggle = async (boosterKey: string, isActive: boolean) => {
-    setLoadingKey(boosterKey);
-    try {
-      if (isActive) {
-        await onRemove(boosterKey);
-      } else if (activeMatchday) {
-        await onActivate(boosterKey, activeMatchday);
-      }
-    } finally {
-      setLoadingKey(null);
-    }
-  };
-
-  const handleMove = async (boosterKey: string) => {
-    if (!activeMatchday) return;
-    setLoadingKey(boosterKey);
-    try {
-      await onActivate(boosterKey, activeMatchday);
-    } finally {
-      setLoadingKey(null);
-    }
-  };
 
   return (
     <div
@@ -218,160 +194,85 @@ export default function BoosterInventory({
             className="overflow-hidden"
           >
             <div className="border-t border-white/[0.06] px-3 sm:px-6 pb-6">
-              <p className="text-zinc-600 text-xs font-semibold mt-4 mb-4">
-                ⚡ One use per tournament — assign to any matchday, swap freely until the first match of that day kicks off.
-              </p>
+              {/* Hint */}
+              <div className="flex items-center gap-2 mt-4 mb-5 px-4 py-3 rounded-2xl bg-yellow-500/8 border border-yellow-500/20">
+                <span className="text-yellow-400 text-base shrink-0">⚡</span>
+                <p className="text-yellow-300/80 text-xs font-semibold leading-snug">
+                  To apply a booster, tap the <span className="text-yellow-300 font-black">Add booster</span> badge on any upcoming matchday header.
+                  One use per tournament — locked once the first match kicks off.
+                </p>
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-stretch">
                 {BOOSTERS.map((booster) => {
                   const assignedDay = getDayAssigned(booster.key, activeDayBoosters);
-                  const isActiveToday = !!assignedDay && assignedDay === activeMatchday;
-                  // Assigned to a different day (past or future)
-                  const isAssignedElsewhere = !!assignedDay && assignedDay !== activeMatchday;
-                  const isAssignedPast = isAssignedElsewhere && isPastDate(assignedDay!);
-                  const isAssignedFuture = isAssignedElsewhere && !isPastDate(assignedDay!);
-                  const isConsumed = (isActiveToday && isMatchdayConsumed) || isAssignedPast;
-                  const isLoading = loadingKey === booster.key;
+                  const isAssigned = !!assignedDay;
+                  const isAssignedPast = isAssigned && isPastDate(assignedDay!);
+                  const isConsumed = isAssignedPast || (isAssigned && assignedDay === activeMatchday && isMatchdayConsumed);
 
                   const glowMap: Record<string, string> = {
-                    "2x":  "shadow-[0_0_28px_6px_rgba(234,179,8,0.20),0_0_0_1px_rgba(234,179,8,0.30),inset_0_1px_0_rgba(255,255,255,0.08)]",
-                    "3x":  "shadow-[0_0_28px_6px_rgba(192,38,211,0.20),0_0_0_1px_rgba(192,38,211,0.30),inset_0_1px_0_rgba(255,255,255,0.08)]",
-                    draw:  "shadow-[0_0_28px_6px_rgba(34,197,94,0.20),0_0_0_1px_rgba(34,197,94,0.30),inset_0_1px_0_rgba(255,255,255,0.08)]",
+                    "2x":  "shadow-[0_0_28px_6px_rgba(234,179,8,0.20),0_0_0_1px_rgba(234,179,8,0.30)]",
+                    "3x":  "shadow-[0_0_28px_6px_rgba(192,38,211,0.20),0_0_0_1px_rgba(192,38,211,0.30)]",
+                    draw:  "shadow-[0_0_28px_6px_rgba(34,197,94,0.20),0_0_0_1px_rgba(34,197,94,0.30)]",
                   };
-                  let cardClass = "border-white/[0.08] backdrop-blur-md shadow-[0_0_0_1px_rgba(255,255,255,0.05),inset_0_1px_0_rgba(255,255,255,0.04)]";
-                  if (isActiveToday && !isConsumed) cardClass = `${booster.border} backdrop-blur-md ${glowMap[booster.key] ?? ""}`;
-                  if (isConsumed) cardClass = "border-white/[0.04] backdrop-blur-md opacity-40 grayscale";
+                  let cardClass = "border-white/[0.08]";
+                  if (isAssigned && !isConsumed) cardClass = `${booster.border} ${glowMap[booster.key] ?? ""}`;
+                  if (isConsumed) cardClass = "border-white/[0.04] opacity-40 grayscale";
+
+                  // Status label
+                  let statusDot: React.ReactNode = null;
+                  let statusText = "";
+                  if (isConsumed) {
+                    statusText = "Consumed";
+                  } else if (isAssigned) {
+                    const dayLabel = assignedDay === activeMatchday
+                      ? (activeMatchdayLabel ?? activeMatchday ?? "")
+                      : assignedDay === nextMatchday
+                      ? (nextMatchdayLabel ?? assignedDay ?? "")
+                      : (assignedDay ?? "");
+                    statusDot = <span className={`w-1.5 h-1.5 rounded-full ${booster.dot} animate-pulse shrink-0`} />;
+                    statusText = dayLabel;
+                  } else {
+                    statusText = "Available";
+                  }
 
                   return (
-                    <motion.div
+                    <div
                       key={booster.key}
-                      whileHover={isConsumed ? {} : { scale: 1.02 }}
-                      transition={{ duration: 0.15 }}
-                      className={`relative overflow-hidden rounded-3xl border p-5 sm:p-6 flex flex-col h-full transition-all duration-300 ${cardClass}`}
+                      className={`relative overflow-hidden rounded-3xl border p-5 sm:p-6 flex flex-col transition-all duration-300 ${cardClass}`}
                     >
                       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/[0.12] to-transparent" />
-
                       <div className="relative z-10 flex flex-col flex-1">
                         <div className="flex items-start justify-between">
                           <div className="text-4xl">{booster.icon}</div>
-                          {isActiveToday && !isConsumed && (
-                            <span className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.15em] text-white">
-                              <span className={`w-1.5 h-1.5 rounded-full ${booster.dot} animate-pulse`} />
-                              Active
-                            </span>
-                          )}
-                          {isConsumed && (
-                            <span className="text-[10px] font-black uppercase tracking-[0.15em] text-zinc-500">
-                              Consumed
-                            </span>
-                          )}
-                          {isAssignedFuture && (
-                            <span className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.15em] text-sky-400">
-                              <span className="w-1.5 h-1.5 rounded-full bg-sky-400 animate-pulse" />
-                              Scheduled
-                            </span>
-                          )}
-                        </div>
-
-                        <div className={`mt-4 text-xl font-black ${booster.text}`}>
-                          {booster.title}
-                        </div>
-
-                        <div className="mt-2 text-sm text-zinc-500 leading-relaxed flex-1">
-                          {booster.description}
-                        </div>
-
-                        <div className="mt-5">
                           {isConsumed ? (
-                            <div className="flex flex-col gap-1">
-                              <span className="bg-zinc-800 text-zinc-400 px-3 py-1.5 rounded-xl text-[10px] font-black tracking-[0.2em] inline-block">
-                                CONSUMED
-                              </span>
-                              <span className="text-zinc-500 text-xs font-semibold mt-1">
-                                Used on {formatDay(assignedDay!, locale)}
-                              </span>
-                            </div>
-                          ) : isActiveToday ? (
-                            <div className="flex flex-col gap-2">
-                              <div className="flex items-center gap-2">
-                                <span className="bg-white/10 text-white px-3 py-1.5 rounded-xl text-[10px] font-black tracking-[0.2em]">
-                                  ACTIVE
-                                </span>
-                                <span className={`text-xs font-semibold ${booster.text}`}>
-                                  {activeMatchdayLabel ?? activeMatchday}
-                                </span>
-                              </div>
-                              <button
-                                onClick={() => handleToggle(booster.key, true)}
-                                disabled={isLoading}
-                                className="px-5 py-2.5 rounded-2xl text-sm font-black bg-zinc-800/80 text-zinc-300 hover:bg-red-500/20 hover:text-red-300 hover:border-red-500/30 border border-transparent transition-all disabled:opacity-50"
-                              >
-                                {isLoading ? "…" : `✕ ${t("booster.remove")}`}
-                              </button>
-                            </div>
-                          ) : isAssignedFuture ? (
-                            // Assigned to a different future matchday — offer to move here
-                            <div className="flex flex-col gap-2">
-                              <span className="text-zinc-500 text-xs font-semibold">
-                                Set for {formatDay(assignedDay!, locale)}
-                              </span>
-                              {activeMatchday && !isMatchdayConsumed && (
-                                <button
-                                  onClick={() => handleMove(booster.key)}
-                                  disabled={isLoading}
-                                  className={`w-full px-5 py-2.5 rounded-2xl text-sm font-black border ${booster.border} ${booster.text} bg-white/[0.04] hover:bg-white/[0.08] transition-all disabled:opacity-50`}
-                                >
-                                  {isLoading ? "…" : `Move to today →`}
-                                </button>
-                              )}
-                              {isMatchdayConsumed && nextMatchday && (
-                                <button
-                                  onClick={async () => {
-                                    setLoadingKey(booster.key);
-                                    try { await onActivate(booster.key, nextMatchday); }
-                                    finally { setLoadingKey(null); }
-                                  }}
-                                  disabled={isLoading}
-                                  className={`w-full px-5 py-2.5 rounded-2xl text-sm font-black border ${booster.border} ${booster.text} bg-white/[0.04] hover:bg-white/[0.08] transition-all disabled:opacity-50`}
-                                >
-                                  {isLoading ? "…" : `Move to ${nextMatchdayLabel ?? nextMatchday} →`}
-                                </button>
-                              )}
-                              {isMatchdayConsumed && !nextMatchday && (
-                                <span className="text-zinc-600 text-xs font-semibold">Window closed for today</span>
-                              )}
-                            </div>
-                          ) : isMatchdayConsumed && nextMatchday ? (
-                            // Active window closed but next matchday exists — offer pre-assign
-                            <div className="flex flex-col gap-2">
-                              <span className="text-zinc-500 text-xs font-semibold">Today's window closed</span>
-                              <button
-                                onClick={async () => {
-                                  setLoadingKey(booster.key);
-                                  try { await onActivate(booster.key, nextMatchday); }
-                                  finally { setLoadingKey(null); }
-                                }}
-                                disabled={isLoading}
-                                className={`w-full px-5 py-2.5 rounded-2xl text-sm font-black border ${booster.border} ${booster.text} bg-white/[0.04] hover:bg-white/[0.08] transition-all disabled:opacity-50`}
-                              >
-                                {isLoading ? "…" : `Pre-assign for ${nextMatchdayLabel ?? nextMatchday} →`}
-                              </button>
-                            </div>
+                            <span className="text-[10px] font-black uppercase tracking-[0.15em] text-zinc-500">Consumed</span>
+                          ) : isAssigned ? (
+                            <span className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.15em] text-white">
+                              {statusDot} Active
+                            </span>
                           ) : (
-                            <button
-                              onClick={() => handleToggle(booster.key, false)}
-                              disabled={!activeMatchday || isMatchdayConsumed || isLoading}
-                              className="w-full px-5 py-2.5 rounded-2xl text-sm font-black bg-zinc-800 text-zinc-300 hover:bg-zinc-700 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-                            >
-                              {isLoading
-                                ? "…"
-                                : !activeMatchday
-                                ? t("booster.notAssigned")
-                                : `${t("booster.activate")} →`}
-                            </button>
+                            <span className="text-[10px] font-black uppercase tracking-[0.15em] text-emerald-400">Available</span>
+                          )}
+                        </div>
+
+                        <div className={`mt-4 text-xl font-black ${booster.text}`}>{booster.title}</div>
+                        <div className="mt-2 text-sm text-zinc-500 leading-relaxed flex-1">{booster.description}</div>
+
+                        <div className="mt-4 pt-4 border-t border-white/[0.06]">
+                          {isAssigned && !isConsumed ? (
+                            <div className="flex items-center gap-1.5">
+                              <span className={`text-[10px] font-black uppercase tracking-widest ${booster.text}`}>Applied to</span>
+                              <span className="text-xs text-zinc-300 font-semibold truncate">{statusText}</span>
+                            </div>
+                          ) : isConsumed ? (
+                            <span className="text-zinc-600 text-xs font-semibold">Used · points already applied</span>
+                          ) : (
+                            <span className="text-zinc-600 text-xs font-semibold">Tap ⚡ on a matchday header to apply</span>
                           )}
                         </div>
                       </div>
-                    </motion.div>
+                    </div>
                   );
                 })}
               </div>
