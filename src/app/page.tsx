@@ -9,6 +9,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Header from "@/components/Header";
 import MatchCard from "@/components/MatchCard";
 import BoosterInventory from "@/components/BoosterInventory";
+import BoosterDayBadge from "@/components/BoosterDayBadge";
 import GroupCountdown from "@/components/GroupCountdown";
 import HowItWorks from "@/components/HowItWorks";
 import PageWrapper from "@/components/PageWrapper";
@@ -731,15 +732,26 @@ export default function Home() {
 
           {/* MATCH GROUPS */}
           <div className="space-y-12">
-            {Object.entries(visibleGroupedMatches).map(([groupKey, dateMatches]) => {
+            {Object.entries(visibleGroupedMatches).map(([groupKey, dateMatches], groupIdx) => {
               const utcDate = dateFromKey(groupKey);
               const dayBoosters = activeDayBoosters[utcDate] || [];
               const label = groupLabels[groupKey] ?? groupKey;
-              // "Today" / "Tomorrow" check against the UTC date of the group
-              const todayUTC = new Date().toISOString().split("T")[0];
-              const tomorrowUTC = (() => { const d = new Date(); d.setUTCDate(d.getUTCDate() + 1); return d.toISOString().split("T")[0]; })();
-              const isToday = utcDate === todayUTC;
-              const isTomorrow = utcDate === tomorrowUTC;
+              const visibleKeys = Object.keys(visibleGroupedMatches);
+              // Eligible for booster = active matchday or the one right after
+              const isEligibleForBooster =
+                groupKey === activeMatchday ||
+                (activeMatchday
+                  ? visibleKeys.indexOf(groupKey) === visibleKeys.indexOf(activeMatchday) + 1
+                  : groupIdx === 0);
+              // "Today" / "Tomorrow" label — compare ET date
+              const etToday = new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" });
+              const etTomorrow = (() => {
+                const d = new Date();
+                d.setDate(d.getDate() + 1);
+                return d.toLocaleDateString("en-CA", { timeZone: "America/New_York" });
+              })();
+              const isToday = utcDate === etToday;
+              const isTomorrow = utcDate === etTomorrow;
 
               return (
               <div key={groupKey}>
@@ -770,15 +782,19 @@ export default function Home() {
                     {/* Live prediction countdown */}
                     <GroupCountdown matches={dateMatches} />
 
-                    {/* Active booster badges */}
-                    {dayBoosters.map((b) => (
-                      <span
-                        key={b}
-                        className="px-3 py-1 rounded-full border border-zinc-700 bg-zinc-900 text-xs font-black text-zinc-300"
-                      >
-                        {b === "2x" ? "⚽ 2×" : b === "3x" ? "🔥 3×" : "🐐 G.O.A.T"}
-                      </span>
-                    ))}
+                    {/* Booster badge — interactive for active/next day, display-only otherwise */}
+                    {user && (
+                      <BoosterDayBadge
+                        date={utcDate}
+                        groupLabel={label}
+                        dayBoosters={dayBoosters}
+                        usedBoosterTypes={usedBoosterTypes}
+                        isEligible={isEligibleForBooster}
+                        dayMatches={dateMatches}
+                        onActivate={activateBooster}
+                        onRemove={removeBooster}
+                      />
+                    )}
                   </div>
                 </div>
 
