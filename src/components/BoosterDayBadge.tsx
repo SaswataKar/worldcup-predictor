@@ -122,9 +122,9 @@ export default function BoosterDayBadge({
     );
     clickable = true;
   } else if (isEligible && windowOpen) {
-    // No booster yet, can add
-    badgeClass += "border-zinc-700/50 bg-zinc-900/60 text-zinc-500 hover:text-zinc-200 hover:border-zinc-500 cursor-pointer";
-    badgeContent = <><span className="text-zinc-600">⚡</span><span>Add booster</span></>;
+    // No booster yet, can add — prominent pulsing gold outline
+    badgeClass += "border-yellow-500/70 bg-yellow-500/10 text-yellow-300 shadow-[0_0_12px_3px_rgba(234,179,8,0.25)] cursor-pointer animate-pulse";
+    badgeContent = <><span>⚡</span><span>Add booster</span></>;
     clickable = true;
   } else if (isEligible && !windowOpen) {
     // Eligible day but window closed, no booster applied
