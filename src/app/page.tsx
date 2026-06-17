@@ -517,6 +517,15 @@ export default function Home() {
     return nextKey ? dateFromKey(nextKey) : null;
   }, [activeMatchday, visibleGroupedMatches]);
 
+  // Human-readable labels for active and next matchday (e.g. "Group Stage · Day 7")
+  const activeMatchdayLabel = activeMatchday ? (groupLabels[activeMatchday] ?? null) : null;
+  const nextMatchdayLabel = useMemo(() => {
+    const keys = Object.keys(visibleGroupedMatches);
+    const activeIdx = activeMatchday ? keys.indexOf(activeMatchday) : -1;
+    const nextKey = activeIdx >= 0 ? keys[activeIdx + 1] : null;
+    return nextKey ? (groupLabels[nextKey] ?? null) : null;
+  }, [activeMatchday, visibleGroupedMatches, groupLabels]);
+
   // First kickoff of the active matchday — shown as the booster deadline in local TZ
   const activeMatchdayFirstKickoff = useMemo(() => {
     if (!activeMatchday) return null;
@@ -696,7 +705,9 @@ export default function Home() {
             usedBoosterTypes={usedBoosterTypes}
             activeDayBoosters={activeDayBoosters}
             activeMatchday={activeMatchdayDate}
+            activeMatchdayLabel={activeMatchdayLabel}
             nextMatchday={nextMatchdayDate}
+            nextMatchdayLabel={nextMatchdayLabel}
             activeMatchdayFirstKickoff={activeMatchdayFirstKickoff}
             isMatchdayConsumed={isActiveMatchdayConsumed}
             onActivate={(boosterType, date) => activateBooster(boosterType, date)}

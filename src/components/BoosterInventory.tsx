@@ -9,7 +9,9 @@ type Props = {
   usedBoosterTypes: string[];
   activeDayBoosters: Record<string, string[]>;
   activeMatchday: string | null;
+  activeMatchdayLabel: string | null;
   nextMatchday: string | null;
+  nextMatchdayLabel: string | null;
   activeMatchdayFirstKickoff: Date | null;
   isMatchdayConsumed: boolean;
   onActivate: (boosterType: string, date: string) => Promise<void>;
@@ -75,7 +77,9 @@ export default function BoosterInventory({
   usedBoosterTypes,
   activeDayBoosters,
   activeMatchday,
+  activeMatchdayLabel,
   nextMatchday,
+  nextMatchdayLabel,
   activeMatchdayFirstKickoff,
   isMatchdayConsumed,
   onActivate,
@@ -166,13 +170,12 @@ export default function BoosterInventory({
             {activeMatchday ? (
               <>
                 Active matchday:{" "}
-                <span className="text-white font-bold">{formatDay(activeMatchday, locale)}</span>
+                <span className="text-white font-bold">{activeMatchdayLabel ?? activeMatchday}</span>
                 {!isMatchdayConsumed && activeMatchdayFirstKickoff && (
                   <span className="ml-2 text-amber-400 text-xs font-semibold">
                     · Window closes {activeMatchdayFirstKickoff.toLocaleTimeString(locale, {
-                      hour: "numeric", minute: "2-digit", hour12: true,
-                      timeZoneName: "short",
-                    })} ({activeMatchdayFirstKickoff.toLocaleDateString(locale, { day: "numeric", month: "short" })})
+                      hour: "numeric", minute: "2-digit", hour12: true, timeZoneName: "short",
+                    })}
                   </span>
                 )}
                 {isMatchdayConsumed && (
@@ -183,11 +186,11 @@ export default function BoosterInventory({
               <span className="text-zinc-600">No matchday currently open for predictions</span>
             )}
           </p>
-          {nextMatchday && (
+          {nextMatchday && nextMatchdayLabel && (
             <p className="text-zinc-600 text-xs mt-1">
               Next matchday:{" "}
-              <span className="text-zinc-400 font-semibold">{formatDay(nextMatchday, locale)}</span>
-              <span className="text-zinc-600"> — you can pre-assign your booster below</span>
+              <span className="text-zinc-400 font-semibold">{nextMatchdayLabel}</span>
+              {isMatchdayConsumed && <span className="text-zinc-600"> — pre-assign below</span>}
             </p>
           )}
         </div>
@@ -294,7 +297,7 @@ export default function BoosterInventory({
                                   ACTIVE
                                 </span>
                                 <span className={`text-xs font-semibold ${booster.text}`}>
-                                  {formatDay(activeMatchday!, locale)}
+                                  {activeMatchdayLabel ?? activeMatchday}
                                 </span>
                               </div>
                               <button
@@ -330,7 +333,7 @@ export default function BoosterInventory({
                                   disabled={isLoading}
                                   className={`w-full px-5 py-2.5 rounded-2xl text-sm font-black border ${booster.border} ${booster.text} bg-white/[0.04] hover:bg-white/[0.08] transition-all disabled:opacity-50`}
                                 >
-                                  {isLoading ? "…" : `Move to ${formatDay(nextMatchday, locale)} →`}
+                                  {isLoading ? "…" : `Move to ${nextMatchdayLabel ?? nextMatchday} →`}
                                 </button>
                               )}
                               {isMatchdayConsumed && !nextMatchday && (
@@ -350,7 +353,7 @@ export default function BoosterInventory({
                                 disabled={isLoading}
                                 className={`w-full px-5 py-2.5 rounded-2xl text-sm font-black border ${booster.border} ${booster.text} bg-white/[0.04] hover:bg-white/[0.08] transition-all disabled:opacity-50`}
                               >
-                                {isLoading ? "…" : `Pre-assign for ${formatDay(nextMatchday, locale)} →`}
+                                {isLoading ? "…" : `Pre-assign for ${nextMatchdayLabel ?? nextMatchday} →`}
                               </button>
                             </div>
                           ) : (
