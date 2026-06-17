@@ -292,7 +292,7 @@ export default function BoosterInventory({
                               <span className="text-zinc-500 text-xs font-semibold">
                                 Set for {formatDay(assignedDay!, locale)}
                               </span>
-                              {activeMatchday && (
+                              {activeMatchday && !isMatchdayConsumed && (
                                 <button
                                   onClick={() => handleMove(booster.key)}
                                   disabled={isLoading}
@@ -301,17 +301,22 @@ export default function BoosterInventory({
                                   {isLoading ? "…" : `${t("time.today")} →`}
                                 </button>
                               )}
+                              {activeMatchday && isMatchdayConsumed && (
+                                <span className="text-zinc-600 text-xs font-semibold">Window closed for today</span>
+                              )}
                             </div>
                           ) : (
                             <button
                               onClick={() => handleToggle(booster.key, false)}
-                              disabled={!activeMatchday || isLoading}
+                              disabled={!activeMatchday || isMatchdayConsumed || isLoading}
                               className="w-full px-5 py-2.5 rounded-2xl text-sm font-black bg-zinc-800 text-zinc-300 hover:bg-zinc-700 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                             >
                               {isLoading
                                 ? "…"
                                 : !activeMatchday
                                 ? t("booster.notAssigned")
+                                : isMatchdayConsumed
+                                ? "Window closed"
                                 : `${t("booster.activate")} →`}
                             </button>
                           )}
