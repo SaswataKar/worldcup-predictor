@@ -507,17 +507,17 @@ export default function Home() {
   // UTC date of the active group (used for booster storage/lookup)
   const activeMatchdayDate = activeMatchday ? dateFromKey(activeMatchday) : null;
 
-  // Lock boosters only when ALL remaining matches on the matchday have kicked off
+  // Booster window closes once the FIRST match on the matchday kicks off.
+  // Activate and remove share the same threshold to prevent the trap where
+  // you can activate but then can't undo (remove is blocked on first kickoff).
   const isActiveMatchdayConsumed = useMemo(() => {
     if (!activeMatchday) return false;
     const dayMatches = visibleGroupedMatches[activeMatchday] || [];
     const now = new Date();
-    const kickoffs = dayMatches
-      .map((m) => m.kickoff_time ? new Date(m.kickoff_time).getTime() : Infinity)
-      .filter((t) => t !== Infinity);
-    if (!kickoffs.length) return false;
-    const futureKickoffs = kickoffs.filter(t => t > now.getTime() + 60 * 1000);
-    return futureKickoffs.length === 0;
+    return dayMatches.some((m) => {
+      if (!m.kickoff_time) return false;
+      return now >= new Date(new Date(m.kickoff_time).getTime() - 60 * 1000);
+    });
   }, [activeMatchday, visibleGroupedMatches]);
 
   // TBD MATCHES
