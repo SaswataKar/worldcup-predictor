@@ -67,6 +67,7 @@ export default function Header({ user, hideNav }: { user?: any; hideNav?: boolea
     { label: "📺 Feed", href: "/feed" },
     { label: t("nav.fixtures"), href: "/fixtures" },
     { label: t("nav.teams"), href: "/teams" },
+    { label: "Standings", href: "/standings" },
     { label: t("nav.leaderboard"), href: "/leaderboard" },
     { label: t("nav.leagues"), href: "/leagues" },
   ];
