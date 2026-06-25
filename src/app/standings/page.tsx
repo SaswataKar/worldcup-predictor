@@ -39,6 +39,23 @@ type KOMatch = {
 
 type KORounds = Record<string, KOMatch[]>;
 
+type PlayerEntry = {
+  name: string;
+  shortName: string;
+  headshot: string;
+  jersey: string;
+  team: string;
+  teamLogo: string;
+  goals: number;
+  assists: number;
+  appearances: number;
+};
+
+type StatCategory = {
+  category: string;
+  players: PlayerEntry[];
+};
+
 const ROUND_LABELS: Record<string, string> = {
   LAST_32: "Round of 32",
   LAST_16: "Round of 16",
@@ -219,149 +236,159 @@ function KOMatchCard({ match, compact }: { match: KOMatch; compact?: boolean }) 
   );
 }
 
-// ─── Bracket with absolute positioning ────────────────────────────────────────
+// ─── Full Bracket with absolute positioning ──────────────────────────────────
 
-const CARD_W = 150;
-const CARD_H = 50;
-const COL_GAP = 36;
-const ROW_GAP = 6;
+const CARD_W = 148;
+const CARD_H = 48;
+const COL_GAP = 32;
+const ROW_GAP = 4;
 
 function cardY(roundIndex: number, matchIndex: number): number {
-  const baseGap = CARD_H + ROW_GAP;
-  const offset = baseGap * Math.pow(2, roundIndex);
-  const start = (offset - CARD_H) / 2;
-  return start + matchIndex * offset;
+  const step = (CARD_H + ROW_GAP) * Math.pow(2, roundIndex);
+  const start = (step - CARD_H) / 2;
+  return start + matchIndex * step;
 }
 
 function colX(roundIndex: number): number {
   return roundIndex * (CARD_W + COL_GAP);
 }
 
-function HalfBracket({
-  rounds,
-  labels,
-}: {
-  rounds: KOMatch[][];
-  labels: string[];
-}) {
-  const r0Count = rounds[0]?.length ?? 0;
-  if (!r0Count) return null;
+function KnockoutBracket({ rounds }: { rounds: KORounds }) {
+  const allRounds: KOMatch[][] = [
+    rounds.LAST_32 ?? [],
+    rounds.LAST_16 ?? [],
+    rounds.QUARTER_FINALS ?? [],
+    rounds.SEMI_FINALS ?? [],
+    rounds.FINAL ?? [],
+  ];
+  const third = rounds.THIRD_PLACE ?? [];
+  const labels = ["Round of 32", "Round of 16", "Quarter-finals", "Semi-finals", "Final"];
 
+  const r0Count = allRounds[0].length || 16;
   const totalH = cardY(0, r0Count - 1) + CARD_H;
-  const totalW = colX(rounds.length - 1) + CARD_W;
+  const totalW = colX(allRounds.length - 1) + CARD_W;
+  const LABEL_H = 24;
+
+  const hasAnyTeam = allRounds.some((r) => r.some((m) => m.team1 !== "TBD" || m.team2 !== "TBD"));
+
+  // 3rd place goes below the Final
+  const finalY = allRounds[4]?.length ? cardY(4, 0) : 0;
+  const thirdY = finalY + CARD_H + 24;
 
   return (
-    <div className="overflow-x-auto pb-4 -mx-3 px-3">
-      <div className="relative" style={{ width: totalW, height: totalH + 28, minWidth: totalW }}>
-        {/* Round labels */}
-        {labels.map((label, ri) => (
-          <div
-            key={label}
-            className="absolute text-[10px] uppercase tracking-widest font-black text-zinc-600 truncate"
-            style={{ left: colX(ri), top: 0, width: CARD_W, textAlign: "center" }}
-          >
-            {label}
-          </div>
-        ))}
-
-        {/* SVG connector lines */}
-        <svg
-          className="absolute pointer-events-none"
-          style={{ top: 28, left: 0, width: totalW, height: totalH }}
+    <div>
+      <div className="overflow-x-auto pb-6 -mx-3 px-3">
+        <div
+          className="relative"
+          style={{
+            width: totalW,
+            height: LABEL_H + Math.max(totalH, thirdY + (third.length ? CARD_H + 20 : 0)),
+            minWidth: totalW,
+          }}
         >
-          {rounds.map((matches, ri) => {
-            if (ri >= rounds.length - 1) return null;
-            const nextMatches = rounds[ri + 1] ?? [];
-            return matches.map((_, mi) => {
-              const pairIdx = Math.floor(mi / 2);
-              if (mi % 2 !== 0) return null;
-              if (pairIdx >= nextMatches.length) return null;
-
-              const topCY = cardY(ri, mi) + CARD_H / 2;
-              const botCY = cardY(ri, mi + 1) + CARD_H / 2;
-              const nextCY = cardY(ri + 1, pairIdx) + CARD_H / 2;
-
-              const x1 = colX(ri) + CARD_W;
-              const midX = x1 + COL_GAP / 2;
-              const x2 = colX(ri + 1);
-
-              const lineColor = "rgba(113,113,122,0.35)";
-
-              return (
-                <g key={`${ri}-${mi}`}>
-                  <line x1={x1} y1={topCY} x2={midX} y2={topCY} stroke={lineColor} strokeWidth={1.5} />
-                  <line x1={x1} y1={botCY} x2={midX} y2={botCY} stroke={lineColor} strokeWidth={1.5} />
-                  <line x1={midX} y1={topCY} x2={midX} y2={botCY} stroke={lineColor} strokeWidth={1.5} />
-                  <line x1={midX} y1={nextCY} x2={x2} y2={nextCY} stroke={lineColor} strokeWidth={1.5} />
-                </g>
-              );
-            });
+          {/* Round labels */}
+          {labels.map((label, ri) => {
+            if (!allRounds[ri]?.length) return null;
+            return (
+              <div
+                key={ri}
+                className="absolute text-[9px] uppercase tracking-widest font-black text-zinc-600 text-center truncate"
+                style={{ left: colX(ri), top: 0, width: CARD_W }}
+              >
+                {label}
+              </div>
+            );
           })}
-        </svg>
 
-        {/* Match cards */}
-        {rounds.map((matches, ri) =>
-          matches.map((m, mi) => (
+          {/* SVG connectors */}
+          <svg
+            className="absolute pointer-events-none"
+            style={{ top: LABEL_H, left: 0, width: totalW, height: totalH }}
+          >
+            {allRounds.map((matches, ri) => {
+              if (ri >= allRounds.length - 1) return null;
+              const next = allRounds[ri + 1];
+              if (!next?.length) return null;
+
+              return matches.map((_, mi) => {
+                if (mi % 2 !== 0) return null;
+                const pairIdx = Math.floor(mi / 2);
+                if (mi + 1 >= matches.length || pairIdx >= next.length) return null;
+
+                const y1 = cardY(ri, mi) + CARD_H / 2;
+                const y2 = cardY(ri, mi + 1) + CARD_H / 2;
+                const yNext = cardY(ri + 1, pairIdx) + CARD_H / 2;
+
+                const x1 = colX(ri) + CARD_W;
+                const xMid = x1 + COL_GAP / 2;
+                const x2 = colX(ri + 1);
+
+                const c = "rgba(113,113,122,0.3)";
+
+                return (
+                  <g key={`c-${ri}-${mi}`}>
+                    <line x1={x1} y1={y1} x2={xMid} y2={y1} stroke={c} strokeWidth={1} />
+                    <line x1={x1} y1={y2} x2={xMid} y2={y2} stroke={c} strokeWidth={1} />
+                    <line x1={xMid} y1={y1} x2={xMid} y2={y2} stroke={c} strokeWidth={1} />
+                    <line x1={xMid} y1={yNext} x2={x2} y2={yNext} stroke={c} strokeWidth={1} />
+                  </g>
+                );
+              });
+            })}
+          </svg>
+
+          {/* Match cards */}
+          {allRounds.map((matches, ri) =>
+            matches.map((m, mi) => (
+              <div
+                key={m.id}
+                className="absolute"
+                style={{
+                  left: colX(ri),
+                  top: LABEL_H + cardY(ri, mi),
+                  width: CARD_W,
+                  height: CARD_H,
+                }}
+              >
+                <KOMatchCard match={m} compact />
+              </div>
+            ))
+          )}
+
+          {/* Final trophy icon */}
+          {allRounds[4]?.length > 0 && (
             <div
-              key={m.id}
-              className="absolute"
+              className="absolute text-center"
               style={{
-                left: colX(ri),
-                top: 28 + cardY(ri, mi),
+                left: colX(4),
+                top: LABEL_H + finalY - 18,
                 width: CARD_W,
-                height: CARD_H,
               }}
             >
-              <KOMatchCard match={m} compact />
+              <span className="text-yellow-400 text-sm">🏆</span>
             </div>
-          ))
-        )}
+          )}
+
+          {/* 3rd Place match — below Final */}
+          {third.length > 0 && (
+            <div
+              className="absolute"
+              style={{
+                left: colX(4),
+                top: LABEL_H + thirdY,
+                width: CARD_W,
+              }}
+            >
+              <div className="text-[9px] uppercase tracking-widest font-black text-zinc-600 text-center mb-1">
+                🥉 3rd Place
+              </div>
+              <div style={{ height: CARD_H }}>
+                <KOMatchCard match={third[0]} compact />
+              </div>
+            </div>
+          )}
+        </div>
       </div>
-    </div>
-  );
-}
-
-// ─── Knockout Bracket Section ─────────────────────────────────────────────────
-
-function KnockoutBracket({ rounds }: { rounds: KORounds }) {
-  const r32 = rounds.LAST_32 ?? [];
-  const r16 = rounds.LAST_16 ?? [];
-  const qf = rounds.QUARTER_FINALS ?? [];
-  const sf = rounds.SEMI_FINALS ?? [];
-  const final = rounds.FINAL ?? [];
-  const third = rounds.THIRD_PLACE ?? [];
-
-  const hasAnyTeam = [...r32, ...r16, ...qf, ...sf, ...final].some(
-    (m) => m.team1 !== "TBD" || m.team2 !== "TBD"
-  );
-
-  const topHalf = [r32.slice(0, 8), r16.slice(0, 4), qf.slice(0, 2), sf.slice(0, 1)];
-  const botHalf = [r32.slice(8, 16), r16.slice(4, 8), qf.slice(2, 4), sf.slice(1, 2)];
-  const roundLabels = ["Round of 32", "Round of 16", "Quarter-finals", "Semi-final"];
-
-  return (
-    <div className="space-y-8">
-      {/* Top half */}
-      <HalfBracket rounds={topHalf} labels={roundLabels} />
-
-      {/* Final + 3rd Place */}
-      <div className="flex flex-col sm:flex-row items-center justify-center gap-6 py-4">
-        {final.length > 0 && (
-          <div className="flex flex-col items-center gap-2">
-            <span className="text-xs font-black uppercase tracking-widest text-yellow-400">🏆 Final</span>
-            <div style={{ width: 180 }}><KOMatchCard match={final[0]} /></div>
-          </div>
-        )}
-        {third.length > 0 && (
-          <div className="flex flex-col items-center gap-2">
-            <span className="text-xs font-black uppercase tracking-widest text-zinc-500">🥉 3rd Place</span>
-            <div style={{ width: 180 }}><KOMatchCard match={third[0]} /></div>
-          </div>
-        )}
-      </div>
-
-      {/* Bottom half */}
-      <HalfBracket rounds={botHalf} labels={roundLabels} />
 
       {!hasAnyTeam && (
         <div className="text-center py-12">
@@ -374,31 +401,152 @@ function KnockoutBracket({ rounds }: { rounds: KORounds }) {
   );
 }
 
+// ─── Player Stats Section ─────────────────────────────────────────────────────
+
+const STAT_ICONS: Record<string, string> = {
+  Goals: "⚽",
+  Assists: "🅰️",
+};
+
+function PlayerStatsView({ categories }: { categories: StatCategory[] }) {
+  if (!categories.length) {
+    return (
+      <div className="text-center py-12">
+        <div className="text-zinc-500 font-bold">No player stats available yet</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-10">
+      {categories.map((cat) => (
+        <motion.div
+          key={cat.category}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+        >
+          <div className="flex items-center gap-2 mb-4">
+            <span className="text-xl">{STAT_ICONS[cat.category] ?? "📊"}</span>
+            <h3 className="text-xl font-black text-white">Top {cat.category}</h3>
+          </div>
+
+          <div className="rounded-3xl border border-white/[0.07] overflow-hidden backdrop-blur-md
+            shadow-[0_0_0_1px_rgba(255,255,255,0.04),inset_0_1px_0_rgba(255,255,255,0.05)]">
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="text-zinc-500 font-black text-[10px] uppercase tracking-widest border-b border-white/[0.06]">
+                    <th className="text-left pl-4 py-3 w-8">#</th>
+                    <th className="text-left py-3">Player</th>
+                    <th className="text-center py-3 w-12">MP</th>
+                    <th className="text-center py-3 w-12">
+                      {cat.category === "Assists" ? "A" : "G"}
+                    </th>
+                    {cat.category === "Goals" && (
+                      <th className="text-center py-3 pr-4 w-12">A</th>
+                    )}
+                  </tr>
+                </thead>
+                <tbody>
+                  {cat.players.map((player, i) => {
+                    const isTop3 = i < 3;
+                    const statValue = cat.category === "Assists" ? player.assists : player.goals;
+
+                    return (
+                      <tr
+                        key={`${player.name}-${i}`}
+                        className={`border-b border-white/[0.03] last:border-0 transition-colors hover:bg-white/[0.03]
+                          ${isTop3 ? "bg-yellow-500/5" : ""}`}
+                      >
+                        <td className="pl-4 py-2.5">
+                          <span className={`font-black text-sm tabular-nums ${
+                            i === 0 ? "text-yellow-400" : i === 1 ? "text-zinc-300" : i === 2 ? "text-amber-600" : "text-zinc-600"
+                          }`}>
+                            {i + 1}
+                          </span>
+                        </td>
+                        <td className="py-2.5">
+                          <div className="flex items-center gap-2.5">
+                            {player.headshot ? (
+                              <img
+                                src={player.headshot}
+                                alt={player.name}
+                                className="w-8 h-8 rounded-full object-cover bg-zinc-800 shrink-0"
+                              />
+                            ) : (
+                              <div className="w-8 h-8 rounded-full bg-zinc-800 shrink-0 flex items-center justify-center text-zinc-600 text-xs font-bold">
+                                {player.jersey || "?"}
+                              </div>
+                            )}
+                            <div className="min-w-0">
+                              <div className="font-bold text-zinc-200 text-sm truncate">{player.name}</div>
+                              <div className="flex items-center gap-1.5 mt-0.5">
+                                {player.teamLogo && (
+                                  <img src={player.teamLogo} className="w-3.5 h-3.5 object-contain" />
+                                )}
+                                <span className="text-zinc-500 text-[11px] font-semibold truncate">{player.team}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="text-center text-zinc-400 tabular-nums">{player.appearances}</td>
+                        <td className="text-center tabular-nums">
+                          <span className={`font-black text-sm ${isTop3 ? "text-white" : "text-zinc-300"}`}>
+                            {statValue}
+                          </span>
+                        </td>
+                        {cat.category === "Goals" && (
+                          <td className="text-center pr-4 text-zinc-500 tabular-nums">{player.assists}</td>
+                        )}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </motion.div>
+      ))}
+    </div>
+  );
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
+type TabKey = "groups" | "knockout" | "players";
+
 export default function StandingsPage() {
-  const [tab, setTab] = useState<"groups" | "knockout">("groups");
+  const [tab, setTab] = useState<TabKey>("groups");
   const [groups, setGroups] = useState<GroupStanding[]>([]);
   const [koRounds, setKoRounds] = useState<KORounds>({});
+  const [playerStats, setPlayerStats] = useState<StatCategory[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     Promise.all([
       fetch("/api/standings").then((r) => r.json()),
       fetch("/api/knockout").then((r) => r.json()),
+      fetch("/api/player-stats").then((r) => r.json()),
     ])
-      .then(([standingsData, koData]) => {
+      .then(([standingsData, koData, statsData]) => {
         setGroups(standingsData.groups ?? []);
         setKoRounds(koData.rounds ?? {});
+        setPlayerStats(statsData.categories ?? []);
       })
       .finally(() => setLoading(false));
   }, []);
+
+  const TABS: { key: TabKey; label: string }[] = [
+    { key: "groups", label: "Group Stage" },
+    { key: "knockout", label: "Knockout" },
+    { key: "players", label: "Player Stats" },
+  ];
 
   return (
     <PageWrapper>
       <Header />
       <div className="max-w-6xl mx-auto px-3 sm:px-6 py-8">
-        {/* Title */}
         <div className="mb-8">
           <div className="text-zinc-500 uppercase tracking-[0.35em] text-xs font-black mb-1">
             FIFA World Cup 2026
@@ -406,19 +554,18 @@ export default function StandingsPage() {
           <h1 className="text-4xl sm:text-5xl font-black">Standings</h1>
         </div>
 
-        {/* Tabs */}
-        <div className="flex gap-2 mb-8">
-          {(["groups", "knockout"] as const).map((t) => (
+        <div className="flex gap-2 mb-8 overflow-x-auto pb-1">
+          {TABS.map((t) => (
             <button
-              key={t}
-              onClick={() => setTab(t)}
-              className={`px-5 py-2.5 rounded-2xl text-sm font-black transition-all ${
-                tab === t
+              key={t.key}
+              onClick={() => setTab(t.key)}
+              className={`px-5 py-2.5 rounded-2xl text-sm font-black transition-all whitespace-nowrap ${
+                tab === t.key
                   ? "bg-white text-black shadow-[0_0_20px_4px_rgba(255,255,255,0.15)]"
                   : "bg-zinc-900 border border-zinc-700 text-zinc-400 hover:text-white hover:border-zinc-500"
               }`}
             >
-              {t === "groups" ? "Group Stage" : "Knockout"}
+              {t.label}
             </button>
           ))}
         </div>
@@ -433,8 +580,10 @@ export default function StandingsPage() {
               <GroupTable key={g.group} g={g} delay={gi * 0.04} />
             ))}
           </div>
-        ) : (
+        ) : tab === "knockout" ? (
           <KnockoutBracket rounds={koRounds} />
+        ) : (
+          <PlayerStatsView categories={playerStats} />
         )}
       </div>
     </PageWrapper>
