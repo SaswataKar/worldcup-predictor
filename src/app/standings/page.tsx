@@ -130,7 +130,7 @@ function GroupTable({ g, delay }: { g: GroupStanding; delay: number }) {
 
 // ─── Knockout Match Card ──────────────────────────────────────────────────────
 
-function KOMatchCard({ match }: { match: KOMatch }) {
+function KOMatchCard({ match, compact }: { match: KOMatch; compact?: boolean }) {
   const isTBD = match.team1 === "TBD" && match.team2 === "TBD";
   const isFinished = match.status === "FINISHED";
   const isLive = match.status === "IN_PLAY" || match.status === "LIVE";
@@ -143,28 +143,32 @@ function KOMatchCard({ match }: { match: KOMatch }) {
     month: "short", day: "numeric", hour: "numeric", minute: "2-digit", hour12: true,
   });
 
+  const py = compact ? "py-1" : "py-2";
+  const iconSize = compact ? "w-4 h-4" : "w-5 h-5";
+  const fontSize = compact ? "text-[11px]" : "text-xs";
+
   return (
-    <div className={`rounded-2xl border overflow-hidden transition-all ${
+    <div className={`${compact ? "rounded-xl" : "rounded-2xl"} border overflow-hidden transition-all h-full flex flex-col ${
       isLive
         ? "border-red-500/40 shadow-[0_0_12px_3px_rgba(239,68,68,0.20)]"
         : isFinished
-        ? "border-white/[0.07]"
-        : "border-white/[0.05] border-dashed"
+        ? "border-white/[0.07] bg-zinc-950/60"
+        : "border-white/[0.06] border-dashed bg-zinc-950/30"
     }`}>
       {/* Team 1 */}
-      <div className={`flex items-center gap-2 px-3 py-2 ${
-        isFinished && t1Won ? "bg-emerald-500/8" : isFinished && t2Won ? "opacity-50" : ""
+      <div className={`flex items-center gap-1.5 px-2 ${py} flex-1 ${
+        isFinished && t1Won ? "bg-emerald-500/8" : isFinished && t2Won ? "opacity-40" : ""
       }`}>
         {match.team1_crest ? (
-          <img src={match.team1_crest} className="w-5 h-5 object-contain shrink-0" />
+          <img src={match.team1_crest} className={`${iconSize} object-contain shrink-0`} />
         ) : (
-          <div className="w-5 h-5 rounded-full bg-zinc-800 shrink-0" />
+          <div className={`${iconSize} rounded-full bg-zinc-800 shrink-0`} />
         )}
-        <span className={`text-xs font-bold flex-1 truncate ${isTBD ? "text-zinc-600" : "text-zinc-200"}`}>
+        <span className={`${fontSize} font-bold flex-1 truncate ${isTBD ? "text-zinc-600" : "text-zinc-200"}`}>
           {match.team1}
         </span>
         {hasScore && (
-          <span className={`text-sm font-black tabular-nums ${
+          <span className={`${compact ? "text-xs" : "text-sm"} font-black tabular-nums ${
             isLive ? "text-red-300" : t1Won ? "text-white" : "text-zinc-500"
           }`}>
             {match.team1_score}
@@ -172,23 +176,22 @@ function KOMatchCard({ match }: { match: KOMatch }) {
         )}
       </div>
 
-      {/* Divider */}
       <div className="h-px bg-white/[0.04]" />
 
       {/* Team 2 */}
-      <div className={`flex items-center gap-2 px-3 py-2 ${
-        isFinished && t2Won ? "bg-emerald-500/8" : isFinished && t1Won ? "opacity-50" : ""
+      <div className={`flex items-center gap-1.5 px-2 ${py} flex-1 ${
+        isFinished && t2Won ? "bg-emerald-500/8" : isFinished && t1Won ? "opacity-40" : ""
       }`}>
         {match.team2_crest ? (
-          <img src={match.team2_crest} className="w-5 h-5 object-contain shrink-0" />
+          <img src={match.team2_crest} className={`${iconSize} object-contain shrink-0`} />
         ) : (
-          <div className="w-5 h-5 rounded-full bg-zinc-800 shrink-0" />
+          <div className={`${iconSize} rounded-full bg-zinc-800 shrink-0`} />
         )}
-        <span className={`text-xs font-bold flex-1 truncate ${isTBD ? "text-zinc-600" : "text-zinc-200"}`}>
+        <span className={`${fontSize} font-bold flex-1 truncate ${isTBD ? "text-zinc-600" : "text-zinc-200"}`}>
           {match.team2}
         </span>
         {hasScore && (
-          <span className={`text-sm font-black tabular-nums ${
+          <span className={`${compact ? "text-xs" : "text-sm"} font-black tabular-nums ${
             isLive ? "text-red-300" : t2Won ? "text-white" : "text-zinc-500"
           }`}>
             {match.team2_score}
@@ -196,104 +199,124 @@ function KOMatchCard({ match }: { match: KOMatch }) {
         )}
       </div>
 
-      {/* Footer */}
-      <div className={`px-3 py-1.5 border-t text-[10px] font-semibold ${
-        isLive
-          ? "border-red-500/20 bg-red-500/5 text-red-400"
-          : isFinished
-          ? "border-white/[0.04] text-zinc-600"
-          : "border-white/[0.03] text-zinc-600"
-      }`}>
-        {isLive ? (
-          <span className="flex items-center gap-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" /> LIVE
-          </span>
-        ) : isFinished ? (
-          "FT"
-        ) : (
-          localTime
-        )}
-      </div>
+      {/* Footer — hidden in compact bracket mode */}
+      {!compact && (
+        <div className={`px-3 py-1.5 border-t text-[10px] font-semibold ${
+          isLive
+            ? "border-red-500/20 bg-red-500/5 text-red-400"
+            : isFinished
+            ? "border-white/[0.04] text-zinc-600"
+            : "border-white/[0.03] text-zinc-600"
+        }`}>
+          {isLive ? (
+            <span className="flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" /> LIVE
+            </span>
+          ) : isFinished ? "FT" : localTime}
+        </div>
+      )}
     </div>
   );
 }
 
-// ─── Bracket Connector Lines ──────────────────────────────────────────────────
+// ─── Bracket with absolute positioning ────────────────────────────────────────
 
-function BracketConnectors({ pairCount, height }: { pairCount: number; height: number }) {
-  const pairH = height / pairCount;
-  return (
-    <div className="w-6 shrink-0 relative" style={{ height }}>
-      {Array.from({ length: pairCount }).map((_, i) => {
-        const topY = i * pairH + pairH * 0.25;
-        const botY = i * pairH + pairH * 0.75;
-        const midY = (topY + botY) / 2;
-        return (
-          <svg key={i} className="absolute inset-0 overflow-visible" style={{ width: 24, height }}>
-            {/* top match → vertical */}
-            <line x1={0} y1={topY} x2={12} y2={topY} stroke="rgba(113,113,122,0.4)" strokeWidth={1} />
-            {/* bottom match → vertical */}
-            <line x1={0} y1={botY} x2={12} y2={botY} stroke="rgba(113,113,122,0.4)" strokeWidth={1} />
-            {/* vertical bar */}
-            <line x1={12} y1={topY} x2={12} y2={botY} stroke="rgba(113,113,122,0.4)" strokeWidth={1} />
-            {/* center → next round */}
-            <line x1={12} y1={midY} x2={24} y2={midY} stroke="rgba(113,113,122,0.4)" strokeWidth={1} />
-          </svg>
-        );
-      })}
-    </div>
-  );
+const CARD_W = 150;
+const CARD_H = 50;
+const COL_GAP = 36;
+const ROW_GAP = 6;
+
+function cardY(roundIndex: number, matchIndex: number): number {
+  const baseGap = CARD_H + ROW_GAP;
+  const offset = baseGap * Math.pow(2, roundIndex);
+  const start = (offset - CARD_H) / 2;
+  return start + matchIndex * offset;
 }
 
-// ─── Bracket Column ───────────────────────────────────────────────────────────
-
-function BracketColumn({
-  matches,
-  label,
-  height,
-}: {
-  matches: KOMatch[];
-  label: string;
-  height: number;
-}) {
-  return (
-    <div className="flex flex-col shrink-0" style={{ width: 160 }}>
-      <div className="text-[10px] uppercase tracking-widest font-black text-zinc-600 mb-2 text-center truncate px-1">
-        {label}
-      </div>
-      <div className="flex flex-col justify-around" style={{ height }}>
-        {matches.map((m) => (
-          <KOMatchCard key={m.id} match={m} />
-        ))}
-      </div>
-    </div>
-  );
+function colX(roundIndex: number): number {
+  return roundIndex * (CARD_W + COL_GAP);
 }
-
-// ─── Half Bracket (8 R32 → 4 R16 → 2 QF → 1 SF) ─────────────────────────────
 
 function HalfBracket({
-  r32,
-  r16,
-  qf,
-  sf,
-  height,
+  rounds,
+  labels,
 }: {
-  r32: KOMatch[];
-  r16: KOMatch[];
-  qf: KOMatch[];
-  sf: KOMatch[];
-  height: number;
+  rounds: KOMatch[][];
+  labels: string[];
 }) {
+  const r0Count = rounds[0]?.length ?? 0;
+  if (!r0Count) return null;
+
+  const totalH = cardY(0, r0Count - 1) + CARD_H;
+  const totalW = colX(rounds.length - 1) + CARD_W;
+
   return (
-    <div className="flex items-start">
-      <BracketColumn matches={r32} label="Round of 32" height={height} />
-      <BracketConnectors pairCount={r32.length / 2} height={height} />
-      <BracketColumn matches={r16} label="Round of 16" height={height} />
-      <BracketConnectors pairCount={r16.length / 2} height={height} />
-      <BracketColumn matches={qf} label="Quarter-finals" height={height} />
-      <BracketConnectors pairCount={qf.length / 2} height={height} />
-      <BracketColumn matches={sf} label="Semi-final" height={height} />
+    <div className="overflow-x-auto pb-4 -mx-3 px-3">
+      <div className="relative" style={{ width: totalW, height: totalH + 28, minWidth: totalW }}>
+        {/* Round labels */}
+        {labels.map((label, ri) => (
+          <div
+            key={label}
+            className="absolute text-[10px] uppercase tracking-widest font-black text-zinc-600 truncate"
+            style={{ left: colX(ri), top: 0, width: CARD_W, textAlign: "center" }}
+          >
+            {label}
+          </div>
+        ))}
+
+        {/* SVG connector lines */}
+        <svg
+          className="absolute pointer-events-none"
+          style={{ top: 28, left: 0, width: totalW, height: totalH }}
+        >
+          {rounds.map((matches, ri) => {
+            if (ri >= rounds.length - 1) return null;
+            const nextMatches = rounds[ri + 1] ?? [];
+            return matches.map((_, mi) => {
+              const pairIdx = Math.floor(mi / 2);
+              if (mi % 2 !== 0) return null;
+              if (pairIdx >= nextMatches.length) return null;
+
+              const topCY = cardY(ri, mi) + CARD_H / 2;
+              const botCY = cardY(ri, mi + 1) + CARD_H / 2;
+              const nextCY = cardY(ri + 1, pairIdx) + CARD_H / 2;
+
+              const x1 = colX(ri) + CARD_W;
+              const midX = x1 + COL_GAP / 2;
+              const x2 = colX(ri + 1);
+
+              const lineColor = "rgba(113,113,122,0.35)";
+
+              return (
+                <g key={`${ri}-${mi}`}>
+                  <line x1={x1} y1={topCY} x2={midX} y2={topCY} stroke={lineColor} strokeWidth={1.5} />
+                  <line x1={x1} y1={botCY} x2={midX} y2={botCY} stroke={lineColor} strokeWidth={1.5} />
+                  <line x1={midX} y1={topCY} x2={midX} y2={botCY} stroke={lineColor} strokeWidth={1.5} />
+                  <line x1={midX} y1={nextCY} x2={x2} y2={nextCY} stroke={lineColor} strokeWidth={1.5} />
+                </g>
+              );
+            });
+          })}
+        </svg>
+
+        {/* Match cards */}
+        {rounds.map((matches, ri) =>
+          matches.map((m, mi) => (
+            <div
+              key={m.id}
+              className="absolute"
+              style={{
+                left: colX(ri),
+                top: 28 + cardY(ri, mi),
+                width: CARD_W,
+                height: CARD_H,
+              }}
+            >
+              <KOMatchCard match={m} compact />
+            </div>
+          ))
+        )}
+      </div>
     </div>
   );
 }
@@ -312,77 +335,39 @@ function KnockoutBracket({ rounds }: { rounds: KORounds }) {
     (m) => m.team1 !== "TBD" || m.team2 !== "TBD"
   );
 
-  // Split each round into top/bottom halves
-  const half = <T,>(arr: T[]) => [arr.slice(0, Math.ceil(arr.length / 2)), arr.slice(Math.ceil(arr.length / 2))];
-  const [topR32, botR32] = half(r32);
-  const [topR16, botR16] = half(r16);
-  const [topQF, botQF] = half(qf);
-  const [topSF, botSF] = half(sf);
-
-  // Height calculation: each match ~52px, R32 of 8 matches needs ~460px
-  const MATCH_H = 52;
-  const r32Count = Math.max(topR32.length, botR32.length, 1);
-  const bracketH = r32Count * MATCH_H + (r32Count - 1) * 8;
+  const topHalf = [r32.slice(0, 8), r16.slice(0, 4), qf.slice(0, 2), sf.slice(0, 1)];
+  const botHalf = [r32.slice(8, 16), r16.slice(4, 8), qf.slice(2, 4), sf.slice(1, 2)];
+  const roundLabels = ["Round of 32", "Round of 16", "Quarter-finals", "Semi-final"];
 
   return (
     <div className="space-y-8">
-      {/* Top half bracket */}
-      <div>
-        <div className="overflow-x-auto pb-4 -mx-3 px-3">
-          <div style={{ minWidth: 740 }}>
-            <HalfBracket
-              r32={topR32}
-              r16={topR16}
-              qf={topQF}
-              sf={topSF}
-              height={bracketH}
-            />
-          </div>
-        </div>
-      </div>
+      {/* Top half */}
+      <HalfBracket rounds={topHalf} labels={roundLabels} />
 
-      {/* Final + Third Place — center */}
-      <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+      {/* Final + 3rd Place */}
+      <div className="flex flex-col sm:flex-row items-center justify-center gap-6 py-4">
         {final.length > 0 && (
           <div className="flex flex-col items-center gap-2">
             <span className="text-xs font-black uppercase tracking-widest text-yellow-400">🏆 Final</span>
-            <div style={{ width: 180 }}>
-              <KOMatchCard match={final[0]} />
-            </div>
+            <div style={{ width: 180 }}><KOMatchCard match={final[0]} /></div>
           </div>
         )}
         {third.length > 0 && (
           <div className="flex flex-col items-center gap-2">
             <span className="text-xs font-black uppercase tracking-widest text-zinc-500">🥉 3rd Place</span>
-            <div style={{ width: 180 }}>
-              <KOMatchCard match={third[0]} />
-            </div>
+            <div style={{ width: 180 }}><KOMatchCard match={third[0]} /></div>
           </div>
         )}
       </div>
 
-      {/* Bottom half bracket */}
-      <div>
-        <div className="overflow-x-auto pb-4 -mx-3 px-3">
-          <div style={{ minWidth: 740 }}>
-            <HalfBracket
-              r32={botR32}
-              r16={botR16}
-              qf={botQF}
-              sf={botSF}
-              height={bracketH}
-            />
-          </div>
-        </div>
-      </div>
+      {/* Bottom half */}
+      <HalfBracket rounds={botHalf} labels={roundLabels} />
 
       {!hasAnyTeam && (
         <div className="text-center py-12">
           <div className="text-3xl mb-3">🏆</div>
           <div className="text-zinc-400 font-bold">Knockout stage hasn't started yet</div>
-          <div className="text-zinc-600 text-sm mt-1">
-            Matchups will appear as teams qualify from the group stage
-          </div>
+          <div className="text-zinc-600 text-sm mt-1">Matchups will appear as teams qualify from the group stage</div>
         </div>
       )}
     </div>
