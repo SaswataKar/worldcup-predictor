@@ -240,8 +240,11 @@ function KOMatchCard({ match, compact }: { match: KOMatch; compact?: boolean }) 
 
 const CARD_W = 148;
 const CARD_H = 48;
-const COL_GAP = 32;
+const COL_GAP = 48;
 const ROW_GAP = 4;
+const LABEL_H = 36;
+
+const ROUND_ICONS = ["⚔️", "🎯", "🔥", "⭐", "🏆"];
 
 function cardY(roundIndex: number, matchIndex: number): number {
   const step = (CARD_H + ROW_GAP) * Math.pow(2, roundIndex);
@@ -251,6 +254,13 @@ function cardY(roundIndex: number, matchIndex: number): number {
 
 function colX(roundIndex: number): number {
   return roundIndex * (CARD_W + COL_GAP);
+}
+
+function getWinnerIdx(m: KOMatch): 0 | 1 | null {
+  if (m.status !== "FINISHED" || m.team1_score == null || m.team2_score == null) return null;
+  if (m.team1_score > m.team2_score) return 0;
+  if (m.team2_score > m.team1_score) return 1;
+  return null;
 }
 
 function KnockoutBracket({ rounds }: { rounds: KORounds }) {
@@ -267,13 +277,13 @@ function KnockoutBracket({ rounds }: { rounds: KORounds }) {
   const r0Count = allRounds[0].length || 16;
   const totalH = cardY(0, r0Count - 1) + CARD_H;
   const totalW = colX(allRounds.length - 1) + CARD_W;
-  const LABEL_H = 24;
 
   const hasAnyTeam = allRounds.some((r) => r.some((m) => m.team1 !== "TBD" || m.team2 !== "TBD"));
 
-  // 3rd place goes below the Final
   const finalY = allRounds[4]?.length ? cardY(4, 0) : 0;
-  const thirdY = finalY + CARD_H + 24;
+  const thirdY = finalY + CARD_H + 32;
+  const FINAL_W = 180;
+  const FINAL_H = 60;
 
   return (
     <div>
@@ -281,39 +291,90 @@ function KnockoutBracket({ rounds }: { rounds: KORounds }) {
         <div
           className="relative"
           style={{
-            width: totalW,
-            height: LABEL_H + Math.max(totalH, thirdY + (third.length ? CARD_H + 20 : 0)),
-            minWidth: totalW,
+            width: Math.max(totalW, colX(4) + FINAL_W),
+            height: LABEL_H + Math.max(totalH, thirdY + (third.length ? CARD_H + 28 : 0)),
+            minWidth: Math.max(totalW, colX(4) + FINAL_W),
           }}
         >
-          {/* Round labels */}
+          {/* ── 6. Pair grouping bands on R32 ── */}
+          {allRounds[0].map((_, mi) => {
+            if (mi % 2 !== 0) return null;
+            const pairIdx = Math.floor(mi / 2);
+            const isOdd = pairIdx % 2 === 1;
+            if (!isOdd) return null;
+            const y1 = cardY(0, mi);
+            const y2 = cardY(0, mi + 1) + CARD_H;
+            return (
+              <div
+                key={`band-${mi}`}
+                className="absolute rounded-lg"
+                style={{
+                  left: colX(0) - 4,
+                  top: LABEL_H + y1 - 2,
+                  width: CARD_W + 8,
+                  height: y2 - y1 + 4,
+                  background: "rgba(255,255,255,0.02)",
+                }}
+              />
+            );
+          })}
+
+          {/* ── 4. Round header pills ── */}
           {labels.map((label, ri) => {
             if (!allRounds[ri]?.length) return null;
+            const isFinal = ri === 4;
             return (
               <div
                 key={ri}
-                className="absolute text-[9px] uppercase tracking-widest font-black text-zinc-600 text-center truncate"
-                style={{ left: colX(ri), top: 0, width: CARD_W }}
+                className="absolute flex items-center justify-center"
+                style={{
+                  left: isFinal ? colX(ri) + (FINAL_W - CARD_W) / 2 : colX(ri),
+                  top: 0,
+                  width: isFinal ? FINAL_W : CARD_W,
+                }}
               >
-                {label}
+                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] uppercase tracking-widest font-black
+                  ${isFinal
+                    ? "bg-yellow-500/15 border border-yellow-500/30 text-yellow-400"
+                    : "bg-zinc-900 border border-zinc-700/60 text-zinc-500"
+                  }`}>
+                  <span>{ROUND_ICONS[ri]}</span>
+                  <span>{label}</span>
+                </span>
               </div>
             );
           })}
 
-          {/* SVG connectors */}
+          {/* ── SVG connectors with winner glow ── */}
           <svg
             className="absolute pointer-events-none"
-            style={{ top: LABEL_H, left: 0, width: totalW, height: totalH }}
+            style={{ top: LABEL_H, left: 0, width: Math.max(totalW, colX(4) + FINAL_W), height: totalH }}
           >
+            {/* Glow filter for winner paths */}
+            <defs>
+              <filter id="winGlow" x="-50%" y="-50%" width="200%" height="200%">
+                <feGaussianBlur stdDeviation="2" result="blur" />
+                <feMerge>
+                  <feMergeNode in="blur" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
+            </defs>
+
             {allRounds.map((matches, ri) => {
               if (ri >= allRounds.length - 1) return null;
               const next = allRounds[ri + 1];
               if (!next?.length) return null;
 
-              return matches.map((_, mi) => {
+              return matches.map((m, mi) => {
                 if (mi % 2 !== 0) return null;
                 const pairIdx = Math.floor(mi / 2);
                 if (mi + 1 >= matches.length || pairIdx >= next.length) return null;
+
+                const topMatch = matches[mi];
+                const botMatch = matches[mi + 1];
+                const topWinner = getWinnerIdx(topMatch);
+                const botWinner = getWinnerIdx(botMatch);
 
                 const y1 = cardY(ri, mi) + CARD_H / 2;
                 const y2 = cardY(ri, mi + 1) + CARD_H / 2;
@@ -321,66 +382,83 @@ function KnockoutBracket({ rounds }: { rounds: KORounds }) {
 
                 const x1 = colX(ri) + CARD_W;
                 const xMid = x1 + COL_GAP / 2;
-                const x2 = colX(ri + 1);
+                const isFinalCol = ri + 1 === 4;
+                const x2 = isFinalCol ? colX(ri + 1) + (FINAL_W - CARD_W) / 2 : colX(ri + 1);
 
-                const c = "rgba(113,113,122,0.3)";
+                const dim = "rgba(113,113,122,0.18)";
+                const active = "rgba(52,211,153,0.7)";
+
+                // Top match won → its line glows green
+                const topFinished = topMatch.status === "FINISHED";
+                const topIsWinner = topWinner !== null;
+                // Bot match won → its line glows green
+                const botFinished = botMatch.status === "FINISHED";
+                const botIsWinner = botWinner !== null;
+
+                // The advancing line from midpoint to next round
+                const advancerIsTop = topFinished && topIsWinner;
+                const advancerIsBot = botFinished && botIsWinner;
+                const hasAdvancer = advancerIsTop || advancerIsBot;
 
                 return (
                   <g key={`c-${ri}-${mi}`}>
-                    <line x1={x1} y1={y1} x2={xMid} y2={y1} stroke={c} strokeWidth={1} />
-                    <line x1={x1} y1={y2} x2={xMid} y2={y2} stroke={c} strokeWidth={1} />
-                    <line x1={xMid} y1={y1} x2={xMid} y2={y2} stroke={c} strokeWidth={1} />
-                    <line x1={xMid} y1={yNext} x2={x2} y2={yNext} stroke={c} strokeWidth={1} />
+                    {/* Top match horizontal */}
+                    <line x1={x1} y1={y1} x2={xMid} y2={y1}
+                      stroke={topFinished && topIsWinner ? active : dim} strokeWidth={topFinished && topIsWinner ? 2 : 1}
+                      filter={topFinished && topIsWinner ? "url(#winGlow)" : undefined} />
+                    {/* Bot match horizontal */}
+                    <line x1={x1} y1={y2} x2={xMid} y2={y2}
+                      stroke={botFinished && botIsWinner ? active : dim} strokeWidth={botFinished && botIsWinner ? 2 : 1}
+                      filter={botFinished && botIsWinner ? "url(#winGlow)" : undefined} />
+                    {/* Vertical bar — dim unless one side has advanced */}
+                    <line x1={xMid} y1={y1} x2={xMid} y2={y2}
+                      stroke={hasAdvancer ? "rgba(52,211,153,0.3)" : dim} strokeWidth={1} />
+                    {/* Center to next round */}
+                    <line x1={xMid} y1={yNext} x2={x2} y2={yNext}
+                      stroke={hasAdvancer ? active : dim} strokeWidth={hasAdvancer ? 2 : 1}
+                      filter={hasAdvancer ? "url(#winGlow)" : undefined} />
                   </g>
                 );
               });
             })}
           </svg>
 
-          {/* Match cards */}
+          {/* ── Match cards ── */}
           {allRounds.map((matches, ri) =>
-            matches.map((m, mi) => (
-              <div
-                key={m.id}
-                className="absolute"
-                style={{
-                  left: colX(ri),
-                  top: LABEL_H + cardY(ri, mi),
-                  width: CARD_W,
-                  height: CARD_H,
-                }}
-              >
-                <KOMatchCard match={m} compact />
-              </div>
-            ))
+            matches.map((m, mi) => {
+              const isFinal = ri === 4;
+              const w = isFinal ? FINAL_W : CARD_W;
+              const h = isFinal ? FINAL_H : CARD_H;
+              const adjustedY = isFinal ? cardY(ri, mi) - (FINAL_H - CARD_H) / 2 : cardY(ri, mi);
+              const adjustedX = isFinal ? colX(ri) + (FINAL_W - CARD_W) / 2 : colX(ri);
+              return (
+                <div
+                  key={m.id}
+                  className={`absolute ${isFinal ? "z-10" : ""}`}
+                  style={{ left: adjustedX, top: LABEL_H + adjustedY, width: w, height: h }}
+                >
+                  {/* 3. Grand Final glow */}
+                  {isFinal && (
+                    <div className="absolute -inset-3 rounded-3xl bg-yellow-500/10 border border-yellow-500/20 shadow-[0_0_40px_8px_rgba(234,179,8,0.15)] -z-10" />
+                  )}
+                  <KOMatchCard match={m} compact={!isFinal} />
+                </div>
+              );
+            })
           )}
 
-          {/* Final trophy icon */}
-          {allRounds[4]?.length > 0 && (
-            <div
-              className="absolute text-center"
-              style={{
-                left: colX(4),
-                top: LABEL_H + finalY - 18,
-                width: CARD_W,
-              }}
-            >
-              <span className="text-yellow-400 text-sm">🏆</span>
-            </div>
-          )}
-
-          {/* 3rd Place match — below Final */}
+          {/* ── 3rd Place match — below Final ── */}
           {third.length > 0 && (
             <div
               className="absolute"
               style={{
-                left: colX(4),
+                left: colX(4) + (FINAL_W - CARD_W) / 2,
                 top: LABEL_H + thirdY,
-                width: CARD_W,
+                width: FINAL_W,
               }}
             >
-              <div className="text-[9px] uppercase tracking-widest font-black text-zinc-600 text-center mb-1">
-                🥉 3rd Place
+              <div className="text-[9px] uppercase tracking-widest font-black text-zinc-500 text-center mb-1.5 flex items-center justify-center gap-1">
+                <span>🥉</span> 3rd Place
               </div>
               <div style={{ height: CARD_H }}>
                 <KOMatchCard match={third[0]} compact />
