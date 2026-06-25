@@ -296,28 +296,49 @@ function KnockoutBracket({ rounds }: { rounds: KORounds }) {
             minWidth: Math.max(totalW, colX(4) + FINAL_W),
           }}
         >
-          {/* ── 6. Pair grouping bands on R32 ── */}
-          {allRounds[0].map((_, mi) => {
-            if (mi % 2 !== 0) return null;
-            const pairIdx = Math.floor(mi / 2);
-            const isOdd = pairIdx % 2 === 1;
-            if (!isOdd) return null;
-            const y1 = cardY(0, mi);
-            const y2 = cardY(0, mi + 1) + CARD_H;
-            return (
-              <div
-                key={`band-${mi}`}
-                className="absolute rounded-lg"
-                style={{
-                  left: colX(0) - 4,
-                  top: LABEL_H + y1 - 2,
-                  width: CARD_W + 8,
-                  height: y2 - y1 + 4,
-                  background: "rgba(255,255,255,0.02)",
-                }}
-              />
-            );
-          })}
+          {/* ── 5. Pitch background ── */}
+          <svg
+            className="absolute inset-0 pointer-events-none opacity-[0.07]"
+            viewBox="0 0 1000 900"
+            preserveAspectRatio="xMidYMid slice"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            {/* Grass tint */}
+            <rect width="1000" height="900" fill="rgba(0,60,20,0.4)" />
+            {/* Grass stripes */}
+            {Array.from({ length: 12 }).map((_, i) => (
+              <rect key={i} x="0" y={i * 150} width="1000" height="75" fill="rgba(0,255,80,0.06)" />
+            ))}
+            {/* Outer border */}
+            <rect x="30" y="30" width="940" height="840" fill="none" stroke="white" strokeWidth="2" />
+            {/* Halfway line */}
+            <line x1="500" y1="30" x2="500" y2="870" stroke="white" strokeWidth="2" />
+            {/* Center circle */}
+            <circle cx="500" cy="450" r="80" fill="none" stroke="white" strokeWidth="2" />
+            {/* Center spot */}
+            <circle cx="500" cy="450" r="4" fill="white" />
+            {/* Left penalty area */}
+            <rect x="30" y="260" width="150" height="380" fill="none" stroke="white" strokeWidth="1.5" />
+            {/* Left goal area */}
+            <rect x="30" y="340" width="60" height="220" fill="none" stroke="white" strokeWidth="1.5" />
+            {/* Left penalty arc */}
+            <path d="M180,380 A60,60 0 0,1 180,520" fill="none" stroke="white" strokeWidth="1.5" />
+            {/* Left penalty spot */}
+            <circle cx="140" cy="450" r="3" fill="white" />
+            {/* Right penalty area */}
+            <rect x="820" y="260" width="150" height="380" fill="none" stroke="white" strokeWidth="1.5" />
+            {/* Right goal area */}
+            <rect x="910" y="340" width="60" height="220" fill="none" stroke="white" strokeWidth="1.5" />
+            {/* Right penalty arc */}
+            <path d="M820,380 A60,60 0 0,0 820,520" fill="none" stroke="white" strokeWidth="1.5" />
+            {/* Right penalty spot */}
+            <circle cx="860" cy="450" r="3" fill="white" />
+            {/* Corner arcs */}
+            <path d="M30,30 Q42,30 42,42" fill="none" stroke="white" strokeWidth="1.5" />
+            <path d="M970,30 Q958,30 958,42" fill="none" stroke="white" strokeWidth="1.5" />
+            <path d="M30,870 Q42,870 42,858" fill="none" stroke="white" strokeWidth="1.5" />
+            <path d="M970,870 Q958,870 958,858" fill="none" stroke="white" strokeWidth="1.5" />
+          </svg>
 
           {/* ── 4. Round header pills ── */}
           {labels.map((label, ri) => {
