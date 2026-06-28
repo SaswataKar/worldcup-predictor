@@ -310,6 +310,11 @@ export default function Home() {
       serverScoreMap[prediction.match_id] = {
         home: prediction.predicted_team1_score,
         away: prediction.predicted_team2_score,
+        ...(prediction.predicted_penalty ? {
+          penaltyShootout: true,
+          pkHome: prediction.predicted_pk_team1_score ?? "",
+          pkAway: prediction.predicted_pk_team2_score ?? "",
+        } : {}),
       };
     });
 
@@ -575,9 +580,39 @@ export default function Home() {
       return;
     }
 
+    const isKnockout = ["LAST_32", "LAST_16", "QUARTER_FINALS", "SEMI_FINALS", "THIRD_PLACE", "FINAL"]
+      .includes(match.matchday ?? "");
+    const isDraw = Number(homeScore) === Number(awayScore);
+    const isPK = !!predictedScores[matchId]?.penaltyShootout;
+    const pkHome = predictedScores[matchId]?.pkHome;
+    const pkAway = predictedScores[matchId]?.pkAway;
+
+    if (isKnockout && isDraw && !isPK) {
+      toast.error("Draws not allowed in knockout — change score or toggle penalties");
+      return;
+    }
+
+    if (isKnockout && isPK) {
+      if (!isDraw) {
+        toast.error("Score after extra time must be a draw when penalties is on");
+        return;
+      }
+      if (pkHome === undefined || pkAway === undefined || pkHome === "" || pkAway === "") {
+        toast.error("Enter the penalty shootout score");
+        return;
+      }
+      if (Number(pkHome) === Number(pkAway)) {
+        toast.error("Penalty score can't be a draw");
+        return;
+      }
+    }
+
     let selectedResult = "draw";
     if (homeScore > awayScore) selectedResult = "team1";
     if (awayScore > homeScore) selectedResult = "team2";
+    if (isKnockout && isPK) {
+      selectedResult = Number(pkHome) > Number(pkAway) ? "team1" : "team2";
+    }
 
     const payload: Prediction = {
       user_id: user.id,
@@ -598,6 +633,7 @@ export default function Home() {
         matchId,
         homeScore: Number(homeScore),
         awayScore: Number(awayScore),
+        ...(isPK ? { penalty: true, pkHome: Number(pkHome), pkAway: Number(pkAway) } : {}),
       }),
     });
     if (!res.ok) {

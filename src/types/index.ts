@@ -58,6 +58,9 @@ export type Prediction = {
   predicted_result: string;
   predicted_team1_score: number;
   predicted_team2_score: number;
+  predicted_penalty?: boolean;
+  predicted_pk_team1_score?: number | null;
+  predicted_pk_team2_score?: number | null;
   booster_used: string;
   processed?: boolean;
   awarded_points?: number;
@@ -74,4 +77,7 @@ export type User = {
 export type PredictedScore = {
   home: number | string;
   away: number | string;
+  penaltyShootout?: boolean;
+  pkHome?: number | string;
+  pkAway?: number | string;
 };

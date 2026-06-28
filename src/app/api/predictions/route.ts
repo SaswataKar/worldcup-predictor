@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const { userId, matchId, homeScore, awayScore } = body;
+  const { userId, matchId, homeScore, awayScore, penalty, pkHome, pkAway } = body;
 
   if (!userId || !matchId || homeScore == null || awayScore == null) {
     return NextResponse.json({ error: "Missing fields" }, { status: 400 });
@@ -25,6 +25,9 @@ export async function POST(req: NextRequest) {
   let selectedResult = "draw";
   if (homeScore > awayScore) selectedResult = "team1";
   if (awayScore > homeScore) selectedResult = "team2";
+  if (penalty && Number(homeScore) === Number(awayScore)) {
+    selectedResult = Number(pkHome) > Number(pkAway) ? "team1" : "team2";
+  }
 
   const { error } = await supabaseServer
     .from("predictions")
@@ -35,6 +38,9 @@ export async function POST(req: NextRequest) {
         predicted_team1_score: Number(homeScore),
         predicted_team2_score: Number(awayScore),
         predicted_result: selectedResult,
+        predicted_penalty: !!penalty,
+        predicted_pk_team1_score: penalty ? Number(pkHome) : null,
+        predicted_pk_team2_score: penalty ? Number(pkAway) : null,
         prediction_type: "standard",
         booster_used: "none",
         updated_at: new Date().toISOString(),
