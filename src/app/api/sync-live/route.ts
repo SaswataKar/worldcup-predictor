@@ -63,10 +63,18 @@ function extractMatchData(comp: any, homeTeamId: string, dbHomeIsESPNHome: boole
     }
   }
 
+  // Detect penalty shootout — ESPN stores shootout scores on competitors
+  const homePKScore = homeComp?.shootoutScore ?? null;
+  const awayPKScore = awayComp?.shootoutScore ?? null;
+  const hasPenalty = homePKScore != null && awayPKScore != null;
+
   return {
     homeScore: homeComp?.score != null ? Number(homeComp.score) : null,
     awayScore: awayComp?.score != null ? Number(awayComp.score) : null,
     goals, bookings, substitutions,
+    hasPenalty,
+    homePKScore: hasPenalty ? Number(homePKScore) : null,
+    awayPKScore: hasPenalty ? Number(awayPKScore) : null,
   };
 }
 
@@ -143,7 +151,7 @@ export async function GET(req: NextRequest) {
     const sbComp = sbEvent?.competitions?.[0];
 
     if (sbComp) {
-      const { homeScore, awayScore, goals, bookings, substitutions } =
+      const { homeScore, awayScore, goals, bookings, substitutions, hasPenalty, homePKScore, awayPKScore } =
         extractMatchData(sbComp, homeTeamId, dbHomeIsESPNHome);
 
       await supabaseServer.from("matches").update({
@@ -151,6 +159,11 @@ export async function GET(req: NextRequest) {
         team1_score: dbHomeIsESPNHome ? homeScore : awayScore,
         team2_score: dbHomeIsESPNHome ? awayScore : homeScore,
         goals, bookings, substitutions,
+        ...(hasPenalty ? {
+          actual_penalty: true,
+          actual_pk_team1_score: dbHomeIsESPNHome ? homePKScore : awayPKScore,
+          actual_pk_team2_score: dbHomeIsESPNHome ? awayPKScore : homePKScore,
+        } : {}),
       }).eq("id", dbMatch.id);
       updated++;
     } else {
@@ -205,15 +218,20 @@ export async function GET(req: NextRequest) {
 
         const dbHomeIsESPNHome = normalize(dbMatch.team1) === normalize(espnHome);
         const homeTeamId = homeComp?.team?.id;
-        const { homeScore, awayScore, goals, bookings, substitutions } =
+        const { homeScore, awayScore, goals, bookings, substitutions, hasPenalty, homePKScore, awayPKScore } =
           extractMatchData(comp, homeTeamId, dbHomeIsESPNHome);
 
         await supabaseServer.from("matches").update({
           status: mapStatus(espnStatus, espnState),
-          espn_event_id: event.id, // store for future direct lookups
+          espn_event_id: event.id,
           team1_score: dbHomeIsESPNHome ? homeScore : awayScore,
           team2_score: dbHomeIsESPNHome ? awayScore : homeScore,
           goals, bookings, substitutions,
+          ...(hasPenalty ? {
+            actual_penalty: true,
+            actual_pk_team1_score: dbHomeIsESPNHome ? homePKScore : awayPKScore,
+            actual_pk_team2_score: dbHomeIsESPNHome ? awayPKScore : homePKScore,
+          } : {}),
         }).eq("id", dbMatch.id);
 
         updated++;

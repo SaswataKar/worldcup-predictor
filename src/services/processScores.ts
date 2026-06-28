@@ -26,9 +26,17 @@ export const processScores = async (matches: any[]) => {
         timeZone: "America/New_York",
       });
 
+      // Penalty shootout data from the match
+      const actualPenalty: boolean = !!match.actual_penalty;
+      const actualPKHome: number | null = match.actual_pk_team1_score ?? null;
+      const actualPKAway: number | null = match.actual_pk_team2_score ?? null;
+
       for (const prediction of predictions) {
         const predictedHome = prediction.predicted_team1_score;
         const predictedAway = prediction.predicted_team2_score;
+        const predictedPenalty: boolean = !!prediction.predicted_penalty;
+        const predictedPKHome: number | null = prediction.predicted_pk_team1_score ?? null;
+        const predictedPKAway: number | null = prediction.predicted_pk_team2_score ?? null;
 
         const actualResult =
           homeScore > awayScore ? "team1" : awayScore > homeScore ? "team2" : "draw";
@@ -39,10 +47,37 @@ export const processScores = async (matches: any[]) => {
         const correctResult = actualResult === predictedResult;
 
         let points = 0;
-        if (exactPrediction) {
-          points = homeScore === 0 && awayScore === 0 ? 1 : 2;
-        } else if (correctResult) {
-          points = 1;
+
+        if (predictedPenalty && actualPenalty) {
+          // Both predicted and actual went to penalties
+          // Regular score points: match stored 0-0 for PK predictions, actual is draw → exact if both 0-0, else correct result (draw)
+          if (exactPrediction) {
+            points = homeScore === 0 && awayScore === 0 ? 1 : 2;
+          } else if (correctResult) {
+            points = 1;
+          }
+          // PK scoring: exact PK score = 3pts, correct PK winner = 1pt
+          if (actualPKHome !== null && actualPKAway !== null && predictedPKHome !== null && predictedPKAway !== null) {
+            if (predictedPKHome === actualPKHome && predictedPKAway === actualPKAway) {
+              points += 3;
+            } else {
+              const actualPKWinner = actualPKHome > actualPKAway ? "team1" : "team2";
+              const predictedPKWinner = predictedPKHome > predictedPKAway ? "team1" : "team2";
+              if (actualPKWinner === predictedPKWinner) points += 1;
+            }
+          }
+        } else if (predictedPenalty && !actualPenalty) {
+          // User predicted penalties but match was decided in regular/extra time
+          // PK prediction scores are irrelevant; check if they got the winner right via predicted_result
+          const actualWinner = homeScore > awayScore ? "team1" : "team2";
+          if (prediction.predicted_result === actualWinner) points = 1;
+        } else {
+          // Normal prediction (no PK predicted)
+          if (exactPrediction) {
+            points = homeScore === 0 && awayScore === 0 ? 1 : 2;
+          } else if (correctResult) {
+            points = 1;
+          }
         }
 
         // FETCH ALL DAY BOOSTERS FOR THIS USER
