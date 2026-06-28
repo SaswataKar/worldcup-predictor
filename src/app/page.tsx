@@ -580,23 +580,11 @@ export default function Home() {
       return;
     }
 
-    const isKnockout = ["LAST_32", "LAST_16", "QUARTER_FINALS", "SEMI_FINALS", "THIRD_PLACE", "FINAL"]
-      .includes(match.matchday ?? "");
-    const isDraw = Number(homeScore) === Number(awayScore);
     const isPK = !!predictedScores[matchId]?.penaltyShootout;
     const pkHome = predictedScores[matchId]?.pkHome;
     const pkAway = predictedScores[matchId]?.pkAway;
 
-    if (isKnockout && isDraw && !isPK) {
-      toast.error("Draws not allowed in knockout — change score or toggle penalties");
-      return;
-    }
-
-    if (isKnockout && isPK) {
-      if (!isDraw) {
-        toast.error("Score after extra time must be a draw when penalties is on");
-        return;
-      }
+    if (isPK) {
       if (pkHome === undefined || pkAway === undefined || pkHome === "" || pkAway === "") {
         toast.error("Enter the penalty shootout score");
         return;
@@ -607,11 +595,19 @@ export default function Home() {
       }
     }
 
+    const isKnockout = ["LAST_32", "LAST_16", "QUARTER_FINALS", "SEMI_FINALS", "THIRD_PLACE", "FINAL"]
+      .includes(match.matchday ?? "");
+    if (isKnockout && !isPK && Number(homeScore) === Number(awayScore)) {
+      toast.error("Draws not allowed in knockout — toggle penalties instead");
+      return;
+    }
+
     let selectedResult = "draw";
-    if (homeScore > awayScore) selectedResult = "team1";
-    if (awayScore > homeScore) selectedResult = "team2";
-    if (isKnockout && isPK) {
+    if (isPK) {
       selectedResult = Number(pkHome) > Number(pkAway) ? "team1" : "team2";
+    } else {
+      if (homeScore > awayScore) selectedResult = "team1";
+      if (awayScore > homeScore) selectedResult = "team2";
     }
 
     const payload: Prediction = {
@@ -631,8 +627,8 @@ export default function Home() {
       body: JSON.stringify({
         userId: user.id,
         matchId,
-        homeScore: Number(homeScore),
-        awayScore: Number(awayScore),
+        homeScore: isPK ? 0 : Number(homeScore),
+        awayScore: isPK ? 0 : Number(awayScore),
         ...(isPK ? { penalty: true, pkHome: Number(pkHome), pkAway: Number(pkAway) } : {}),
       }),
     });

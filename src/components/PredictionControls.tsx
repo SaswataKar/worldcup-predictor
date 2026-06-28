@@ -82,6 +82,7 @@ export default function PredictionControls({
   const isKnockout = KNOCKOUT_ROUNDS.includes(match.matchday ?? "");
   const isDraw = result === "draw";
   const isPK = isKnockout && !!scoreData.penaltyShootout;
+  const scoreDisabled = inputDisabled || isPK;
   const pkResult = getResult(scoreData.pkHome ?? "", scoreData.pkAway ?? "");
 
   const updateScore = (side: "home" | "away", value: string) => {
@@ -103,28 +104,29 @@ export default function PredictionControls({
   };
 
   const togglePK = () => {
+    const turningOn = !scoreData.penaltyShootout;
     setPredictedScores({
       ...predictedScores,
       [match.id]: {
         ...scoreData,
-        penaltyShootout: !scoreData.penaltyShootout,
-        ...(!scoreData.penaltyShootout ? {} : { pkHome: "", pkAway: "" }),
+        penaltyShootout: turningOn,
+        ...(turningOn
+          ? { home: 0, away: 0 }
+          : { pkHome: "", pkAway: "", home: "", away: "" }),
       },
     });
   };
 
-  // Knockout draw without PK toggled = invalid
-  const knockoutDrawError = isKnockout && isDraw && !isPK;
-
   return (
     <div className="space-y-6">
-      {/* SCOREBOARD CARD */}
+      {/* SCOREBOARD CARD — hidden when PK mode is active */}
+      {!isPK && (
       <div className="relative overflow-hidden rounded-3xl border border-zinc-800 bg-gradient-to-b from-zinc-900 to-zinc-950">
 
         {/* LABEL */}
         <div className="px-8 pt-7 pb-0 flex items-center justify-between">
           <span className="text-[10px] uppercase tracking-[0.35em] text-zinc-600 font-black">
-            {isPK ? "Score after Extra Time" : t("pred.yourPred")}
+            {t("pred.yourPred")}
           </span>
           {isKnockout && (
             <span className="text-[10px] uppercase tracking-widest text-zinc-700 font-black">
@@ -150,12 +152,12 @@ export default function PredictionControls({
 
           {/* SCORE INPUTS */}
           <div className="flex items-center gap-3 md:gap-4 shrink-0">
-            <ScoreInput value={scoreData.home} disabled={inputDisabled} highlight={result === "home"} onChange={(v) => updateScore("home", v)} />
+            <ScoreInput value={scoreData.home} disabled={scoreDisabled} highlight={result === "home"} onChange={(v) => updateScore("home", v)} />
             <div className="flex flex-col items-center gap-1.5">
               <div className="w-1.5 h-1.5 rounded-full bg-zinc-600" />
               <div className="w-1.5 h-1.5 rounded-full bg-zinc-600" />
             </div>
-            <ScoreInput value={scoreData.away} disabled={inputDisabled} highlight={result === "away"} onChange={(v) => updateScore("away", v)} />
+            <ScoreInput value={scoreData.away} disabled={scoreDisabled} highlight={result === "away"} onChange={(v) => updateScore("away", v)} />
           </div>
 
           {/* AWAY TEAM */}
@@ -195,23 +197,16 @@ export default function PredictionControls({
               <span className="text-zinc-400 font-semibold">{String(scoreData.home)} – {String(scoreData.away)}</span>
             </div>
           )}
-          {knockoutDrawError && (
+          {isKnockout && isDraw && (
             <div className="flex items-center gap-2 text-sm font-black text-red-400">
               <span>⚠️ Draws not allowed in knockout</span>
               <span className="text-zinc-600">·</span>
               <span className="text-zinc-500 font-semibold text-xs">change score or toggle penalties ↓</span>
             </div>
           )}
-          {isDraw && isPK && (
-            <div className="flex items-center gap-2 text-sm font-black text-amber-300">
-              <span>⚽</span>
-              <span>Goes to penalties</span>
-              <span className="text-zinc-600">·</span>
-              <span className="text-zinc-400 font-semibold">{String(scoreData.home)} – {String(scoreData.away)} AET</span>
-            </div>
-          )}
         </div>
       </div>
+      )}
 
       {/* PENALTY SHOOTOUT TOGGLE — knockout only */}
       {isKnockout && !inputDisabled && (
@@ -277,15 +272,14 @@ export default function PredictionControls({
 
       {/* SUBMIT */}
       {!locked && !predictionLocked && (() => {
-        const hasScore = scoreData.home !== "" && scoreData.away !== "";
-        const knockoutInvalid = isKnockout && isDraw && !isPK;
+        const hasScore = !isPK && scoreData.home !== "" && scoreData.away !== "";
+        const knockoutInvalid = isKnockout && !isPK && isDraw;
         const pkInvalid = isPK && (
-          !isDraw ||
           scoreData.pkHome === "" || scoreData.pkHome === undefined ||
           scoreData.pkAway === "" || scoreData.pkAway === undefined ||
-          pkResult === "draw"
+          pkResult === "draw" || pkResult === null
         );
-        const disabled = !hasScore || knockoutInvalid || pkInvalid;
+        const disabled = (!isPK && !hasScore) || knockoutInvalid || pkInvalid;
         return (
           <button
             onClick={() => submitPrediction(match.id)}
