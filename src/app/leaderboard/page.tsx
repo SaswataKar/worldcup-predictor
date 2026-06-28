@@ -235,7 +235,11 @@ export default function LeaderboardPage() {
             <div className="space-y-3">
               {leaders.map((leader, index) => {
                 const hasPoints = leader.total_points > 0;
-                const rankedIndex = hasPoints ? index : -1;
+                // Compute tied rank — players with the same points share the same rank
+                const rank = hasPoints
+                  ? leaders.findIndex((l) => l.total_points === leader.total_points)
+                  : -1;
+                const rankedIndex = rank;
                 const cfg = RANK_CONFIG[rankedIndex] ?? DEFAULT_ROW;
                 const isMe = leader.username === user?.name;
 
@@ -260,7 +264,7 @@ export default function LeaderboardPage() {
                               {TROPHY_ICONS[rankedIndex]}
                             </span>
                           ) : (
-                            <span className="text-xl font-black">#{index + 1}</span>
+                            <span className="text-xl font-black">#{rank + 1}</span>
                           )}
                         </div>
                       )}
