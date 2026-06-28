@@ -276,14 +276,30 @@ export default function PredictionControls({
       )}
 
       {/* SUBMIT */}
-      {!locked && !predictionLocked && (
-        <button
-          onClick={() => submitPrediction(match.id)}
-          className="w-full py-5 rounded-3xl bg-yellow-400 text-black text-lg font-black hover:bg-yellow-300 active:scale-[0.98] transition-all"
-        >
-          {t("pred.submit")}
-        </button>
-      )}
+      {!locked && !predictionLocked && (() => {
+        const hasScore = scoreData.home !== "" && scoreData.away !== "";
+        const knockoutInvalid = isKnockout && isDraw && !isPK;
+        const pkInvalid = isPK && (
+          !isDraw ||
+          scoreData.pkHome === "" || scoreData.pkHome === undefined ||
+          scoreData.pkAway === "" || scoreData.pkAway === undefined ||
+          pkResult === "draw"
+        );
+        const disabled = !hasScore || knockoutInvalid || pkInvalid;
+        return (
+          <button
+            onClick={() => submitPrediction(match.id)}
+            disabled={disabled}
+            className={`w-full py-5 rounded-3xl text-lg font-black active:scale-[0.98] transition-all ${
+              disabled
+                ? "bg-zinc-800 text-zinc-600 cursor-not-allowed"
+                : "bg-yellow-400 text-black hover:bg-yellow-300"
+            }`}
+          >
+            {t("pred.submit")}
+          </button>
+        );
+      })()}
 
       {/* CANCEL */}
       {!locked && predictionLocked && (

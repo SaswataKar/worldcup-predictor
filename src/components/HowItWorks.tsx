@@ -30,6 +30,22 @@ const STEPS = [
     example: "You predict 2–1. Final score is 2–1 → 2 pts. If final is 3–1 → 1 pt. If final is 1–2 → 0 pts.",
   },
   {
+    icon: "⚔️",
+    color: "text-amber-300",
+    border: "border-amber-500/30",
+    bg: "bg-amber-500/10",
+    glow: "shadow-[0_0_20px_4px_rgba(245,158,11,0.10)]",
+    title: "Knockout predictions",
+    body: "From the Round of 32 onwards, matches must have a winner. You can predict a decisive score or toggle Penalty Shootout if you think it'll go to pens.",
+    bullets: [
+      { label: "Decisive score", detail: "Predict a non-draw score (e.g. 2–1) — normal scoring applies", tag: "Normal", tagColor: "bg-sky-500/20 text-sky-300" },
+      { label: "⚽ Penalty Shootout", detail: "Toggle on → predict the ET draw score AND the PK score", tag: "Bonus", tagColor: "bg-amber-500/20 text-amber-300" },
+      { label: "Exact PK score", detail: "Nail the exact penalty score → 3 bonus points (jackpot)", tag: "3 pts", tagColor: "bg-yellow-500/20 text-yellow-300" },
+      { label: "Correct PK winner", detail: "Right team wins on pens but wrong PK score → 1 point", tag: "1 pt", tagColor: "bg-sky-500/20 text-sky-300" },
+    ],
+    example: "You predict 1–1 AET, penalties 5–3 for Brazil. Actual: 1–1 AET, pens 5–3 Brazil → 2 pts (exact ET score) + 3 pts (exact PK score) = 5 pts!",
+  },
+  {
     icon: "⚡",
     color: "text-fuchsia-300",
     border: "border-fuchsia-500/30",
