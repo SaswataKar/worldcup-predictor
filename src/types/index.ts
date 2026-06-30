@@ -43,6 +43,9 @@ export type Match = {
   status: string;
   team1_score: number | null;
   team2_score: number | null;
+  actual_penalty?: boolean;
+  actual_pk_team1_score?: number | null;
+  actual_pk_team2_score?: number | null;
   matchday: string | null;
   goals: ESPNGoal[] | MatchEvent[] | null;
   bookings: ESPNBooking[] | MatchEvent[] | null;

@@ -324,9 +324,16 @@ export default function MatchCard({
           {/* Score / VS */}
           <div className="flex flex-col items-center shrink-0 min-w-[52px] sm:min-w-[64px]">
             {(isFinished || isLive || match.team1_score != null) ? (
-              <span className={`text-lg sm:text-xl font-black tabular-nums leading-none ${isLive ? "text-red-300" : "text-white"}`}>
-                {match.team1_score ?? "?"}–{match.team2_score ?? "?"}
-              </span>
+              <>
+                <span className={`text-lg sm:text-xl font-black tabular-nums leading-none ${isLive ? "text-red-300" : "text-white"}`}>
+                  {match.team1_score ?? "?"}–{match.team2_score ?? "?"}
+                </span>
+                {match.actual_penalty && match.actual_pk_team1_score != null && match.actual_pk_team2_score != null && (
+                  <span className="text-[10px] font-black text-amber-400 tabular-nums mt-0.5">
+                    Pen {match.actual_pk_team1_score}–{match.actual_pk_team2_score}
+                  </span>
+                )}
+              </>
             ) : (
               <span className="text-zinc-600 font-black text-sm">VS</span>
             )}
@@ -392,7 +399,11 @@ export default function MatchCard({
           {/* Prediction badge */}
           {prediction && (
             <span className="inline-flex items-center gap-1 px-2 py-1 rounded-xl bg-zinc-800 border border-zinc-700 text-white font-black text-[11px] tabular-nums">
-              🎯 {prediction.predicted_team1_score}–{prediction.predicted_team2_score}
+              🎯{" "}
+              {prediction.predicted_penalty
+                ? <>⚽ Pen {prediction.predicted_pk_team1_score}–{prediction.predicted_pk_team2_score}</>
+                : <>{prediction.predicted_team1_score}–{prediction.predicted_team2_score}</>
+              }
             </span>
           )}
 
