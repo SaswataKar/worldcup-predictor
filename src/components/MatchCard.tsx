@@ -315,7 +315,7 @@ export default function MatchCard({
       >
         {/* ROW 1: Teams + Score + chevron */}
         {/* Winner determination for finished matches */}
-        {((): JSX.Element => {
+        {(() => {
           const pkWinner = match.actual_penalty && match.actual_pk_team1_score != null && match.actual_pk_team2_score != null
             ? (match.actual_pk_team1_score > match.actual_pk_team2_score ? "team1" : "team2")
             : null;
