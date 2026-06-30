@@ -227,7 +227,11 @@ export default function PredictionControls({
       )}
       {isKnockout && inputDisabled && isPK && (
         <div className="flex items-center justify-center gap-2 py-3 rounded-2xl border border-amber-500/30 bg-amber-500/5 text-amber-400 text-xs font-black">
-          <span>⚽</span> Penalty shootout predicted
+          <span>⚽</span>
+          {scoreData.pkHome !== "" && scoreData.pkAway !== "" && scoreData.pkHome !== undefined && scoreData.pkAway !== undefined
+            ? <>Penalties — {scoreData.pkHome}–{scoreData.pkAway} ({pkResult === "home" ? match.team1 : match.team2} wins)</>
+            : <>Penalty shootout predicted</>
+          }
         </div>
       )}
 

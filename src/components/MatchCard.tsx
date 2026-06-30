@@ -314,11 +314,29 @@ export default function MatchCard({
         className="w-full px-3 sm:px-6 py-4 sm:py-5 text-left"
       >
         {/* ROW 1: Teams + Score + chevron */}
-        <div className="flex items-center gap-2 sm:gap-4">
+        {(() => {
+          // Winner determination for finished matches
+          const pkWinner = match.actual_penalty && match.actual_pk_team1_score != null && match.actual_pk_team2_score != null
+            ? (match.actual_pk_team1_score > match.actual_pk_team2_score ? "team1" : "team2")
+            : null;
+          const scoreWinner = isFinished && match.team1_score != null && match.team2_score != null && match.team1_score !== match.team2_score
+            ? (match.team1_score > match.team2_score ? "team1" : "team2")
+            : null;
+          const winner = pkWinner ?? scoreWinner;
+
+          return (
+          <div className="flex items-center gap-2 sm:gap-4">
           {/* Team 1 */}
           <div className="flex items-center gap-1.5 min-w-0 flex-1 justify-end">
-            <span className="text-sm sm:text-base font-black truncate">{match.team1}</span>
-            <img src={match.team1_crest || "/placeholder-team.png"} className="w-6 h-6 sm:w-8 sm:h-8 object-contain shrink-0" />
+            <span className={`text-sm sm:text-base font-black truncate transition-colors ${
+              winner === "team1" ? "text-white" : winner === "team2" ? "text-zinc-500" : ""
+            }`}>{match.team1}</span>
+            <div className="relative shrink-0">
+              <img src={match.team1_crest || "/placeholder-team.png"} className="w-6 h-6 sm:w-8 sm:h-8 object-contain" />
+              {winner === "team1" && (
+                <span className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 rounded-full bg-emerald-500 flex items-center justify-center text-[7px] font-black text-white leading-none">W</span>
+              )}
+            </div>
           </div>
 
           {/* Score / VS */}
@@ -337,7 +355,7 @@ export default function MatchCard({
             ) : (
               <span className="text-zinc-600 font-black text-sm">VS</span>
             )}
-            {/* Status label under score on mobile */}
+            {/* Status label under score */}
             <span className={`mt-1 text-[10px] font-black tracking-widest ${isLive ? "text-red-400" : "text-zinc-500"}`}>
               {isLive ? "LIVE" : isFinished ? "FT" : ""}
             </span>
@@ -345,9 +363,19 @@ export default function MatchCard({
 
           {/* Team 2 */}
           <div className="flex items-center gap-1.5 min-w-0 flex-1">
-            <img src={match.team2_crest || "/placeholder-team.png"} className="w-6 h-6 sm:w-8 sm:h-8 object-contain shrink-0" />
-            <span className="text-sm sm:text-base font-black truncate">{match.team2}</span>
+            <div className="relative shrink-0">
+              <img src={match.team2_crest || "/placeholder-team.png"} className="w-6 h-6 sm:w-8 sm:h-8 object-contain" />
+              {winner === "team2" && (
+                <span className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 rounded-full bg-emerald-500 flex items-center justify-center text-[7px] font-black text-white leading-none">W</span>
+              )}
+            </div>
+            <span className={`text-sm sm:text-base font-black truncate transition-colors ${
+              winner === "team2" ? "text-white" : winner === "team1" ? "text-zinc-500" : ""
+            }`}>{match.team2}</span>
           </div>
+          </div>
+          );
+        })()}
 
           {/* Chevron */}
           <motion.span

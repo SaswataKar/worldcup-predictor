@@ -615,8 +615,11 @@ export default function Home() {
       match_id: matchId,
       prediction_type: "standard",
       predicted_result: selectedResult,
-      predicted_team1_score: Number(homeScore),
-      predicted_team2_score: Number(awayScore),
+      predicted_team1_score: isPK ? 0 : Number(homeScore),
+      predicted_team2_score: isPK ? 0 : Number(awayScore),
+      predicted_penalty: isPK || undefined,
+      predicted_pk_team1_score: isPK ? Number(pkHome) : null,
+      predicted_pk_team2_score: isPK ? Number(pkAway) : null,
       booster_used: "none",
       updated_at: new Date().toISOString(),
     };
