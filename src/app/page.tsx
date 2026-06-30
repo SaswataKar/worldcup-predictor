@@ -27,9 +27,51 @@ const BOOSTER_NAMES: Record<string, string> = { "2x": BOOSTER_LABEL("2x"), "3x":
 
 function ResultOutcomeBadge({ match, pred }: { match: Match; pred: Prediction | undefined }) {
   if (!pred) return <span className="text-zinc-600 text-xs font-bold">No prediction</span>;
+
+  const actualPenalty = !!match.actual_penalty;
+  const predPenalty = !!pred.predicted_penalty;
+
+  // Determine actual winner (PK winner takes precedence over ET draw)
+  const etResult = (match.team1_score ?? 0) > (match.team2_score ?? 0) ? "h"
+    : (match.team2_score ?? 0) > (match.team1_score ?? 0) ? "a" : "d";
+  const pkWinner = actualPenalty && match.actual_pk_team1_score != null && match.actual_pk_team2_score != null
+    ? (match.actual_pk_team1_score > match.actual_pk_team2_score ? "h" : "a")
+    : null;
+  const actualResult = pkWinner ?? etResult;
+
+  if (predPenalty && actualPenalty) {
+    // Both predicted and went to PK — check PK score exactness then PK winner
+    const exactPK = pred.predicted_pk_team1_score === match.actual_pk_team1_score
+      && pred.predicted_pk_team2_score === match.actual_pk_team2_score;
+    const predPKWinner = (pred.predicted_pk_team1_score ?? 0) > (pred.predicted_pk_team2_score ?? 0) ? "h" : "a";
+    const correctPKWinner = pkWinner === predPKWinner;
+    return (
+      <span className={`px-2.5 py-1 rounded-full text-[11px] font-black border ${
+        exactPK ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-400" :
+        correctPKWinner ? "bg-blue-500/15 border-blue-500/25 text-blue-400" :
+        "bg-zinc-800 border-zinc-700 text-zinc-500"
+      }`}>
+        {exactPK ? "✨ Exact PK" : correctPKWinner ? "✅ Correct" : "✗ Wrong"}
+      </span>
+    );
+  }
+
+  if (predPenalty && !actualPenalty) {
+    // Predicted PK but match decided in normal/extra time — check if winner matches
+    const correctWinner = pred.predicted_result === (actualResult === "h" ? "team1" : "team2");
+    return (
+      <span className={`px-2.5 py-1 rounded-full text-[11px] font-black border ${
+        correctWinner ? "bg-blue-500/15 border-blue-500/25 text-blue-400" : "bg-zinc-800 border-zinc-700 text-zinc-500"
+      }`}>
+        {correctWinner ? "✅ Correct" : "✗ Wrong"}
+      </span>
+    );
+  }
+
+  // Normal prediction
   const isExact = pred.predicted_team1_score === match.team1_score && pred.predicted_team2_score === match.team2_score;
-  const actualResult = (match.team1_score ?? 0) > (match.team2_score ?? 0) ? "h" : (match.team2_score ?? 0) > (match.team1_score ?? 0) ? "a" : "d";
-  const predResult = pred.predicted_team1_score > pred.predicted_team2_score ? "h" : pred.predicted_team2_score > pred.predicted_team1_score ? "a" : "d";
+  const predResult = pred.predicted_team1_score > pred.predicted_team2_score ? "h"
+    : pred.predicted_team2_score > pred.predicted_team1_score ? "a" : "d";
   const isCorrect = !isExact && actualResult === predResult;
   return (
     <span className={`px-2.5 py-1 rounded-full text-[11px] font-black border ${
@@ -117,42 +159,71 @@ function ResultsView({
             <div key={match.id} className="rounded-3xl border border-white/[0.08] backdrop-blur-md overflow-hidden shadow-[0_0_0_1px_rgba(255,255,255,0.04),inset_0_1px_0_rgba(255,255,255,0.06)]">
 
               {/* SCORE HEADER */}
-              <div className="px-4 sm:px-6 py-5 bg-white/[0.02]">
-                <div className="flex items-center justify-between gap-4 flex-wrap">
-                  {/* Teams + score */}
-                  <div className="flex items-center gap-3 sm:gap-6 min-w-0 flex-1">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <img src={match.team1_crest || "/placeholder-team.png"} className="w-8 h-8 sm:w-10 sm:h-10 object-contain shrink-0" />
-                      <span className="font-black text-sm sm:text-base truncate">{match.team1}</span>
-                    </div>
-                    <div className="shrink-0 text-center">
-                      <div className="text-2xl sm:text-3xl font-black tabular-nums">
-                        {match.team1_score} <span className="text-zinc-600">–</span> {match.team2_score}
+              {(() => {
+                const pkWinner = match.actual_penalty && match.actual_pk_team1_score != null && match.actual_pk_team2_score != null
+                  ? (match.actual_pk_team1_score > match.actual_pk_team2_score ? "team1" : "team2")
+                  : null;
+                const scoreWinner = match.team1_score != null && match.team2_score != null && match.team1_score !== match.team2_score
+                  ? (match.team1_score > match.team2_score ? "team1" : "team2")
+                  : null;
+                const winner = pkWinner ?? scoreWinner;
+                return (
+                <div className="px-4 sm:px-6 py-5 bg-white/[0.02]">
+                  <div className="flex items-center justify-between gap-4 flex-wrap">
+                    {/* Teams + score */}
+                    <div className="flex items-center gap-3 sm:gap-6 min-w-0 flex-1">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="relative shrink-0">
+                          <img src={match.team1_crest || "/placeholder-team.png"} className="w-8 h-8 sm:w-10 sm:h-10 object-contain" />
+                          {winner === "team1" && (
+                            <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center text-[8px] font-black text-white leading-none">W</span>
+                          )}
+                        </div>
+                        <span className={`font-black text-sm sm:text-base truncate ${winner === "team2" ? "text-zinc-500" : "text-white"}`}>{match.team1}</span>
                       </div>
-                      <div className="text-[10px] uppercase tracking-widest text-zinc-600 mt-0.5">Final</div>
+                      <div className="shrink-0 text-center">
+                        <div className="text-2xl sm:text-3xl font-black tabular-nums">
+                          {match.team1_score} <span className="text-zinc-600">–</span> {match.team2_score}
+                        </div>
+                        {match.actual_penalty && match.actual_pk_team1_score != null && match.actual_pk_team2_score != null ? (
+                          <div className="text-[11px] font-black text-amber-400 mt-0.5">
+                            Pen {match.actual_pk_team1_score}–{match.actual_pk_team2_score}
+                          </div>
+                        ) : (
+                          <div className="text-[10px] uppercase tracking-widest text-zinc-600 mt-0.5">Final</div>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className={`font-black text-sm sm:text-base truncate ${winner === "team1" ? "text-zinc-500" : "text-white"}`}>{match.team2}</span>
+                        <div className="relative shrink-0">
+                          <img src={match.team2_crest || "/placeholder-team.png"} className="w-8 h-8 sm:w-10 sm:h-10 object-contain" />
+                          {winner === "team2" && (
+                            <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center text-[8px] font-black text-white leading-none">W</span>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2 min-w-0">
-                      <img src={match.team2_crest || "/placeholder-team.png"} className="w-8 h-8 sm:w-10 sm:h-10 object-contain shrink-0" />
-                      <span className="font-black text-sm sm:text-base truncate">{match.team2}</span>
-                    </div>
-                  </div>
 
-                  {/* Prediction summary */}
-                  <div className="flex items-center gap-2 flex-wrap text-xs shrink-0">
-                    {pred && (
-                      <span className="px-3 py-1.5 rounded-xl bg-zinc-800 border border-zinc-700 font-black tabular-nums text-sm">
-                        🎯 {pred.predicted_team1_score}–{pred.predicted_team2_score}
-                      </span>
-                    )}
-                    <ResultOutcomeBadge match={match} pred={pred} />
-                    {(pred?.awarded_points ?? 0) > 0 && (
-                      <span className="px-3 py-1.5 rounded-xl bg-yellow-400/10 border border-yellow-400/25 text-yellow-300 font-black text-sm">
-                        +{pred!.awarded_points} 🏆
-                      </span>
-                    )}
+                    {/* Prediction summary */}
+                    <div className="flex items-center gap-2 flex-wrap text-xs shrink-0">
+                      {pred && (
+                        <span className="px-3 py-1.5 rounded-xl bg-zinc-800 border border-zinc-700 font-black tabular-nums text-sm">
+                          🎯 {pred.predicted_penalty
+                            ? `⚽ Pen ${pred.predicted_pk_team1_score}–${pred.predicted_pk_team2_score}`
+                            : `${pred.predicted_team1_score}–${pred.predicted_team2_score}`}
+                        </span>
+                      )}
+                      <ResultOutcomeBadge match={match} pred={pred} />
+                      {(pred?.awarded_points ?? 0) > 0 && (
+                        <span className="px-3 py-1.5 rounded-xl bg-yellow-400/10 border border-yellow-400/25 text-yellow-300 font-black text-sm">
+                          +{pred!.awarded_points} 🏆
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
+                );
+              })()}
 
               {/* EVENTS — goals + cards */}
               {(goals.length > 0 || bookings.length > 0) && (
