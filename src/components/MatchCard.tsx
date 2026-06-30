@@ -314,8 +314,8 @@ export default function MatchCard({
         className="w-full px-3 sm:px-6 py-4 sm:py-5 text-left"
       >
         {/* ROW 1: Teams + Score + chevron */}
-        {(() => {
-          // Winner determination for finished matches
+        {/* Winner determination for finished matches */}
+        {((): JSX.Element => {
           const pkWinner = match.actual_penalty && match.actual_pk_team1_score != null && match.actual_pk_team2_score != null
             ? (match.actual_pk_team1_score > match.actual_pk_team2_score ? "team1" : "team2")
             : null;
@@ -323,69 +323,66 @@ export default function MatchCard({
             ? (match.team1_score > match.team2_score ? "team1" : "team2")
             : null;
           const winner = pkWinner ?? scoreWinner;
-
           return (
-          <div className="flex items-center gap-2 sm:gap-4">
-          {/* Team 1 */}
-          <div className="flex items-center gap-1.5 min-w-0 flex-1 justify-end">
-            <span className={`text-sm sm:text-base font-black truncate transition-colors ${
-              winner === "team1" ? "text-white" : winner === "team2" ? "text-zinc-500" : ""
-            }`}>{match.team1}</span>
-            <div className="relative shrink-0">
-              <img src={match.team1_crest || "/placeholder-team.png"} className="w-6 h-6 sm:w-8 sm:h-8 object-contain" />
-              {winner === "team1" && (
-                <span className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 rounded-full bg-emerald-500 flex items-center justify-center text-[7px] font-black text-white leading-none">W</span>
-              )}
-            </div>
-          </div>
+            <div className="flex items-center gap-2 sm:gap-4">
+              {/* Team 1 */}
+              <div className="flex items-center gap-1.5 min-w-0 flex-1 justify-end">
+                <span className={`text-sm sm:text-base font-black truncate transition-colors ${
+                  winner === "team1" ? "text-white" : winner === "team2" ? "text-zinc-500" : ""
+                }`}>{match.team1}</span>
+                <div className="relative shrink-0">
+                  <img src={match.team1_crest || "/placeholder-team.png"} className="w-6 h-6 sm:w-8 sm:h-8 object-contain" />
+                  {winner === "team1" && (
+                    <span className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 rounded-full bg-emerald-500 flex items-center justify-center text-[7px] font-black text-white leading-none">W</span>
+                  )}
+                </div>
+              </div>
 
-          {/* Score / VS */}
-          <div className="flex flex-col items-center shrink-0 min-w-[52px] sm:min-w-[64px]">
-            {(isFinished || isLive || match.team1_score != null) ? (
-              <>
-                <span className={`text-lg sm:text-xl font-black tabular-nums leading-none ${isLive ? "text-red-300" : "text-white"}`}>
-                  {match.team1_score ?? "?"}–{match.team2_score ?? "?"}
-                </span>
-                {match.actual_penalty && match.actual_pk_team1_score != null && match.actual_pk_team2_score != null && (
-                  <span className="text-[10px] font-black text-amber-400 tabular-nums mt-0.5">
-                    Pen {match.actual_pk_team1_score}–{match.actual_pk_team2_score}
-                  </span>
+              {/* Score / VS */}
+              <div className="flex flex-col items-center shrink-0 min-w-[52px] sm:min-w-[64px]">
+                {(isFinished || isLive || match.team1_score != null) ? (
+                  <>
+                    <span className={`text-lg sm:text-xl font-black tabular-nums leading-none ${isLive ? "text-red-300" : "text-white"}`}>
+                      {match.team1_score ?? "?"}–{match.team2_score ?? "?"}
+                    </span>
+                    {match.actual_penalty && match.actual_pk_team1_score != null && match.actual_pk_team2_score != null && (
+                      <span className="text-[10px] font-black text-amber-400 tabular-nums mt-0.5">
+                        Pen {match.actual_pk_team1_score}–{match.actual_pk_team2_score}
+                      </span>
+                    )}
+                  </>
+                ) : (
+                  <span className="text-zinc-600 font-black text-sm">VS</span>
                 )}
-              </>
-            ) : (
-              <span className="text-zinc-600 font-black text-sm">VS</span>
-            )}
-            {/* Status label under score */}
-            <span className={`mt-1 text-[10px] font-black tracking-widest ${isLive ? "text-red-400" : "text-zinc-500"}`}>
-              {isLive ? "LIVE" : isFinished ? "FT" : ""}
-            </span>
-          </div>
+                <span className={`mt-1 text-[10px] font-black tracking-widest ${isLive ? "text-red-400" : "text-zinc-500"}`}>
+                  {isLive ? "LIVE" : isFinished ? "FT" : ""}
+                </span>
+              </div>
 
-          {/* Team 2 */}
-          <div className="flex items-center gap-1.5 min-w-0 flex-1">
-            <div className="relative shrink-0">
-              <img src={match.team2_crest || "/placeholder-team.png"} className="w-6 h-6 sm:w-8 sm:h-8 object-contain" />
-              {winner === "team2" && (
-                <span className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 rounded-full bg-emerald-500 flex items-center justify-center text-[7px] font-black text-white leading-none">W</span>
-              )}
+              {/* Team 2 */}
+              <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                <div className="relative shrink-0">
+                  <img src={match.team2_crest || "/placeholder-team.png"} className="w-6 h-6 sm:w-8 sm:h-8 object-contain" />
+                  {winner === "team2" && (
+                    <span className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 rounded-full bg-emerald-500 flex items-center justify-center text-[7px] font-black text-white leading-none">W</span>
+                  )}
+                </div>
+                <span className={`text-sm sm:text-base font-black truncate transition-colors ${
+                  winner === "team2" ? "text-white" : winner === "team1" ? "text-zinc-500" : ""
+                }`}>{match.team2}</span>
+              </div>
+
+              {/* Chevron */}
+              <motion.span
+                animate={{ rotate: expanded ? 180 : 0 }}
+                transition={{ duration: 0.22, ease: [0.25, 0.1, 0.25, 1] }}
+                className="text-zinc-500 text-lg leading-none shrink-0"
+              >
+                ⌄
+              </motion.span>
             </div>
-            <span className={`text-sm sm:text-base font-black truncate transition-colors ${
-              winner === "team2" ? "text-white" : winner === "team1" ? "text-zinc-500" : ""
-            }`}>{match.team2}</span>
-          </div>
-          </div>
           );
         })()}
-
-          {/* Chevron */}
-          <motion.span
-            animate={{ rotate: expanded ? 180 : 0 }}
-            transition={{ duration: 0.22, ease: [0.25, 0.1, 0.25, 1] }}
-            className="text-zinc-500 text-lg leading-none shrink-0"
-          >
-            ⌄
-          </motion.span>
-        </div>
 
         {/* ROW 2: Meta row — status, kickoff, prediction, points, booster */}
         <div className="flex items-center gap-2 flex-wrap mt-2.5 text-xs font-semibold">
