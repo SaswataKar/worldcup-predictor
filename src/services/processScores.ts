@@ -49,13 +49,9 @@ export const processScores = async (matches: any[]) => {
         let points = 0;
 
         if (predictedPenalty && actualPenalty) {
-          // Both predicted and actual went to penalties
-          // Regular score points: match stored 0-0 for PK predictions, actual is draw → exact if both 0-0, else correct result (draw)
-          if (exactPrediction) {
-            points = homeScore === 0 && awayScore === 0 ? 1 : 2;
-          } else if (correctResult) {
-            points = 1;
-          }
+          // User submitted 0-0 as their ET score when enabling PK mode, which means they
+          // correctly predicted a draw → always 1pt for correct result.
+          points = 1;
           // PK scoring: exact PK score = 3pts, correct PK winner = 1pt
           if (actualPKHome !== null && actualPKAway !== null && predictedPKHome !== null && predictedPKAway !== null) {
             if (predictedPKHome === actualPKHome && predictedPKAway === actualPKAway) {

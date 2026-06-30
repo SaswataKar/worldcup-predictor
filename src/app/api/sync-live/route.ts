@@ -150,9 +150,19 @@ export async function GET(req: NextRequest) {
     const sbEvent = scoreboard?.events?.find((e: any) => e.id === dbMatch.espn_event_id);
     const sbComp = sbEvent?.competitions?.[0];
 
+    // Also read PK scores from the summary header competitors (more reliable than scoreboard)
+    const summaryHomePK = homeComp?.shootoutScore ?? null;
+    const summaryAwayPK = awayComp?.shootoutScore ?? null;
+    const summaryHasPenalty = summaryHomePK != null && summaryAwayPK != null;
+
     if (sbComp) {
-      const { homeScore, awayScore, goals, bookings, substitutions, hasPenalty, homePKScore, awayPKScore } =
+      const { homeScore, awayScore, goals, bookings, substitutions, hasPenalty: sbHasPenalty, homePKScore: sbHomePK, awayPKScore: sbAwayPK } =
         extractMatchData(sbComp, homeTeamId, dbHomeIsESPNHome);
+
+      // Prefer scoreboard PK data, fall back to summary header PK data
+      const hasPenalty = sbHasPenalty || summaryHasPenalty;
+      const homePKScore = sbHasPenalty ? sbHomePK : (summaryHasPenalty ? Number(summaryHomePK) : null);
+      const awayPKScore = sbHasPenalty ? sbAwayPK : (summaryHasPenalty ? Number(summaryAwayPK) : null);
 
       await supabaseServer.from("matches").update({
         status: mapStatus(espnStatus, espnState),
@@ -176,6 +186,11 @@ export async function GET(req: NextRequest) {
         status: mapStatus(espnStatus, espnState),
         team1_score: dbHomeIsESPNHome ? homeScore : awayScore,
         team2_score: dbHomeIsESPNHome ? awayScore : homeScore,
+        ...(summaryHasPenalty ? {
+          actual_penalty: true,
+          actual_pk_team1_score: dbHomeIsESPNHome ? Number(summaryHomePK) : Number(summaryAwayPK),
+          actual_pk_team2_score: dbHomeIsESPNHome ? Number(summaryAwayPK) : Number(summaryHomePK),
+        } : {}),
       }).eq("id", dbMatch.id);
       updated++;
     }
